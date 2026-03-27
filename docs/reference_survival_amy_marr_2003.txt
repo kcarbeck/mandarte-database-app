@@ -1,0 +1,64 @@
+X-Sender: amarr@pop.interchange.ubc.ca
+Date: Thu, 27 Feb 2003 18:17:18 -0800
+To: lk37n@udcf.gla.ac.uk, smith@zoology.ubc.ca, wmh6@cornell.edu, arcese@interchange.ubc.ca, serunyan@interchange.ubc.ca, wilsonwa@interchange.ubc.ca
+From: Amy Marr <amarr@interchange.ubc.ca>
+Subject: OFFICIAL survival file for book
+Mime-Version: 1.0
+
+Hi everyone,
+Attached is the survival file for the book and 2002 in general. 
+This is the official survival file for the book. Do not use any other file please!!!!!! 
+
+How is this file different from one you might have recently received?
+
+1. Birds killed in experiments are censored as per Lukas' recent suggestion (cens=1)
+
+2. The file has a column that allows you to identify birds in feeding experiments in a column called expt.  If expt=0 then not fed.  If expt=3 then fed by Jamie, expt=4.1 or 4.2 then fed by Peter, expt=6 then fed by Wes. I ran an analysis that showed that ONLY Peter's experiment actually affected survival but I assume we are STILL removing all fed and neighbor birds for all feeding experiments! Speak now if you want to remove only Peter's data!!!
+
+File has 4950 lines of data and one line of titles.  It is tab-delimited.
+SAS code for input below:
+DATA survival;  INFILE 'srv2002_book.txt' FIRSTOBS=2 DLM='09'x DSD MISSOVER;  INPUT year combo age sex surv cens is ninecode expt;
+
+
+Notes on construction of the survival file
+
+1. Birds get a line with their age for every year of their life.
+
+2. Birds are in the dataset if they were seen with two independent sightings or a very confident sighting (caught in a net, there were notes that bands double checked, or bird movement mapped by a skilled observer) after April 1st of a given year.  This excludes the weird situation that occassionally a bird seems to be invented once that was not alive for many years.
+
+3. Floater males and unmated males are included in this dataset. (Not necessarily true in Lukas survival files.)
+
+4. Females are included whether or not they bred in a year.
+
+5. Birds get a line at age zero if their band combination was seen at or after day 24. Immigrants do not get a line at age zero, all other birds do.
+
+6. Sex = 0 if the bird is age 0, even if the sex is later discovered.
+
+7. Immigrant age is assumed to be 1 in the first year they are seen on the island.
+
+
+Survival file columns contain the following information:
+
+year comb	bird combination, a relict column, only used now to interact with 
+old files
+
+age  		0=sighted independent from parental care, 1=age 1, etc.
+
+sex 		0=sex unknown, all independent juveniles get a zero, 1=female, 2=male
+
+surv 		survived to next year (1=yes, 0=no)
+
+cens 		censor bird in survival analyses (experiments, died in net, etc)
+		1. Birds killed in experiments are censored as per Lukas' recent suggestion (cens=1)
+
+is		immigrant status, 1=immigrant, 0=resident-hatched
+
+ninecode	nine digit bird combination, the one you should use please!
+
+expt		experiment
+
+notes		notes about experiment or other notes
+
+
+
+Amy

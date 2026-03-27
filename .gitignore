@@ -1,0 +1,40 @@
+# Data files — never commit raw research data to git
+*.xlsx
+*.xls
+*.csv
+*.sqlite
+*.db
+
+# Environment and secrets
+.env
+.env.local
+.env.production
+supabase/.env
+
+# Node
+node_modules/
+dist/
+build/
+.next/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# R
+.Rhistory
+.Rdata
+.RData
+.Rproj.user/
+renv/library/
+renv/staging/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/

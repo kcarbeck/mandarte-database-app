@@ -1,0 +1,117 @@
+
+The current version of the survival file is called srv2003.txt.
+
+This file describes the construction of the survival file.
+
+Notes on construction of the survival file
+1. Birds get a line with their age for every year of their life.
+2. Birds are in the dataset if they were seen with two independent sightings or a very confident sighting (caught in a net, there were notes that bands double checked, or bird movement mapped by a skilled observer) after April 1st of a given year.  This excludes the weird situation that occassionally a bird seems to be invented once that was not alive for many years.  
+3. Floater males and unmated males are included in this dataset.  (Not necessarily true in Lukas survival files.)
+4. Females are included whether or not they bred in a year.
+5. Birds get a line at age zero if their band combination was seen at or after day 24.  Immigrants do not get a line at age zero, all other birds do.
+6. Sex = 0 if the bird is age 0, even if the sex is later discovered.
+7. Immigrant age is assumed to be 1 in the first year they are seen on the island.
+
+Survival file columns contain the following information (note columns changed later)
+
+year
+comb 		bird combination
+age  		0=sighted independent for survival to age 1
+sex 		0=sex unknown, all juveniles get a zero, 1=female, 2=male
+fc 		inbreeding coefficient
+surv 		survived to next year (1=yes, 0=no)
+ic 		immigrant coefficient or %genes attributable to an immigrant 
+censor 		bird should be censored
+is     		immigrant status, 1=immigrant, 0=resident-hatched
+mom 		bird's mom
+dad 		bird's dad
+mm		mom's mom (maternal grandma)
+md		mom's dad
+dm		dad's mom
+dd		dad's dad 
+truef1		2 if both parents known, 0 otherwise
+truehrt       pedigree category
+dfe		date of clutch initiation for clutch of birth
+
+Note: Ages in this file are believed correct.  Errors are known to exist in the breed files.
+
+File is believed to be accurate thru 2000.  Data for 2001 is preliminary AND known to be incomplete.
+
+srv2001b.txt differs from srv2001.txt because
+1. adults from 1975 to 1980 have been added and I have completed the columns
+   yr comb age sex survival censor immigrant but not other columns
+2. other columns for this period have been filled with dots even if the info
+   is available somewhere
+3. the age of 10822 in srv2001.sas was changed from known to dot because
+   it was discovered that the bird was of unknown age
+4. note that there are 4 immigrants from 1976 to 1979, Lukas agrees with this
+   count 
+5. 37407,37408,and 37418 might have been immigrants or birds that 
+   fledged unbanded in 1975 but I have called them nonimmigrants
+6. data for 2001 is still preliminary
+
+srv2001c.txt differs from srv2001b.txt because
+1. I have added the ninecode as the last column
+
+srv2001d.txt differs from srv2001c.txt because
+1. I have altered the format of the headings so that they read directly into 
+the windows version of SAS, the headings are simpler now
+
+srv2001e.txt differs from srv2001d.txt because
+1. Lukas had two birds that were not in my file in 1980, 2 females, 
+   30758 and 74301, I found a sighting of 30758 in the Mandarte log 
+   book 1, I could not find a place where the second bird was confirmed 
+   but I am assuming it is correct
+2. This alters the survival info for these two birds in the prior year (1979)
+
+srv2001f.txt differs from srv2001e.txt because
+1. I have added some birds alive at age zero before year 7;
+
+srv2001g.txt differs from srv2001h.txt because
+1. All data for birds alive at age zero before year 7 is in the file.
+   The prior file was merely an intermediate; 
+
+srv2001h.txt differs from srv2001g.txt because
+1. I added independent young for year 2001 even though this data is
+   preliminary;
+     
+srv2001i.txt differs from srv2001h.txt because
+1. I dropped a bunch of columns that really shouldn't be in the survival
+   file;
+
+srv2001j.txt differs from srv2001i.txt because
+1. Bird 109137464 was alive in years 2,3,and 4 but was never in the prior file;
+2. Bird 150159205 was added to the file in year 27 and listed as surviving
+   from year 26 rather than dying in year 26; This is the bird that was seen
+   with only a metal band throughout the breeding season in 2002 but that
+   never was correctly identified by his number until 
+   Jane captured him in February 2002 where he was previously on a territory; 
+3. Note there is no data on age zero birds in year 5 unless they were
+   alive in the next year.  Monitoring and sighting of independent 
+   birds was really poor in that year.  We might know about how many were 
+   independent for each nest but we definitely don't know which birds were 
+   the ones surviving to independence from sightings. 
+4. Note that there are no age zero birds in year 6 because we don't know
+   who they are. 
+
+srv2001k.txt differs from srv2001j.txt because
+1. Bird 999930328 was changed to 791330328 to be consistent with breed file
+   and all triplet file.  We don't really know the prefix but we are talking
+   about the same bird!
+
+srv2002.txt adds data for 2002
+
+srv2003.txt adds data for 2003
+
+year	
+comb		5 digit combo, no longer entered in recent years
+age  		0=sighted independent for survival to age 1
+sex 		0=sex unknown, all juveniles get a zero, 1=female, 2=male
+surv 		survived to next year (1=yes, 0=no)
+cens		1 if bird should be censored because human or human expt killed bird
+is     		immigrant status, 1=immigrant, 0=resident-hatched
+ninecode	9 digit combo
+expt		bird in a disruptive experiment that might have influenced survival, see
+       		experiment codes in breed file
+notes
+

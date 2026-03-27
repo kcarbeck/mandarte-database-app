@@ -1,0 +1,159 @@
+
+X-Sender: amarr@pop.interchange.ubc.ca (Unverified)
+Date: Tue, 04 Mar 2003 16:29:23 -0800
+To: Lukas Keller <lk37n@udcf.gla.ac.uk>
+From: Amy Marr <amarr@interchange.ubc.ca>
+Subject: cow failure files
+Mime-Version: 1.0
+
+
+Hi Lukas,
+
+Thanks for the offer to work on the cowbird chapter!  Attached are the
+files you need to make progress.
+
+The cow_failure program addresses the cowbird cause of  failure issue.  It
+calls a specific version of the breed file as described below.
+
+The yearparams macro is called by the cow_failure program.  The yearparams
+macro calls a few datasets (survival and Olga weather that will help you
+with analyses).
+
+****************************************************************************
+******************
+Here are some descriptions of the breed file we will use for the book,
+please read below carefully to understand the file!
+The file has 2517 datalines and a row of titles 
+
+
+Columns which are not named in an obvious way include:
+
+nestrec=nest record, don't worry about this column, it has to do with
+making it easy to track the original way the data was once upon a time
+entered, don't use it  (it is a confusing column because 3 original nests
+had to be removed from the dataset because Jamie figured out that they
+never existed except as placeholders when an assistant was entering data,
+thus there are 2520 original nest records but really only 2517 nests in the
+files now, I really needed a way to flag these missing lines when working
+with older datasets, sound confusing?, don't use the row and you won't have
+a problem!)
+
+terr= territory of nest location in most years, let me know if you need all
+years as it is not complete for some years but I can enter the data in a
+few hours if needed
+
+maleage = age of male
+maleatt = male's attempt number
+femage = age of female
+fematt = female's attempt number
+nestx = x coordinate of nest
+nesty = y coordinate of nest, no one has ever really proofed or worked with
+coordinate data so beware of errors
+
+dfe=. in this column if it could not be estimated because
+1. it was found well after failure and there was really no way to estimate
+when it happened within plus or minus a week
+2. it was found empty and observer guessed it was maybe never actually used
+so there would be no dfe for that attempt (most common scenario)
+3. data was just too poor or confusing to estimate the dfe properly (a real
+effort was made not to allow this except with 1975 because that was just a
+big mess and I couldn't make sense of it)
+
+stagfind = stage of find
+NB=nestbuilding
+MTD=found empty nest, shows signs it once had eggs
+MTUK = found empty nest, nest either never used or already failed after use
+EL = egg laying
+EAF = eggs or shells present in nest but nest found after fail
+IC = incubating
+HY = hatched young
+FY = fledged young
+NFN = never found nest
+UK = unknown (observations too confusing to assign stage of find)
+
+eggslaid = were eggs laid in this nest?
+Y = yes
+U = unknown
+N = no
+
+wholeclutch = was the entire clutch observed?
+Y = yes, bird seen incubating the nest
+N = no or can't be certain because bird was not seen INCUBATING the nest
+
+expt= experiment codes:
+1=1975 brood swap
+2=1979 mate removal
+3=1979 feeding at start of season or close neighbor and with likely access,
+VERY IMPORTANT TO EXCLUDE
+4.1=1985 feeding expt neighbor, VERY IMPORTANT TO EXCLUDE 
+4.2=1985 feeding expt fed bird, VERY IMPORTANT TO EXCLUDE 
+5=1986 cross foster
+6=1988 Wes's feeding expt birds or close neighbor with likely access, VERY
+IMPORTANT TO EXCLUDE
+7=1996 Rothstein egg expt, not sure if this affected nest success
+8=1997,1998 3 nest attempts were disrupted by temperature probe expt,
+female probably abandoned due to temperature probe, other birds were not
+coded because they were not influenced
+
+origdfe=dfe in original breed file, the other dfe column (first in file)
+includes ones that I estimated within a week, do not use this data unless
+to understand why some analysis may have changed slightly from something
+that was previously observed, this was necessary because dfe has not been
+entered consistently thru time, some observers required a much higher level
+of certainty than others and Peter and Jamie wanted certainty within a week 
+
+filenote='PB' if nest was only partly built, these should NOT be counted as
+attempts for cumulative counts because they were only entered in the
+database in some years
+
+
+The file was created from the usual old breed file with a backfill routine
+and weeks of dataproofing.  If indep is a number and fledge is unknown then
+fledge equals indep, fledge is a number and band is unknown then band
+equals fledge, etc.  Why?  Two reasons:  First, this was done in most early
+years anyway! Second, I added the stagfind column so you can AND should
+eliminate data based on stage of find.  By backfilling, the dataset is much
+more consistent across years.  
+
+If there were no eggs or hatchlings recorded for a nest, I actually went
+back to the cards and entered minimum counts of what was observed.  You can
+tell if the whole clutch size was observed from the wholeclutch column.
+This was important because there is info in partial clutches that was being
+lost in important ways in some years but not others thus creating problems
+in all sorts of analyses.  In particular, many nests found during
+nestbuilding or laying fail in cowbird years but they might get eliminated
+in some analyses if the observer in that year did not enter a clutch size
+that was partially complete.  
+
+
+The failcode categories are as follows.
+1	Mouse shit
+2	Shell remains or evidence of yolk
+3	Egg punctured but not eaten, kicked egg outside nest
+4	Lining disturbed or pulled 
+5	Nest tilted
+6	Nest overturned/ demolished/ gone
+7	Vegetation parted or trampled
+8	Female died
+9	Abandoned, all eggs present
+10	Abandoned, egg loss
+11	Sparrow eggs replaced with cowbird eggs and nest abandoned
+12	Empty intact, no signs of disturbance
+13	Mouse shit + egg shells
+14	Mouse shit + lining disturbed
+15	Egg shells + lining disturbed
+16	Lining pulled + nest tilted
+17	Lining pulled + veg parted
+18	Young beaten/ hole in head/ broken legs in nest, chick dead or alive
+outside of nest prior to fledge age but not eaten by the predator
+19	Young starved, intact but dead in nest
+20	Legs or wings of nestlings found in or near nest
+21	Eggs remain in nest but hatched young gone, no signs 
+22	Human accident/ experiment
+23	Other
+24	Success
+
+
+Okay, that's all I can think to say for now.
+
+Amy
