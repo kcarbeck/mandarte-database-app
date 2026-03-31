@@ -143,13 +143,13 @@ function NewNestForm() {
               <label className="block text-xs text-gray-500 mb-1">Male attempt #</label>
               <input type="text" value={form.male_attempt}
                 onChange={e => updateForm('male_attempt', e.target.value)}
-                placeholder="e.g., 1" className="w-24 border rounded-lg px-3 py-2 text-sm" />
+                placeholder="e.g., 1" className="w-full border rounded-lg px-3 py-2 text-sm" />
             </div>
             <div>
               <label className="block text-xs text-gray-500 mb-1">Female attempt #</label>
               <input type="text" value={form.female_attempt}
                 onChange={e => updateForm('female_attempt', e.target.value)}
-                placeholder="e.g., 1" className="w-24 border rounded-lg px-3 py-2 text-sm" />
+                placeholder="e.g., 1" className="w-full border rounded-lg px-3 py-2 text-sm" />
             </div>
           </div>
         </div>

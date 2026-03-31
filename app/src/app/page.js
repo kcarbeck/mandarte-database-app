@@ -378,8 +378,8 @@ export default function Home() {
           { n: stats.visitsToday, label: 'Today', color: 'text-orange-600' },
         ].map(s => (
           <div key={s.label} className="bg-white rounded-lg border p-2 text-center">
-            <div className={`text-xl font-bold ${s.color}`}>{s.n}</div>
-            <div className="text-[9px] text-gray-500">{s.label}</div>
+            <div className={`text-lg font-bold ${s.color}`}>{s.n}</div>
+            <div className="text-[10px] text-gray-500 leading-tight">{s.label}</div>
           </div>
         ))}
       </div>
@@ -396,7 +396,7 @@ export default function Home() {
       <div>
         <div className="flex items-center justify-between mb-1.5">
           <h2 className="text-sm font-semibold text-gray-700">Schedule</h2>
-          <div className="flex flex-wrap gap-1.5 text-[8px] text-gray-500">
+          <div className="flex flex-wrap gap-1.5 text-[10px] text-gray-500">
             <span className="flex items-center gap-0.5"><span className="inline-block w-2 h-2 rounded" style={{ background: '#6ee7b7' }} />Band</span>
             <span className="flex items-center gap-0.5"><span className="inline-block w-2 h-2 rounded" style={{ background: '#fca5a5' }} />Danger</span>
             <span className="flex items-center gap-0.5"><span className="inline-block w-2 h-2 rounded" style={{ background: '#93c5fd' }} />Fledge</span>
@@ -570,22 +570,24 @@ export default function Home() {
               onChange={e => setNewTask({ ...newTask, title: e.target.value })}
               placeholder="What needs to be done?"
               className="w-full border rounded-lg px-3 py-2 text-sm" autoFocus />
-            <div className="flex gap-2">
-              <select value={newTask.priority}
-                onChange={e => setNewTask({ ...newTask, priority: e.target.value })}
-                className="border rounded-lg px-2 py-1.5 text-xs bg-white">
-                <option value="urgent">Urgent</option>
-                <option value="normal">Normal</option>
-                <option value="low">Low</option>
-              </select>
-              <input type="text" value={newTask.territory}
-                onChange={e => setNewTask({ ...newTask, territory: e.target.value })}
-                placeholder="Territory"
-                className="border rounded-lg px-2 py-1.5 text-xs w-20" />
+            <div className="flex flex-col sm:flex-row gap-2">
+              <div className="flex gap-2">
+                <select value={newTask.priority}
+                  onChange={e => setNewTask({ ...newTask, priority: e.target.value })}
+                  className="border rounded-lg px-2 py-2 text-xs bg-white">
+                  <option value="urgent">Urgent</option>
+                  <option value="normal">Normal</option>
+                  <option value="low">Low</option>
+                </select>
+                <input type="text" value={newTask.territory}
+                  onChange={e => setNewTask({ ...newTask, territory: e.target.value })}
+                  placeholder="Territory"
+                  className="border rounded-lg px-2 py-2 text-xs w-24" />
+              </div>
               <input type="text" value={newTask.notes || ''}
                 onChange={e => setNewTask({ ...newTask, notes: e.target.value })}
                 placeholder="Notes"
-                className="flex-1 border rounded-lg px-2 py-1.5 text-xs" />
+                className="flex-1 border rounded-lg px-2 py-2 text-xs" />
             </div>
             <div className="flex gap-2">
               <button type="submit" className="bg-blue-600 text-white rounded-lg px-3 py-1.5 text-xs font-semibold">Save</button>

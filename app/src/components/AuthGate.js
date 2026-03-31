@@ -34,7 +34,7 @@ export default function AuthGate({ children }) {
   if (!authed) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-xl shadow-lg p-6 w-full max-w-sm">
+        <div className="bg-white rounded-xl shadow-lg px-4 py-6 sm:px-6 w-full max-w-sm">
           <h1 className="text-xl font-bold text-gray-900 mb-1">Mandarte Field App</h1>
           <p className="text-sm text-gray-500 mb-6">Enter the field crew password to continue.</p>
           <form onSubmit={handleSubmit}>

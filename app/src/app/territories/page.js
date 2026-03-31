@@ -137,7 +137,7 @@ export default function TerritoriesPage() {
                     {days === null ? 'No visits' : days === 0 ? 'Today' : `${days}d ago`}
                   </span>
                 </div>
-                <div className="flex gap-4 mt-1 text-xs text-gray-600">
+                <div className="flex gap-3 mt-1 text-xs text-gray-600">
                   <span>♂ <span className="font-mono">{birdLabel(terr.male)}</span></span>
                   <span>♀ <span className="font-mono">{birdLabel(terr.female)}</span></span>
                 </div>

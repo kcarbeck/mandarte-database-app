@@ -439,20 +439,20 @@ export default function NestDetailPage({ params }) {
             </div>
             <div className="bg-blue-50 border-x border-blue-200 p-4 space-y-3">
               {/* Date / Time / Observer */}
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label className="block text-[11px] text-blue-800 font-medium mb-0.5">Date *</label>
                   <input type="date" value={visit.visit_date} required
                     onChange={e => setVisit({...visit, visit_date: e.target.value})}
-                    className="w-full border border-blue-200 rounded px-2 py-1.5 text-sm bg-white" />
+                    className="w-full border border-blue-200 rounded px-2 py-2 text-sm bg-white" />
                 </div>
                 <div>
                   <label className="block text-[11px] text-blue-800 font-medium mb-0.5">Time</label>
                   <input type="time" value={visit.visit_time}
                     onChange={e => setVisit({...visit, visit_time: e.target.value})}
-                    className="w-full border border-blue-200 rounded px-2 py-1.5 text-sm bg-white" />
+                    className="w-full border border-blue-200 rounded px-2 py-2 text-sm bg-white" />
                 </div>
-                <div>
+                <div className="col-span-2">
                   <label className="block text-[11px] text-blue-800 font-medium mb-0.5">Observer *</label>
                   <select value={OBSERVER_LIST.includes(visit.observer) ? visit.observer : (visit.observer ? '__other__' : '')}
                     onChange={e => {
@@ -489,7 +489,7 @@ export default function NestDetailPage({ params }) {
                   ].map(s => (
                     <button key={s.v} type="button"
                       onClick={() => setVisit({...visit, nest_stage: visit.nest_stage === s.v ? '' : s.v})}
-                      className={`px-3 py-1.5 rounded-full text-xs font-medium transition ${
+                      className={`px-3 py-2 rounded-full text-xs font-medium transition min-h-[44px] ${
                         visit.nest_stage === s.v
                           ? 'bg-blue-700 text-white shadow'
                           : 'bg-white text-blue-800 border border-blue-200'
@@ -552,21 +552,21 @@ export default function NestDetailPage({ params }) {
               {stage === 'incubating' && (
                 <div className="bg-white rounded-lg p-3 space-y-2 border border-blue-200">
                   <p className="text-xs text-gray-600">How many eggs? Is the female incubating?</p>
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-3 gap-3">
                     <div>
-                      <label className="block text-[11px] text-gray-600 mb-0.5">SOSP eggs</label>
+                      <label className="block text-xs text-gray-600 mb-0.5">SOSP eggs</label>
                       <input type="number" value={visit.egg_count}
                         onChange={e => setVisit({...visit, egg_count: e.target.value})}
                         className="w-full border rounded px-2 py-1.5 text-sm" />
                     </div>
                     <div>
-                      <label className="block text-[11px] text-gray-600 mb-0.5">Cowbird eggs</label>
+                      <label className="block text-xs text-gray-600 mb-0.5">CB eggs</label>
                       <input type="number" value={visit.cowbird_eggs}
                         onChange={e => setVisit({...visit, cowbird_eggs: e.target.value})}
-                        className="w-full border rounded px-2 py-1.5 text-sm" />
+                        className="w-full border rounded px-2 py-2 text-sm" />
                     </div>
                     <div>
-                      <label className="block text-[11px] text-gray-600 mb-0.5">Whole clutch?</label>
+                      <label className="block text-xs text-gray-600 mb-0.5">Whole clutch?</label>
                       <select value={card.whole_clutch}
                         onChange={e => setCard({...card, whole_clutch: e.target.value})}
                         className="w-full border rounded px-2 py-1.5 text-sm bg-white">
@@ -583,25 +583,25 @@ export default function NestDetailPage({ params }) {
               {stage === 'nestling' && (
                 <div className="bg-white rounded-lg p-3 space-y-3 border border-blue-200">
                   <p className="text-xs text-gray-600">How many chicks? What day? If banding today, enter bands below.</p>
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-3 gap-3">
                     <div>
-                      <label className="block text-[11px] text-gray-600 mb-0.5">Chicks in nest</label>
+                      <label className="block text-xs text-gray-600 mb-0.5">Chicks</label>
                       <input type="number" value={visit.chick_count}
                         onChange={e => setVisit({...visit, chick_count: e.target.value})}
-                        className="w-full border rounded px-2 py-1.5 text-sm" />
+                        className="w-full border rounded px-2 py-2 text-sm" />
                     </div>
                     <div>
-                      <label className="block text-[11px] text-gray-600 mb-0.5">Chick age (day)</label>
+                      <label className="block text-xs text-gray-600 mb-0.5">Age (day)</label>
                       <input type="number" value={visit.chick_age_estimate}
                         onChange={e => setVisit({...visit, chick_age_estimate: e.target.value})}
                         placeholder="e.g. 6"
-                        className="w-full border rounded px-2 py-1.5 text-sm" />
+                        className="w-full border rounded px-2 py-2 text-sm" />
                     </div>
                     <div>
-                      <label className="block text-[11px] text-gray-600 mb-0.5">CB chicks</label>
+                      <label className="block text-xs text-gray-600 mb-0.5">CB chicks</label>
                       <input type="number" value={visit.cowbird_chicks}
                         onChange={e => setVisit({...visit, cowbird_chicks: e.target.value})}
-                        className="w-full border rounded px-2 py-1.5 text-sm" />
+                        className="w-full border rounded px-2 py-2 text-sm" />
                     </div>
                   </div>
 
@@ -613,8 +613,8 @@ export default function NestDetailPage({ params }) {
                       Leave blank for unbanded chicks.
                     </p>
                     <div className="grid grid-cols-2 gap-2 mb-1">
-                      <div className="text-[10px] text-gray-400 px-0.5">Metal band # (ninecode)</div>
-                      <div className="text-[10px] text-gray-400 px-0.5">Color combo (e.g. dbm.gr)</div>
+                      <div className="text-xs text-gray-400 px-0.5">Metal band #</div>
+                      <div className="text-xs text-gray-400 px-0.5">Color combo</div>
                     </div>
                     {[1,2,3,4,5].map(i => (
                       <div key={i} className="grid grid-cols-2 gap-2 mb-1.5">
