@@ -115,6 +115,8 @@ COMMENT ON COLUMN birds.is_immigrant IS '0=resident-hatched, 1=immigrant. NULL i
 COMMENT ON COLUMN birds.color_combo IS 'Color band combo, e.g., "Y/G RY/W". Identifies unbanded chicks awaiting banding.';
 COMMENT ON COLUMN birds.is_unbanded IS 'true=unbanded chick. Needs follow-up for actual banding + metal band assignment.';
 COMMENT ON COLUMN birds.field_id IS 'Internal ID from field app. Links field and historical data via band_id.';
+COMMENT ON COLUMN birds.sex IS '0=unknown, 1=female, 2=male. Links to lookup_sex table.';
+COMMENT ON COLUMN birds.notes IS 'Free-text notes about the bird. May include field observations, behavioral notes, or special circumstances.';
 
 
 -- Nest attempt records (mirrors breedfile)
@@ -235,6 +237,16 @@ CREATE TABLE territory_assignments (
     created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 COMMENT ON TABLE territory_assignments IS 'Territory assignment history. Tracks which bird occupied which territory and when, including role (territory_holder vs floater).';
+COMMENT ON COLUMN territory_assignments.assignment_id IS 'Unique identifier for each territory assignment record.';
+COMMENT ON COLUMN territory_assignments.territory IS 'Territory code, e.g., "A1", "B2". References the named territory.';
+COMMENT ON COLUMN territory_assignments.year IS 'Year of the assignment (breeding season year).';
+COMMENT ON COLUMN territory_assignments.band_id IS 'The band ID of the bird assigned to this territory. References birds table.';
+COMMENT ON COLUMN territory_assignments.color_combo IS 'Color band combo of the bird, e.g., "Y/G RY/W". Redundant with band_id but cached for quick reference.';
+COMMENT ON COLUMN territory_assignments.sex IS 'Sex of the bird: 0=unknown, 1=female, 2=male.';
+COMMENT ON COLUMN territory_assignments.role IS 'Role on territory: territory_holder or floater.';
+COMMENT ON COLUMN territory_assignments.start_date IS 'Date the bird first occupied this territory.';
+COMMENT ON COLUMN territory_assignments.end_date IS 'Date assignment ended. NULL = bird is still on this territory.';
+COMMENT ON COLUMN territory_assignments.notes IS 'Free-text notes about the assignment or bird movement.';
 CREATE INDEX idx_ta_territory_year ON territory_assignments(territory, year);
 CREATE INDEX idx_ta_band_id ON territory_assignments(band_id);
 CREATE INDEX idx_ta_current ON territory_assignments(territory, year) WHERE end_date IS NULL;
@@ -289,7 +301,19 @@ CREATE TABLE nest_visits (
     CHECK (nestrec IS NOT NULL OR breed_id IS NOT NULL)
 );
 COMMENT ON TABLE nest_visits IS 'Nest observation log from field app. Visit-by-visit record of nest progression. Links to breed via breed_id.';
+COMMENT ON COLUMN nest_visits.nest_visit_id IS 'Unique identifier for each nest visit record.';
+COMMENT ON COLUMN nest_visits.nestrec IS 'Nest record number (links to breed.nestrec). Optional if breed_id is used.';
+COMMENT ON COLUMN nest_visits.visit_date IS 'Date of the nest visit.';
+COMMENT ON COLUMN nest_visits.visit_time IS 'Time of day the nest was visited.';
+COMMENT ON COLUMN nest_visits.observer IS 'Name or ID of the observer who made the visit.';
+COMMENT ON COLUMN nest_visits.egg_count IS 'Number of eggs observed in the nest.';
+COMMENT ON COLUMN nest_visits.chick_count IS 'Number of chicks observed in the nest.';
+COMMENT ON COLUMN nest_visits.chick_age_estimate IS 'Estimated chick age in days. Day 1 = hatch day. Day 6 = pins breaking (banding age). Used to back-calculate hatch date.';
+COMMENT ON COLUMN nest_visits.cowbird_eggs IS 'Number of cowbird eggs observed in the nest.';
+COMMENT ON COLUMN nest_visits.cowbird_chicks IS 'Number of cowbird chicks observed in the nest.';
 COMMENT ON COLUMN nest_visits.band_combos_seen IS 'JSON array of chick band combos seen during fledge/independence checks.';
+COMMENT ON COLUMN nest_visits.contents_description IS 'Text description of nest contents (eggs, chicks, parasites, etc).';
+COMMENT ON COLUMN nest_visits.comments IS 'Free-text notes. For independence check visits, auto-includes which specific kids were confirmed independent.';
 CREATE INDEX idx_nest_visits_nestrec ON nest_visits(nestrec);
 CREATE INDEX idx_nest_visits_breed_id ON nest_visits(breed_id);
 CREATE INDEX idx_nest_visits_date ON nest_visits(visit_date);
@@ -318,6 +342,24 @@ CREATE TABLE banding_records (
     created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 COMMENT ON TABLE banding_records IS 'Banding records from field app. Tracks physical measurements and band assignment for each bird.';
+COMMENT ON COLUMN banding_records.banding_id IS 'Unique identifier for each banding record.';
+COMMENT ON COLUMN banding_records.band_id IS 'The 9-digit metal band number assigned to this bird. References birds table.';
+COMMENT ON COLUMN banding_records.color_combo IS 'Color band combination applied during this banding, e.g., "Y/G RY/W".';
+COMMENT ON COLUMN banding_records.banding_date IS 'Date the bird was banded.';
+COMMENT ON COLUMN banding_records.banding_time IS 'Time of day banding occurred.';
+COMMENT ON COLUMN banding_records.age_at_banding IS 'Estimated chick age in days at banding. Day 6 = pins breaking (target banding age).';
+COMMENT ON COLUMN banding_records.sex IS 'Sex determined at banding: 0=unknown, 1=female, 2=male.';
+COMMENT ON COLUMN banding_records.weight IS 'Body weight in grams, to 1 decimal place.';
+COMMENT ON COLUMN banding_records.wing IS 'Wing chord measurement in mm, to 1 decimal place.';
+COMMENT ON COLUMN banding_records.tarsus IS 'Tarsus length in mm, to 1 decimal place.';
+COMMENT ON COLUMN banding_records.bill_length IS 'Bill length in mm, to 1 decimal place.';
+COMMENT ON COLUMN banding_records.bill_width IS 'Bill width in mm, to 1 decimal place.';
+COMMENT ON COLUMN banding_records.bill_depth IS 'Bill depth in mm, to 1 decimal place.';
+COMMENT ON COLUMN banding_records.observer IS 'Name or ID of the observer who performed the banding.';
+COMMENT ON COLUMN banding_records.is_recapture IS 'true if this is a recapture of a previously banded bird; false for first banding.';
+COMMENT ON COLUMN banding_records.nest_breed_id IS 'References the nest (breed) from which this chick came, if applicable.';
+COMMENT ON COLUMN banding_records.notes IS 'Free-text notes about the banding event or bird condition.';
+COMMENT ON COLUMN banding_records.proofed IS 'Once TRUE, cannot modify (admin bypass available). Indicates record reviewed and approved.';
 CREATE INDEX idx_banding_records_band_id ON banding_records(band_id);
 CREATE INDEX idx_banding_records_date ON banding_records(banding_date);
 
