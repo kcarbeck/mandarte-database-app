@@ -229,10 +229,13 @@ One row per nest attempt. Mirrors the structure of the breedfile. Also includes 
 | nest_description | TEXT | | Physical description of nest. |
 | date_hatch | INTEGER | | Julian day of hatch (derived from nest visits when available). |
 | proofed | BOOLEAN | NOT NULL, DEFAULT FALSE | TRUE only when year, at least one parent, and eggs_laid are verified. |
+| field_complete | BOOLEAN | NOT NULL, DEFAULT FALSE | Field crew marks true when nest card is fully filled out (all counts, quality flags, outcome). Must pass app-side validation. Next step is proofed=true by PI. |
 | created_at | TIMESTAMP | NOT NULL, DEFAULT CURRENT_TIMESTAMP | When this record was created. |
 | updated_at | TIMESTAMP | NOT NULL, DEFAULT CURRENT_TIMESTAMP | When this record was last updated. |
 
 **Note:** Breed lookup columns (stage_find, fail_code, eggs_laid, whole_clutch, file_note, dfe_quality, eggs_quality, hatch_quality, band_quality, fledge_quality, indep_quality) now have FK constraints to their lookup tables.
+
+**Note:** All foreign keys referencing `birds(band_id)` (male_id, female_id, kid1–kid5) use `ON UPDATE CASCADE`. When an unbanded bird is assigned a real band number, all references update automatically across breed, survival, territory_assignments, territory_visits, and banding_records.
 
 ### 2.4 `territory_visits` — Field Visit Log
 

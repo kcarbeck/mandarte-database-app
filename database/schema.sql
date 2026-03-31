@@ -125,8 +125,8 @@ CREATE TABLE breed (
     study_year            INTEGER,
     territory             TEXT,
     brood                  INTEGER,
-    male_id               BIGINT REFERENCES birds(band_id),
-    female_id             BIGINT REFERENCES birds(band_id),
+    male_id               BIGINT REFERENCES birds(band_id) ON UPDATE CASCADE,
+    female_id             BIGINT REFERENCES birds(band_id) ON UPDATE CASCADE,
     male_age              TEXT,
     male_attempt          TEXT,
     female_age            TEXT,
@@ -153,11 +153,11 @@ CREATE TABLE breed (
     cow_hatch             INTEGER,
     cow_band              TEXT,
     cow_fledge            TEXT,
-    kid1                  BIGINT REFERENCES birds(band_id),
-    kid2                  BIGINT REFERENCES birds(band_id),
-    kid3                  BIGINT REFERENCES birds(band_id),
-    kid4                  BIGINT REFERENCES birds(band_id),
-    kid5                  BIGINT REFERENCES birds(band_id),
+    kid1                  BIGINT REFERENCES birds(band_id) ON UPDATE CASCADE,
+    kid2                  BIGINT REFERENCES birds(band_id) ON UPDATE CASCADE,
+    kid3                  BIGINT REFERENCES birds(band_id) ON UPDATE CASCADE,
+    kid4                  BIGINT REFERENCES birds(band_id) ON UPDATE CASCADE,
+    kid5                  BIGINT REFERENCES birds(band_id) ON UPDATE CASCADE,
     stage_find            TEXT REFERENCES lookup_stagfind(code),
     recruits              INTEGER,
     eggs_laid             TEXT REFERENCES lookup_eggslaid(code),
@@ -176,6 +176,7 @@ CREATE TABLE breed (
     nest_description      TEXT,
     date_hatch            INTEGER,
     proofed               BOOLEAN NOT NULL DEFAULT FALSE,
+    field_complete        BOOLEAN NOT NULL DEFAULT FALSE,
     created_at            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     CHECK (proofed = false OR (year IS NOT NULL AND (male_id IS NOT NULL OR female_id IS NOT NULL) AND eggs_laid IS NOT NULL))
@@ -183,6 +184,7 @@ CREATE TABLE breed (
 COMMENT ON TABLE breed IS 'Nest attempt records. Mirror of breedfile. One row per nest attempt, also includes unmated males with territories.';
 COMMENT ON COLUMN breed.band IS 'Number of chicks at banding age (~day 6). NOT the count of chicks banded with metal bands.';
 COMMENT ON COLUMN breed.proofed IS 'Once TRUE, cannot modify (admin bypass available). Indicates record reviewed and approved.';
+COMMENT ON COLUMN breed.field_complete IS 'Field crew marks true when nest card is fully filled out (all counts, quality flags, outcome). Must pass validation before setting. Next step after field_complete is proofed=true by PI.';
 CREATE INDEX idx_breed_year ON breed(year);
 CREATE INDEX idx_breed_territory ON breed(territory);
 CREATE INDEX idx_breed_male_id ON breed(male_id);
@@ -192,7 +194,7 @@ CREATE INDEX idx_breed_female_id ON breed(female_id);
 -- Bird-year survival records (mirrors survival file)
 CREATE TABLE survival (
     survival_id  BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    band_id      BIGINT NOT NULL REFERENCES birds(band_id),
+    band_id      BIGINT NOT NULL REFERENCES birds(band_id) ON UPDATE CASCADE,
     study_year   INTEGER NOT NULL,
     year         INTEGER NOT NULL CHECK (year >= 1975),
     age          INTEGER NOT NULL CHECK (age >= 0 AND age <= 15),
@@ -221,7 +223,7 @@ CREATE TABLE territory_assignments (
     assignment_id    BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     territory        TEXT NOT NULL,
     year             INTEGER NOT NULL CHECK (year >= 1975),
-    band_id          BIGINT REFERENCES birds(band_id),
+    band_id          BIGINT REFERENCES birds(band_id) ON UPDATE CASCADE,
     color_combo      TEXT,
     sex              INTEGER NOT NULL REFERENCES lookup_sex(code),
     role             TEXT NOT NULL DEFAULT 'territory_holder' CHECK (role IN ('territory_holder', 'floater')),
@@ -247,10 +249,10 @@ CREATE TABLE territory_visits (
     visit_time          TIME,
     observer            TEXT NOT NULL,
     male_seen           BOOLEAN,
-    male_band_id        BIGINT REFERENCES birds(band_id),
+    male_band_id        BIGINT REFERENCES birds(band_id) ON UPDATE CASCADE,
     male_color_combo    TEXT,
     female_seen         BOOLEAN,
-    female_band_id      BIGINT REFERENCES birds(band_id),
+    female_band_id      BIGINT REFERENCES birds(band_id) ON UPDATE CASCADE,
     female_color_combo  TEXT,
     minutes_spent       INTEGER,
     other_birds         JSONB,
@@ -296,7 +298,7 @@ CREATE INDEX idx_nest_visits_date ON nest_visits(visit_date);
 -- Banding records (field app)
 CREATE TABLE banding_records (
     banding_id       BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    band_id          BIGINT NOT NULL REFERENCES birds(band_id),
+    band_id          BIGINT NOT NULL REFERENCES birds(band_id) ON UPDATE CASCADE,
     color_combo      TEXT,
     banding_date     DATE,
     banding_time     TIME,

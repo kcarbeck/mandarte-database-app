@@ -8,6 +8,7 @@ import { birdLabel } from '@/lib/helpers'
 export default function NestsPage() {
   const [nests, setNests] = useState([])
   const [parentMap, setParentMap] = useState({})
+  const [birdMap, setBirdMap] = useState({})
   const [loading, setLoading] = useState(true)
   const currentYear = new Date().getFullYear()
 
@@ -25,8 +26,22 @@ export default function NestsPage() {
 
       setNests(data || [])
 
-      // Gather all unique territories to look up parent assignments
+      // Look up parent bird info for all nests
       if (data && data.length > 0) {
+        // Direct parent IDs from breed records
+        const parentIds = [...new Set(
+          data.flatMap(n => [n.male_id, n.female_id]).filter(Boolean)
+        )]
+        const bMap = {}
+        if (parentIds.length > 0) {
+          const { data: birds } = await supabase.from('birds')
+            .select('band_id, color_combo, is_unbanded, sex')
+            .in('band_id', parentIds)
+          if (birds) birds.forEach(b => { bMap[b.band_id] = b })
+        }
+        setBirdMap(bMap)
+
+        // Also gather territory assignments for nests without explicit parents
         const territories = [...new Set(data.map(n => n.territory).filter(Boolean))]
         const { data: assignments } = await supabase
           .from('territory_assignments')
@@ -93,20 +108,29 @@ export default function NestsPage() {
               <Link
                 key={nest.breed_id}
                 href={`/nests/${nest.breed_id}`}
-                className="block bg-white rounded-lg border p-3 active:bg-gray-50"
+                className={`block rounded-lg border p-3 active:bg-gray-50 ${
+                  nest.field_complete
+                    ? 'bg-green-50 border-green-300'
+                    : 'bg-white'
+                }`}
               >
                 <div className="flex justify-between items-start">
-                  <div>
+                  <div className="flex items-center gap-2">
                     <span className="font-bold text-sm">{nest.nestrec ? `Nest #${nest.nestrec}` : `Nest (draft ${nest.breed_id})`}</span>
-                    <span className="text-gray-400 text-xs ml-2">Terr {nest.territory}</span>
+                    <span className="text-gray-400 text-xs">Terr {nest.territory}</span>
                   </div>
-                  <span className={`text-xs px-2 py-0.5 rounded ${status.color}`}>
-                    {status.label}
-                  </span>
+                  <div className="flex items-center gap-1.5">
+                    {nest.field_complete && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-200 text-green-800 font-bold">Done</span>
+                    )}
+                    <span className={`text-xs px-2 py-0.5 rounded ${status.color}`}>
+                      {status.label}
+                    </span>
+                  </div>
                 </div>
-                <div className="flex gap-4 mt-1 text-xs text-gray-600">
-                  <span>♂ <span className="font-mono">{birdLabel(parents.male)}</span></span>
-                  <span>♀ <span className="font-mono">{birdLabel(parents.female)}</span></span>
+                <div className="flex gap-3 mt-1 text-xs text-gray-600">
+                  <span>♂ <span className="font-mono">{nest.male_id ? birdLabel(birdMap[nest.male_id] || { band_id: nest.male_id, is_unbanded: nest.male_id < 0 }) : birdLabel(parents.male)}</span></span>
+                  <span>♀ <span className="font-mono">{nest.female_id ? birdLabel(birdMap[nest.female_id] || { band_id: nest.female_id, is_unbanded: nest.female_id < 0 }) : birdLabel(parents.female)}</span></span>
                 </div>
                 <div className="text-xs text-gray-500 mt-1 flex gap-3">
                   {nest.eggs != null && <span>Eggs: {nest.eggs}</span>}

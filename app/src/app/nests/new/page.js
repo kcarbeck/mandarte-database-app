@@ -75,8 +75,10 @@ function NewNestForm() {
 
     setSubmitting(true)
     try {
-      const maleId = male?.band_id > 0 ? male.band_id : null
-      const femaleId = female?.band_id > 0 ? female.band_id : null
+      // Allow unbanded birds (negative band_id) as parents — they're still the parent,
+      // just not banded yet. When banded later, ON UPDATE CASCADE updates all references.
+      const maleId = male?.band_id ?? null
+      const femaleId = female?.band_id ?? null
 
       // nestrec is intentionally NULL — assigned during proofing
       const { data: inserted, error } = await supabase.from('breed').insert({
