@@ -1,0 +1,24 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Mobile-first field app styles */
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Larger touch targets for field use */
+input, select, textarea, button {
+  min-height: 44px;
+  font-size: 16px; /* Prevents iOS zoom on focus */
+}
+
+/* Status colors for task priority */
+.priority-critical { @apply bg-red-100 border-red-400 text-red-800; }
+.priority-due { @apply bg-yellow-100 border-yellow-400 text-yellow-800; }
+.priority-routine { @apply bg-green-100 border-green-400 text-green-800; }
+.priority-supervisor { @apply bg-blue-100 border-blue-400 text-blue-800; }

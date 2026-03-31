@@ -1,7 +1,7 @@
 # Mandarte Island Song Sparrow Study — Database Specification
 
-**Version:** 1.0
-**Date:** March 27, 2026
+**Version:** 2.0
+**Date:** March 31, 2026
 **Author:** Katherine Carbeck, with Claude
 **Status:** Draft
 
@@ -15,7 +15,7 @@ This document specifies the relational database that will serve as the central d
 
 1. **Raw data is sacred.** Original data is never overwritten or deleted. All corrections are tracked as new records with full audit trails. The raw archive layer is append-only.
 2. **Familiar naming.** Working tables mirror the names scientists already know: `survival` (the survival file), `breed` (the breedfile).
-3. **Minimum viable tables.** Five working tables, no more than needed. Additional structure comes from lookup tables and the archive layer.
+3. **Minimum viable tables.** Minimal working tables, no more than needed. Additional structure comes from lookup tables and the archive layer.
 4. **Non-coder friendly.** Scientists interact through a web UI with inline documentation, dropdown pickers for coded fields, and validation that prevents bad data from entering. SQL knowledge is never required.
 5. **Field app integration.** The database is designed to receive structured data from the Mandarte Field Data Collection App, which captures territory visits and nest observations in real time.
 6. **PostgreSQL via Supabase.** Hosted PostgreSQL for multi-user access, built-in authentication, and automatic API generation. Supabase free tier (500MB) is more than sufficient for Mandarte's data volume (~5MB). Provides a web dashboard for visual table browsing and user management without command-line knowledge.
@@ -37,6 +37,10 @@ The "current best" version of the data. Built from Layer 1 with corrections appl
 - `breed` — one row per nest attempt
 - `territory_visits` — field visit log (from app)
 - `nest_visits` — nest observation log (from app)
+- `territory_assignments` — territory occupancy records by year and sex
+- `banding_records` — morphometric and banding audit data
+- `field_tasks` — field task management and tracking
+- `planned_actions` — planned research actions and follow-ups
 
 **Lookup Tables**
 Small reference tables that define valid codes and power UI dropdowns:
@@ -48,6 +52,7 @@ Small reference tables that define valid codes and power UI dropdowns:
 - `lookup_eggslaid`
 - `lookup_wholeclutch`
 - `lookup_filenote`
+- `lookup_quality_flag`
 
 ---
 
@@ -59,9 +64,13 @@ One row per individual bird ever identified on Mandarte. Populated from both the
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
-| band_id | INTEGER | PRIMARY KEY | 9-digit metal band number (ninecode). The unique identifier for every bird. |
+| band_id | BIGINT | PRIMARY KEY | 9-digit metal band number (ninecode). The unique identifier for every bird. |
 | sex | INTEGER | | 0 = unknown (juvenile), 1 = female, 2 = male. May be updated from 0 to 1 or 2 when sex is determined. |
-| is_immigrant | INTEGER | NOT NULL, DEFAULT 0 | 1 = immigrant (not hatched on island), 0 = resident-hatched. |
+| color_combo | TEXT | | Color band combination (e.g., "RY-BW" = red-yellow left, blue-white right). Authoritative source of current combo. |
+| is_unbanded | BOOLEAN | NOT NULL, DEFAULT FALSE | TRUE for birds that have not yet been banded. These use temporary negative band_ids. |
+| unbanded_description | TEXT | | Physical description for unbanded birds (e.g., "limps from right leg"). |
+| field_id | BIGINT | UNIQUE (partial, WHERE NOT NULL) | Temporary ID assigned by the field app. Links back to the app session that created this bird. Preserved after banding for traceability. |
+| is_immigrant | INTEGER | DEFAULT 0 | 1 = immigrant (not hatched on island), 0 = resident-hatched. NULL allowed; field app leaves NULL; historical imports fill it. |
 | natal_year | INTEGER | | Calendar year hatched or first observed (from natalyr2 in survival file, or inferred from first breedfile appearance as a kid). NULL if unknown. |
 | notes | TEXT | | Any notes about this individual (e.g., "fledged unbanded, later identified by genetics"). |
 | created_at | TIMESTAMP | NOT NULL, DEFAULT CURRENT_TIMESTAMP | When this record was created. |
@@ -75,8 +84,8 @@ One row per bird per year it was alive. Mirrors the structure of the survival fi
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
-| survival_id | INTEGER | PRIMARY KEY GENERATED ALWAYS AS IDENTITY | Auto-generated unique row ID. |
-| band_id | INTEGER | NOT NULL, FOREIGN KEY → birds.band_id | 9-digit band number. |
+| survival_id | BIGINT | PRIMARY KEY GENERATED ALWAYS AS IDENTITY | Auto-generated unique row ID. |
+| band_id | BIGINT | NOT NULL, FOREIGN KEY → birds.band_id | 9-digit band number. |
 | study_year | INTEGER | NOT NULL | Study-year index (1 = 1975, 2 = 1976, etc.). From `year1` in original file. |
 | year | INTEGER | NOT NULL | Calendar year (1975–present). From `year2` in original file. |
 | age | INTEGER | NOT NULL | Age in years. 0 = independent juvenile (seen at/after day 24). 1+ = adult age. Immigrants are assumed age 1 in first year. |
@@ -86,6 +95,7 @@ One row per bird per year it was alive. Mirrors the structure of the survival fi
 | is_immigrant | INTEGER | NOT NULL, DEFAULT 0 | 1 = immigrant, 0 = resident-hatched. |
 | experiment | TEXT | DEFAULT '0' | Experiment code. '0' = no experiment. See lookup_experiment for full list. |
 | natal_year | INTEGER | | Calendar year of birth/first appearance. From `natalyr2` in original file. |
+| proofed | BOOLEAN | NOT NULL, DEFAULT FALSE | TRUE only when all core fields are verified. CHECK: proofed requires band_id, year, age, sex, survived, natal_year, and experiment all non-null. |
 | created_at | TIMESTAMP | NOT NULL, DEFAULT CURRENT_TIMESTAMP | When this record was ingested. |
 
 **Unique constraint:** (band_id, year) — a bird can only have one record per year.
@@ -105,6 +115,7 @@ One row per nest attempt. Mirrors the structure of the breedfile. Also includes 
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
+| breed_id | BIGINT | PRIMARY KEY GENERATED ALWAYS AS IDENTITY | Auto-generated unique ID for this breed record. |
 | nestrec | INTEGER | UNIQUE (when not NULL) | Unique nest-attempt ID (consecutive integers). NULL for unmated male territory-holder entries. |
 | year | INTEGER | NOT NULL | Calendar year (1975–present). From `Year` in original file. |
 | study_year | INTEGER | | Study-year index (1 = 1975). From `year` in original file. |
@@ -115,8 +126,8 @@ One row per nest attempt. Mirrors the structure of the breedfile. Also includes 
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
-| male_id | INTEGER | FOREIGN KEY → birds.band_id | 9-digit band ID of social father. |
-| female_id | INTEGER | FOREIGN KEY → birds.band_id | 9-digit band ID of social mother. NULL for unmated male entries. |
+| male_id | BIGINT | FOREIGN KEY → birds.band_id | 9-digit band ID of social father. |
+| female_id | BIGINT | FOREIGN KEY → birds.band_id | 9-digit band ID of social mother. NULL for unmated male entries. |
 | male_age | TEXT | | Age of male in years. '.' if unknown (especially pre-1980). TEXT because original data contains non-numeric values. |
 | male_attempt | TEXT | | Male's attempt number within the season for this individual. |
 | female_age | TEXT | | Age of female in years. '.' if unknown. |
@@ -178,11 +189,11 @@ One row per nest attempt. Mirrors the structure of the breedfile. Also includes 
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
-| kid1 | INTEGER | FOREIGN KEY → birds.band_id | Band ID of first offspring. |
-| kid2 | INTEGER | FOREIGN KEY → birds.band_id | Band ID of second offspring. |
-| kid3 | INTEGER | FOREIGN KEY → birds.band_id | Band ID of third offspring. |
-| kid4 | INTEGER | FOREIGN KEY → birds.band_id | Band ID of fourth offspring. |
-| kid5 | INTEGER | FOREIGN KEY → birds.band_id | Band ID of fifth offspring. |
+| kid1 | BIGINT | FOREIGN KEY → birds.band_id | Band ID of first offspring. |
+| kid2 | BIGINT | FOREIGN KEY → birds.band_id | Band ID of second offspring. |
+| kid3 | BIGINT | FOREIGN KEY → birds.band_id | Band ID of third offspring. |
+| kid4 | BIGINT | FOREIGN KEY → birds.band_id | Band ID of fourth offspring. |
+| kid5 | BIGINT | FOREIGN KEY → birds.band_id | Band ID of fifth offspring. |
 
 **Note:** 5 kid columns is sufficient. In 50 years of data (3,645 nest records), only 5 nests ever used all 5 kid slots. Some fledglings were unbanded yet later recruited; genetics and card notes in the 2010s linked a few such cases.
 
@@ -213,8 +224,15 @@ One row per nest attempt. Mirrors the structure of the breedfile. Also includes 
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
+| nest_height | TEXT | | Height description of nest location. |
+| vegetation | TEXT | | Vegetation type at nest site. |
+| nest_description | TEXT | | Physical description of nest. |
+| date_hatch | INTEGER | | Julian day of hatch (derived from nest visits when available). |
+| proofed | BOOLEAN | NOT NULL, DEFAULT FALSE | TRUE only when year, at least one parent, and eggs_laid are verified. |
 | created_at | TIMESTAMP | NOT NULL, DEFAULT CURRENT_TIMESTAMP | When this record was created. |
 | updated_at | TIMESTAMP | NOT NULL, DEFAULT CURRENT_TIMESTAMP | When this record was last updated. |
+
+**Note:** Breed lookup columns (stage_find, fail_code, eggs_laid, whole_clutch, file_note, dfe_quality, eggs_quality, hatch_quality, band_quality, fledge_quality, indep_quality) now have FK constraints to their lookup tables.
 
 ### 2.4 `territory_visits` — Field Visit Log
 
@@ -222,18 +240,21 @@ One row per visit to a territory. Populated by the field data collection app (no
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
-| visit_id | INTEGER | PRIMARY KEY GENERATED ALWAYS AS IDENTITY | Auto-generated unique ID. |
+| visit_id | BIGINT | PRIMARY KEY GENERATED ALWAYS AS IDENTITY | Auto-generated unique ID. |
 | territory | TEXT | NOT NULL | Territory code (matches breed.territory). |
 | year | INTEGER | NOT NULL | Calendar year. |
 | visit_date | TEXT | NOT NULL | Date of visit (ISO 8601: YYYY-MM-DD). |
 | visit_time | TEXT | | Time of visit (HH:MM). |
 | observer | TEXT | NOT NULL | Name or ID of the field observer. |
-| male_seen | INTEGER | | 1 = male observed, 0 = not observed. |
-| male_band_id | INTEGER | FOREIGN KEY → birds.band_id | Band ID of male observed (confirms identity). |
-| female_seen | INTEGER | | 1 = female observed, 0 = not observed. |
-| female_band_id | INTEGER | FOREIGN KEY → birds.band_id | Band ID of female observed. |
+| male_seen | BOOLEAN | | TRUE = male observed, FALSE = not observed. |
+| male_band_id | BIGINT | FOREIGN KEY → birds.band_id | Band ID of male observed (confirms identity). |
+| male_color_combo | TEXT | | Color band combination of male observed. |
+| female_seen | BOOLEAN | | TRUE = female observed, FALSE = not observed. |
+| female_band_id | BIGINT | FOREIGN KEY → birds.band_id | Band ID of female observed. |
+| female_color_combo | TEXT | | Color band combination of female observed. |
 | minutes_spent | INTEGER | | Estimated time spent on territory (minutes). Free estimate, not a timer — students sometimes monitor adjacent territories simultaneously. |
 | other_birds | TEXT | | Band IDs of other birds seen on territory (comma-separated or JSON). |
+| other_birds_notes | TEXT | | Detailed notes about other birds observed. |
 | nest_status_flag | TEXT | | 'no_change', 'new_nest_found', 'existing_nest_checked'. Links to nest_visits if applicable. |
 | notes | TEXT | NOT NULL | Free-text observations. Must be substantive enough to demonstrate the student was physically present. Behavioral observations, locations within territory, other birds seen. |
 | created_at | TIMESTAMP | NOT NULL, DEFAULT CURRENT_TIMESTAMP | When this record was created. |
@@ -244,8 +265,9 @@ One row per visit to a nest. Populated by the field data collection app. Digital
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
-| nest_visit_id | INTEGER | PRIMARY KEY GENERATED ALWAYS AS IDENTITY | Auto-generated unique ID. |
+| nest_visit_id | BIGINT | PRIMARY KEY GENERATED ALWAYS AS IDENTITY | Auto-generated unique ID. |
 | nestrec | INTEGER | FOREIGN KEY → breed.nestrec | Links to the parent nest attempt. |
+| breed_id | BIGINT | FOREIGN KEY → breed.breed_id | Links to breed record (for field-created nests where nestrec may be NULL). |
 | visit_date | TEXT | NOT NULL | Date of visit (ISO 8601: YYYY-MM-DD). |
 | visit_time | TEXT | | Time of visit (HH:MM). |
 | observer | TEXT | NOT NULL | Name or ID of the field observer. |
@@ -260,6 +282,99 @@ One row per visit to a nest. Populated by the field data collection app. Digital
 | comments | TEXT | | Free-text comments about the visit. |
 | created_at | TIMESTAMP | NOT NULL, DEFAULT CURRENT_TIMESTAMP | When this record was created. |
 
+**Constraint:** nestrec or breed_id must be non-null (at least one parent reference is required).
+
+### 2.6 `territory_assignments` — Territory Occupancy Records
+
+One row per territory occupancy event by year and sex. Tracks which individuals held territories, when they held them, and how the assignment ended.
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| assignment_id | BIGINT | PRIMARY KEY GENERATED ALWAYS AS IDENTITY | Auto-generated unique ID. |
+| territory | TEXT | NOT NULL | Territory code. |
+| year | INTEGER | NOT NULL, CHECK(>=1975) | Calendar year. |
+| band_id | BIGINT | FOREIGN KEY → birds.band_id | Band ID of the individual assigned to this territory. |
+| color_combo | TEXT | | Color band combination (display cache). |
+| sex | INTEGER | NOT NULL | 0 = unknown, 1 = female, 2 = male. |
+| role | TEXT | NOT NULL, DEFAULT 'territory_holder', CHECK('territory_holder','floater') | Role: 'territory_holder' or 'floater'. |
+| start_date | DATE | NOT NULL | Date assignment began. |
+| end_date | DATE | | Date assignment ended (NULL if still active). |
+| departure_reason | TEXT | CHECK(NULL,'replaced','moved','not_seen','confirmed_dead','became_floater','correction') | Reason for departure. |
+| confirmed | BOOLEAN | NOT NULL, DEFAULT FALSE | TRUE if confirmed by multiple observations. |
+| notes | TEXT | | Additional notes about the assignment. |
+| created_at | TIMESTAMPTZ | NOT NULL, DEFAULT NOW() | When this record was created. |
+
+### 2.7 `banding_records` — Morphometric and Banding Audit Data
+
+One row per banding event, capturing morphometric measurements and banding details for audit and quality assurance.
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| banding_id | BIGINT | PRIMARY KEY GENERATED ALWAYS AS IDENTITY | Auto-generated unique ID. |
+| band_id | BIGINT | FOREIGN KEY → birds.band_id | Metal band number assigned. |
+| color_combo | TEXT | NOT NULL | Color band combination applied (e.g., "RY-BW"). |
+| banding_date | DATE | NOT NULL | Date of banding. |
+| banding_time | TEXT | | Time of banding (HH:MM). |
+| age_at_banding | TEXT | | Age code at time of banding (e.g., "D6", "nestling"). |
+| sex | INTEGER | | 0 = unknown, 1 = female, 2 = male (determined at banding or later). |
+| weight | REAL | | Weight in grams. |
+| wing | REAL | | Wing chord in millimeters. |
+| tarsus | REAL | | Tarsus length in millimeters. |
+| bill_length | REAL | | Bill length in millimeters. |
+| bill_width | REAL | | Bill width in millimeters. |
+| bill_depth | REAL | | Bill depth in millimeters. |
+| observer | TEXT | | Name of observer/bander. |
+| is_recapture | BOOLEAN | DEFAULT FALSE | TRUE if this is a recapture of an already-banded bird. |
+| nest_breed_id | BIGINT | FOREIGN KEY → breed.breed_id | If banded as a chick, link to the nest of origin. |
+| notes | TEXT | | Banding notes. |
+| proofed | BOOLEAN | NOT NULL, DEFAULT FALSE | TRUE if morphometric data verified. |
+| created_at | TIMESTAMPTZ | NOT NULL, DEFAULT NOW() | When this record was created. |
+
+### 2.8 `field_tasks` — Field Task Management
+
+One row per task assigned to field observers.
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| task_id | BIGINT | PRIMARY KEY GENERATED ALWAYS AS IDENTITY | Auto-generated unique ID. |
+| task_type | TEXT | NOT NULL | Type of task (e.g., "territory_check", "nest_visit", "banding"). |
+| territory | TEXT | | Territory code (if applicable). |
+| assigned_to | TEXT | | Field observer assigned. |
+| year | INTEGER | NOT NULL | Calendar year. |
+| assigned_date | DATE | NOT NULL | Date task was assigned. |
+| due_date | DATE | | Target completion date. |
+| completed_date | DATE | | Actual completion date. |
+| status | TEXT | DEFAULT 'pending', CHECK('pending','in_progress','completed','cancelled') | Current status. |
+| notes | TEXT | | Task notes and instructions. |
+| created_at | TIMESTAMPTZ | NOT NULL, DEFAULT NOW() | When this record was created. |
+
+### 2.9 `planned_actions` — Planned Research Actions
+
+One row per planned research action or follow-up.
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| action_id | BIGINT | PRIMARY KEY GENERATED ALWAYS AS IDENTITY | Auto-generated unique ID. |
+| action_type | TEXT | NOT NULL | Type of action (e.g., "genetic_sample", "recapture", "resight"). |
+| band_id | BIGINT | FOREIGN KEY → birds.band_id | Individual targeted (if applicable). |
+| year | INTEGER | NOT NULL | Calendar year. |
+| priority | TEXT | DEFAULT 'medium', CHECK('low','medium','high') | Priority level. |
+| planned_date | DATE | | Planned date for action. |
+| completed_date | DATE | | Actual completion date. |
+| status | TEXT | DEFAULT 'planned', CHECK('planned','in_progress','completed','cancelled','deferred') | Current status. |
+| notes | TEXT | | Details and justification. |
+| created_at | TIMESTAMPTZ | NOT NULL, DEFAULT NOW() | When this record was created. |
+
+### 2.10 `staging_birds`, `import_conflicts`, `import_log` — Staging & Import Tables
+
+These tables support data import workflows:
+
+- **staging_birds:** Temporary staging for imported bird records before validation and merge into the main `birds` table.
+- **import_conflicts:** Flagged conflicts detected during import (e.g., duplicate band IDs, inconsistent sex assignments).
+- **import_log:** Audit trail of all import operations, including source file, timestamp, row count, and outcome.
+
+See data import procedures documentation for detailed specifications.
+
 ---
 
 ## 3. Lookup Tables
@@ -270,6 +385,7 @@ These small reference tables define the valid codes for each coded field. They p
 
 | code | description | category |
 |------|-------------|----------|
+| 0 | Missing/unassigned (historical) | Unassigned |
 | 1 | Mouse droppings | Predation sign |
 | 2 | Shell remains or yolk evidence | Predation sign |
 | 3 | Egg punctured but not eaten, kicked egg outside nest | Predation sign |
@@ -301,6 +417,9 @@ These small reference tables define the valid codes for each coded field. They p
 
 | code | description |
 |------|-------------|
+| AF | Nest found after failure (historical anomaly). |
+| B | Broken eggs observed (historical anomaly). |
+| EG | Eggs present (historical anomaly). |
 | NB | Nest building |
 | EL | Egg laying |
 | IC | Incubating (most common — ~69% of historical records) |
@@ -310,6 +429,7 @@ These small reference tables define the valid codes for each coded field. They p
 | MTUK | Found empty nest, nest either never used or already failed after use |
 | EAF | Eggs or shells present in nest but nest found after fail |
 | NFN | Never found nest |
+| NY | Nestling young observed (historical anomaly). |
 | UK | Unknown (observations too confusing to assign stage) |
 
 **Historical anomalies in raw data:** AF (1 record), B (1 record), EG (5 records), NY (1 record). Per project documentation, these are likely data entry errors. They are preserved in the raw archive and flagged for review in the working layer.
@@ -342,6 +462,7 @@ These small reference tables define the valid codes for each coded field. They p
 
 | code | description |
 |------|-------------|
+| . | Missing/not recorded (historical) |
 | Y | Yes, eggs were laid |
 | N | No eggs were laid |
 | U | Unknown |
@@ -352,8 +473,8 @@ These small reference tables define the valid codes for each coded field. They p
 
 | code | description |
 |------|-------------|
-| Y | Yes — bird was seen incubating the nest (confirming complete clutch) |
-| N | No — bird was not seen incubating, or can't be certain clutch was complete |
+| Y | Yes — bird was seen incubating (clutch is complete) |
+| N | No — bird was not seen incubating, so clutch completeness is uncertain |
 
 **Historical anomaly:** lowercase 'y' and '?' appear in raw data. Normalized to 'Y' and 'N' (or flagged) in working layer.
 
@@ -362,6 +483,18 @@ These small reference tables define the valid codes for each coded field. They p
 | code | description |
 |------|-------------|
 | PB | Partly built nest. Should NOT be counted as an attempt in cumulative counts. Only entered in some years. |
+
+### 3.8 `lookup_quality_flag`
+
+| code | description |
+|------|-------------|
+| . | Missing/not recorded (historical default) |
+| ? | Uncertain/estimated |
+| + | Confirmed/direct observation |
+| - | Inferred or uncertain |
+| ?+ | Uncertain/estimated with some confirmation |
+| ?+++ | High confidence estimate |
+| ?- | Uncertain, likely underestimate |
 
 ---
 
@@ -484,8 +617,12 @@ These rules are enforced by the database and/or the application layer. They prev
 | Bird existence | `survival.band_id` must exist in `birds.band_id`. |
 | Parent existence | `breed.male_id` and `breed.female_id` must exist in `birds.band_id` (when not NULL). |
 | Offspring existence | `breed.kid1` through `breed.kid5` must exist in `birds.band_id` (when not NULL). |
-| Nest visit linkage | `nest_visits.nestrec` must exist in `breed.nestrec`. |
+| Breed lookup FKs | `breed.stage_find` → `lookup_stagfind`, `breed.fail_code` → `lookup_failcode`, `breed.eggs_laid` → `lookup_eggslaid`, `breed.whole_clutch` → `lookup_wholeclutch`, `breed.file_note` → `lookup_filenote`, and quality columns → `lookup_quality_flag`. |
+| Nest visit linkage | `nest_visits.nestrec` must exist in `breed.nestrec` OR `nest_visits.breed_id` must exist in `breed.breed_id` (at least one). |
+| Nest visit breed linkage | `nest_visits.breed_id` must exist in `breed.breed_id` (when not NULL). |
 | Territory visit bird linkage | `territory_visits.male_band_id` and `territory_visits.female_band_id` must exist in `birds.band_id` (when not NULL). |
+| Territory assignment linkage | `territory_assignments.band_id` must exist in `birds.band_id` (when not NULL). |
+| Banding record linkage | `banding_records.band_id` must exist in `birds.band_id`; `banding_records.nest_breed_id` → `breed.breed_id` (when not NULL). |
 
 ### 5.2 Uniqueness
 
@@ -641,51 +778,79 @@ These are documented for awareness and should be addressed as a separate data re
 ## 9. Relationship Diagram
 
 ```
-                    ┌──────────────────┐
-                    │      birds       │
-                    │  (master roster) │
-                    │                  │
-                    │  band_id (PK)    │
-                    │  sex             │
-                    │  is_immigrant    │
-                    │  natal_year      │
-                    └────────┬─────────┘
+                    ┌──────────────────────┐
+                    │      birds           │
+                    │  (master roster)     │
+                    │                      │
+                    │  band_id (PK)        │
+                    │  color_combo         │
+                    │  is_unbanded         │
+                    │  is_immigrant        │
+                    │  natal_year          │
+                    └────────┬─────────────┘
                              │
-              ┌──────────────┼──────────────┐
-              │              │              │
-              ▼              ▼              ▼
-   ┌──────────────┐  ┌─────────────┐  ┌──────────────────┐
-   │   survival   │  │    breed    │  │ territory_visits  │
-   │  (bird-year  │  │   (nest     │  │  (field app)      │
-   │   records)   │  │  attempts)  │  │                   │
-   │              │  │             │  │  male_band_id →   │
-   │  band_id →   │  │ male_id →  │  │  female_band_id → │
-   │  birds       │  │ female_id →│  └──────────────────┘
-   └──────────────┘  │ kid1–5 →   │
-                     │ birds      │
-                     └──────┬─────┘
-                            │
-                            ▼
-                     ┌─────────────┐
-                     │ nest_visits  │
-                     │ (field app)  │
-                     │              │
-                     │ nestrec →    │
-                     │ breed        │
-                     └─────────────┘
+                ┌────────────┼────────────┬──────────────┐
+                │            │            │              │
+                ▼            ▼            ▼              ▼
+     ┌──────────────┐  ┌─────────────┐  ┌───────────────────┐  ┌─────────────────┐
+     │   survival   │  │    breed    │  │ territory_visits  │  │ territory_assign │
+     │  (bird-year  │  │   (nest     │  │  (field app)      │  │    ments        │
+     │   records)   │  │  attempts)  │  │                   │  │  (territory      │
+     │              │  │             │  │  male_band_id →   │  │  occupancy)      │
+     │  band_id →   │  │ male_id →   │  │  female_band_id →│  │                 │
+     │  birds       │  │ female_id → │  └───────────────────┘  │  band_id →      │
+     └──────────────┘  │ kid1–5 →    │                          │  birds          │
+                       │ birds       │                          └─────────────────┘
+                       │             │
+                       │ breed_id ←→ │
+                       └──────┬──────┘
+                              │
+                              ▼
+                       ┌─────────────────┐
+                       │  nest_visits    │
+                       │  (field app)    │
+                       │                 │
+                       │  nestrec →      │
+                       │  breed          │
+                       │  breed_id →     │
+                       │  breed          │
+                       └─────────────────┘
+
+                       ┌──────────────────┐
+                       │ banding_records  │
+                       │ (morphometrics)  │
+                       │                  │
+                       │  band_id →       │
+                       │  birds           │
+                       │  nest_breed_id → │
+                       │  breed           │
+                       └──────────────────┘
+
+   Field management (app):
+   ┌─────────────────┐  ┌──────────────────┐
+   │  field_tasks    │  │ planned_actions  │
+   └─────────────────┘  └──────────────────┘
 
    Archive layer (read-only):
    ┌──────────────┐  ┌──────────────┐  ┌──────────────┐
    │ raw_survival │  │  raw_breed   │  │ corrections  │
    └──────────────┘  └──────────────┘  └──────────────┘
 
+   Staging & Import:
+   ┌──────────────────┐  ┌──────────────────┐  ┌──────────────┐
+   │ staging_birds    │  │ import_conflicts │  │ import_log   │
+   └──────────────────┘  └──────────────────┘  └──────────────┘
+
    Lookup tables:
    ┌────────────────┐ ┌──────────────┐ ┌─────────────────┐
    │lookup_failcode │ │lookup_stagfind│ │lookup_experiment│
    └────────────────┘ └──────────────┘ └─────────────────┘
-   ┌────────────┐ ┌─────────────────┐ ┌───────────────────┐
-   │ lookup_sex │ │lookup_eggslaid  │ │lookup_wholeclutch │
-   └────────────┘ └─────────────────┘ └───────────────────┘
+   ┌────────────┐ ┌─────────────────┐ ┌──────────────────┐
+   │ lookup_sex │ │lookup_eggslaid  │ │lookup_wholeclutch│
+   └────────────┘ └─────────────────┘ └──────────────────┘
+   ┌──────────────┐ ┌──────────────────────┐ ┌─────────────────┐
+   │lookup_filenote│ │lookup_quality_flag   │ │lookup_experiment│
+   └──────────────┘ └──────────────────────┘ └─────────────────┘
 ```
 
 ---
