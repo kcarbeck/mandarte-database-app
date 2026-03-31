@@ -5,6 +5,9 @@ import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { getTerritoryResidents, birdLabel, calculateDFE, estimateHatchDate, toJulianDay, fromJulianDay, localDateString, localTimeString } from '@/lib/helpers'
 
+// 2026 field crew — update this list each season
+const OBSERVER_LIST = ['Katherine']
+
 export default function NestDetailPage({ params }) {
   const { nestrec: nestParam } = params
   const nestId = parseInt(nestParam)
@@ -38,6 +41,11 @@ export default function NestDetailPage({ params }) {
 
   // ── Data loading ─────────────────────────────────────────────────────
   useEffect(() => { loadNest(); loadLookups() }, [nestId])
+
+  useEffect(() => {
+    const saved = typeof window !== 'undefined' ? localStorage.getItem('mandarte_observer') : null
+    if (saved) setVisit(v => ({ ...v, observer: saved }))
+  }, [])
 
   async function loadLookups() {
     const { data } = await supabase.from('lookup_failcode').select('*')
@@ -183,6 +191,17 @@ export default function NestDetailPage({ params }) {
         }
       }
 
+      // Auto-default quality flags for field-entered counts
+      const qualityPairs = [
+        ['eggs', 'eggs_quality'], ['hatch', 'hatch_quality'], ['band', 'band_quality'],
+        ['fledge', 'fledge_quality'], ['indep', 'indep_quality'], ['dfe', 'dfe_quality']
+      ]
+      for (const [countCol, qualCol] of qualityPairs) {
+        if (updates[countCol] != null && !updates[qualCol]) {
+          updates[qualCol] = '.'
+        }
+      }
+
       // Ensure kid birds exist + save combos
       for (let i = 1; i <= 5; i++) {
         const bandId = updates[`kid${i}`]
@@ -231,6 +250,9 @@ export default function NestDetailPage({ params }) {
         cowbird_chicks: visit.cowbird_chicks ? parseInt(visit.cowbird_chicks) : null,
         comments: visit.comments || null,
       })
+
+      // Save observer to localStorage
+      if (typeof window !== 'undefined') localStorage.setItem('mandarte_observer', visit.observer.trim())
 
       setVisit(v => ({ ...v,
         visit_date: localDateString(),
@@ -432,10 +454,22 @@ export default function NestDetailPage({ params }) {
                 </div>
                 <div>
                   <label className="block text-[11px] text-blue-800 font-medium mb-0.5">Observer *</label>
-                  <input type="text" value={visit.observer} required
-                    onChange={e => setVisit({...visit, observer: e.target.value})}
-                    placeholder="Your name"
-                    className="w-full border border-blue-200 rounded px-2 py-1.5 text-sm bg-white" />
+                  <select value={OBSERVER_LIST.includes(visit.observer) ? visit.observer : (visit.observer ? '__other__' : '')}
+                    onChange={e => {
+                      const v = e.target.value
+                      if (v === '__other__') setVisit({ ...visit, observer: '' })
+                      else setVisit({ ...visit, observer: v })
+                    }}
+                    className="w-full border border-blue-200 rounded px-2 py-1.5 text-sm bg-white" required>
+                    <option value="">Select observer...</option>
+                    {OBSERVER_LIST.map(name => <option key={name} value={name}>{name}</option>)}
+                    <option value="__other__">Other...</option>
+                  </select>
+                  {!OBSERVER_LIST.includes(visit.observer) && visit.observer !== '' && (
+                    <input type="text" value={visit.observer}
+                      onChange={e => setVisit({ ...visit, observer: e.target.value })}
+                      placeholder="Enter name" className="w-full border border-blue-200 rounded px-2 py-1.5 text-sm mt-1 bg-white" />
+                  )}
                 </div>
               </div>
 

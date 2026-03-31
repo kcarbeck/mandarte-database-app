@@ -6,6 +6,9 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { getTerritoryResidents, birdLabel, localDateString, localTimeString, toJulianDay, fromJulianDay } from '@/lib/helpers'
 
+// 2026 field crew — update this list each season
+const OBSERVER_LIST = ['Katherine']
+
 export default function TerritoryDetailPage({ params }) {
   const { code } = params
   const router = useRouter()
@@ -34,6 +37,11 @@ export default function TerritoryDetailPage({ params }) {
   })
 
   useEffect(() => { loadAll() }, [territoryCode])
+
+  useEffect(() => {
+    const saved = typeof window !== 'undefined' ? localStorage.getItem('mandarte_observer') : null
+    if (saved) setVisitForm(f => ({ ...f, observer: saved }))
+  }, [])
 
   async function loadAll() {
     setLoading(true)
@@ -110,6 +118,9 @@ export default function TerritoryDetailPage({ params }) {
       })
 
       if (error) throw error
+
+      // Save observer to localStorage
+      if (typeof window !== 'undefined') localStorage.setItem('mandarte_observer', visitForm.observer.trim())
 
       // If new nest found, redirect to create nest card
       if (visitForm.nest_status_flag === 'new_nest_found') {
@@ -276,9 +287,22 @@ export default function TerritoryDetailPage({ params }) {
 
           <div>
             <label className="block text-xs text-gray-500 mb-1">Observer *</label>
-            <input type="text" value={visitForm.observer}
-              onChange={e => setVisitForm({ ...visitForm, observer: e.target.value })}
-              placeholder="Your name" className="w-full border rounded-lg px-3 py-2 text-sm" required />
+            <select value={OBSERVER_LIST.includes(visitForm.observer) ? visitForm.observer : (visitForm.observer ? '__other__' : '')}
+              onChange={e => {
+                const v = e.target.value
+                if (v === '__other__') setVisitForm({ ...visitForm, observer: '' })
+                else setVisitForm({ ...visitForm, observer: v })
+              }}
+              className="w-full border rounded-lg px-3 py-2 text-sm bg-white" required>
+              <option value="">Select observer...</option>
+              {OBSERVER_LIST.map(name => <option key={name} value={name}>{name}</option>)}
+              <option value="__other__">Other...</option>
+            </select>
+            {!OBSERVER_LIST.includes(visitForm.observer) && visitForm.observer !== '' && (
+              <input type="text" value={visitForm.observer}
+                onChange={e => setVisitForm({ ...visitForm, observer: e.target.value })}
+                placeholder="Enter name" className="w-full border rounded-lg px-3 py-2 text-sm mt-1" />
+            )}
           </div>
 
           {/* Seen checkboxes — simple, no band re-entry */}
