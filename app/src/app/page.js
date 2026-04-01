@@ -21,8 +21,8 @@ const RENEST_IDEAL_COLOR = '#f97316' // orange-500
 const VISIT_OVERDUE_DAYS = 5
 const NEST_CHECK_DAYS = 3  // Territories with active pre-hatch nests need visits every 3 days
 const COL_W = 28
-const LABEL_W = 58
-const CELL_H = 32
+const LABEL_W = 80
+const CELL_H = 38
 
 const MONTH_NAMES = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 const DAY_LETTERS = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
@@ -64,6 +64,7 @@ export default function Home() {
   const [visitDates, setVisitDates] = useState({}) // { territory: Set<dateStr> }
   const [plannedActions, setPlannedActions] = useState([])
   const [manualTasks, setManualTasks] = useState([])
+  const [birdsByTerritory, setBirdsByTerritory] = useState({}) // { territory: [{ band_id, color_combo, sex }] }
   const [stats, setStats] = useState({ territories: 0, nests: 0, birds: 0, visitsToday: 0 })
   const [loading, setLoading] = useState(true)
   const [showAddTask, setShowAddTask] = useState(false)
@@ -125,7 +126,7 @@ export default function Home() {
         })
       }
 
-      // ── Visits ────────────────────────────────────────
+      // ── Visits (territory + nest visits merged) ──────
       const { data: allVisits } = await supabase
         .from('territory_visits')
         .select('territory, visit_date')
@@ -138,6 +139,52 @@ export default function Home() {
           if (!vMap[v.territory]) vMap[v.territory] = new Set()
           vMap[v.territory].add(v.visit_date)
           if (v.visit_date === todayStr) todayVisits++
+        }
+      }
+
+      // Merge nest visit dates into territory visit dates
+      // A nest visit IS a territory visit — the student was there
+      const breedIds = nests ? nests.map(n => n.breed_id) : []
+      const breedTerrMap = {}
+      if (nests) nests.forEach(n => { if (n.territory) breedTerrMap[n.breed_id] = n.territory })
+      if (breedIds.length > 0) {
+        const { data: nestVisitData } = await supabase.from('nest_visits')
+          .select('visit_date, breed_id')
+          .in('breed_id', breedIds)
+        if (nestVisitData) {
+          for (const nv of nestVisitData) {
+            const terr = breedTerrMap[nv.breed_id]
+            if (terr) {
+              if (!vMap[terr]) vMap[terr] = new Set()
+              if (!vMap[terr].has(nv.visit_date)) {
+                vMap[terr].add(nv.visit_date)
+                if (nv.visit_date === todayStr) todayVisits++
+              }
+            }
+          }
+        }
+      }
+
+      // ── Bird assignments for territory display ────────
+      const birdTerr = {}
+      if (assigns) {
+        const bandIds = [...new Set(assigns.map(a => a.band_id))]
+        let birdLookup = {}
+        if (bandIds.length > 0) {
+          const { data: birds } = await supabase.from('birds')
+            .select('band_id, color_combo, sex, is_unbanded')
+            .in('band_id', bandIds)
+          if (birds) birds.forEach(b => { birdLookup[b.band_id] = b })
+        }
+        for (const a of assigns) {
+          if (!birdTerr[a.territory]) birdTerr[a.territory] = []
+          const bird = birdLookup[a.band_id]
+          birdTerr[a.territory].push({
+            band_id: a.band_id,
+            color_combo: bird?.color_combo || '',
+            sex: bird?.sex,
+            is_unbanded: bird?.is_unbanded,
+          })
         }
       }
 
@@ -159,6 +206,7 @@ export default function Home() {
       setTerritories(terrList)
       setNestsByTerritory(nestMap)
       setVisitDates(vMap)
+      setBirdsByTerritory(birdTerr)
       setPlannedActions(plannedErr ? [] : (planned || []))
       setManualTasks(tasks || [])
       setStats({ territories: terrList.length, nests: nestCount, birds: uniqueBirds, visitsToday: todayVisits })
@@ -455,15 +503,24 @@ export default function Home() {
               {/* Territory rows */}
               {territories.map((territory, rowIdx) => (
                 <div key={territory} className={`flex ${rowIdx < territories.length - 1 ? 'border-b border-gray-100' : ''}`}>
-                  {/* Sticky territory label */}
+                  {/* Sticky territory label with birds + nest indicator */}
                   <Link href={`/territories/${encodeURIComponent(territory)}`}
                     className="flex-shrink-0 border-r flex items-center active:bg-gray-100"
                     style={{ width: LABEL_W, height: CELL_H, position: 'sticky', left: 0, zIndex: 1, background: '#fff' }}>
-                    <div className="px-1.5 w-full">
-                      <div className="text-[11px] font-bold text-gray-700">T{territory}</div>
-                      {(nestsByTerritory[territory] || []).length > 0 && (
-                        <div className="text-[8px] text-gray-400 leading-tight">
-                          {(nestsByTerritory[territory] || []).filter(n => !n.fail_code || n.fail_code === '24').length}n
+                    <div className="px-1 w-full overflow-hidden">
+                      <div className="flex items-center gap-0.5">
+                        <span className="text-[11px] font-bold text-gray-700">T{territory}</span>
+                        {(nestsByTerritory[territory] || []).filter(n => !n.fail_code || n.fail_code === '24').length > 0 && (
+                          <span className="text-[9px]" title={`${(nestsByTerritory[territory] || []).filter(n => !n.fail_code || n.fail_code === '24').length} active nest(s)`}>🪺</span>
+                        )}
+                      </div>
+                      {(birdsByTerritory[territory] || []).length > 0 && (
+                        <div className="text-[7px] text-gray-400 leading-tight truncate">
+                          {(birdsByTerritory[territory] || []).map((b, bi) => {
+                            const sexIcon = b.sex === 2 ? '♂' : b.sex === 1 ? '♀' : ''
+                            const combo = b.color_combo || (b.is_unbanded ? 'UB' : '?')
+                            return <span key={bi}>{bi > 0 ? ' ' : ''}<span className={b.sex === 2 ? 'text-blue-500' : b.sex === 1 ? 'text-pink-500' : ''}>{sexIcon}</span>{combo}</span>
+                          })}
                         </div>
                       )}
                     </div>

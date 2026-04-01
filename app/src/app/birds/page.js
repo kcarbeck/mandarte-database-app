@@ -13,6 +13,7 @@ export default function BirdsPage() {
   const [showColorRef, setShowColorRef] = useState(false)
   const [modal, setModal] = useState(null) // { type, data }
   const [filter, setFilter] = useState('all')
+  const [fledglings, setFledglings] = useState([]) // banded chicks from this year
 
   // Add bird mode: 'returning' | 'new_banded' | 'unbanded'
   const [addMode, setAddMode] = useState('returning')
@@ -43,8 +44,42 @@ export default function BirdsPage() {
       .select('*')
       .order('band_id', { ascending: true })
 
+    // Load fledglings: chicks banded this year (kid1-kid5 from breed records)
+    const { data: breedData } = await supabase
+      .from('breed')
+      .select('breed_id, nestrec, territory, male_id, female_id, kid1, kid2, kid3, kid4, kid5, band, fledge, indep')
+      .eq('year', currentYear)
+    const fledgeList = []
+    if (breedData) {
+      for (const nest of breedData) {
+        for (let i = 1; i <= 5; i++) {
+          const kidId = nest[`kid${i}`]
+          if (!kidId) continue
+          const bird = (birdData || []).find(b => b.band_id === kidId)
+          // Find parent birds
+          const maleBird = nest.male_id ? (birdData || []).find(b => b.band_id === nest.male_id) : null
+          const femaleBird = nest.female_id ? (birdData || []).find(b => b.band_id === nest.female_id) : null
+          fledgeList.push({
+            band_id: kidId,
+            color_combo: bird?.color_combo || '',
+            territory: nest.territory,
+            nestrec: nest.nestrec,
+            breed_id: nest.breed_id,
+            male_id: nest.male_id,
+            female_id: nest.female_id,
+            male_combo: maleBird?.color_combo || '',
+            female_combo: femaleBird?.color_combo || '',
+            nest_band: nest.band,
+            nest_fledge: nest.fledge,
+            nest_indep: nest.indep,
+          })
+        }
+      }
+    }
+
     setAssignments(assignData || [])
     setAllBirds(birdData || [])
+    setFledglings(fledgeList)
     setLoading(false)
   }
 
@@ -376,10 +411,15 @@ export default function BirdsPage() {
     const { band_id: oldBandId } = modal.data
     const { newBandId, colorCombo } = modalForm
     if (!newBandId || !colorCombo) { alert('Both fields are required.'); return }
+    if (!/^\d{9}$/.test(newBandId)) { alert('Metal band # must be exactly 9 digits.'); return }
 
     const newId = parseInt(newBandId)
     const oldId = typeof oldBandId === 'number' ? oldBandId : parseInt(oldBandId)
     if (isNaN(newId)) { alert('Metal band # must be a number.'); return }
+
+    // Check uniqueness
+    const { data: existing } = await supabase.from('birds').select('band_id').eq('band_id', newId).single()
+    if (existing) { alert(`Band number ${newId} is already in use.`); return }
 
     try {
       // Pre-check: new band_id must not already exist
@@ -1017,6 +1057,44 @@ export default function BirdsPage() {
 
             </div>
           ))}
+        </div>
+      )}
+
+      {/* ═══════════════════════════════════════════════════════════
+          FLEDGLINGS — banded chicks from this year
+          ═══════════════════════════════════════════════════════════ */}
+      {fledglings.length > 0 && (
+        <div className="mt-4">
+          <h3 className="text-sm font-semibold text-gray-700 mb-2">
+            Fledglings — {currentYear}{' '}
+            <span className="text-xs font-normal text-gray-400">({fledglings.length} banded)</span>
+          </h3>
+          <div className="space-y-1.5">
+            {fledglings.map((f, i) => (
+              <div key={`fledge-${f.band_id}-${i}`} className="bg-white rounded-lg border p-3">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <span className="font-mono font-semibold text-sm">{f.color_combo || '—'}</span>
+                    <span className="text-xs text-gray-400 ml-2">{f.band_id}</span>
+                    <span className="ml-2 text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full">chick</span>
+                  </div>
+                  <span className="text-xs text-gray-400">
+                    Terr {f.territory}
+                    {f.nestrec && <span> · Nest #{f.nestrec}</span>}
+                  </span>
+                </div>
+                <div className="text-[11px] text-gray-500 mt-1 flex gap-3 flex-wrap">
+                  {f.male_combo && <span>♂ <span className="font-mono">{f.male_combo}</span></span>}
+                  {f.female_combo && <span>♀ <span className="font-mono">{f.female_combo}</span></span>}
+                  {!f.male_combo && f.male_id && <span>♂ {f.male_id < 0 ? 'unbanded' : f.male_id}</span>}
+                  {!f.female_combo && f.female_id && <span>♀ {f.female_id < 0 ? 'unbanded' : f.female_id}</span>}
+                  {f.nest_band != null && <span>Banded: {f.nest_band}</span>}
+                  {f.nest_fledge != null && <span>Fledged: {f.nest_fledge}</span>}
+                  {f.nest_indep != null && <span>Indep: {f.nest_indep}</span>}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
