@@ -275,17 +275,19 @@ One row per visit to a nest. Populated by the field data collection app. Digital
 | visit_time | TEXT | | Time of visit (HH:MM). |
 | observer | TEXT | NOT NULL | Name or ID of the field observer. |
 | nest_stage | TEXT | | Current stage: 'building', 'laying', 'incubating', 'nestling_D1' through 'nestling_D14', 'fledged', 'independent', 'failed', 'abandoned'. |
-| egg_count | INTEGER | | Number of eggs observed. |
-| chick_count | INTEGER | | Number of chicks observed. |
+| egg_count | INTEGER | CHECK (>= 0) | Number of eggs observed. |
+| chick_count | INTEGER | CHECK (>= 0) | Number of chicks observed. |
 | chick_age_estimate | INTEGER | | Estimated chick age in days (if applicable). |
-| cowbird_eggs | INTEGER | | Number of cowbird eggs observed. |
-| cowbird_chicks | INTEGER | | Number of cowbird chicks observed. |
+| cowbird_eggs | INTEGER | CHECK (>= 0) | Number of cowbird eggs observed. |
+| cowbird_chicks | INTEGER | CHECK (>= 0) | Number of cowbird chicks observed. |
 | band_combos_seen | TEXT | | Band combos of individual chicks seen (comma-separated or JSON). For fledge/independence checks. |
 | contents_description | TEXT | | Free-text description of nest contents. |
 | comments | TEXT | | Free-text comments about the visit. |
 | created_at | TIMESTAMP | NOT NULL, DEFAULT CURRENT_TIMESTAMP | When this record was created. |
 
 **Constraint:** nestrec or breed_id must be non-null (at least one parent reference is required).
+
+**Protection triggers:** `protect_nest_visits` (BEFORE UPDATE) and `protect_nest_visits_delete` (BEFORE DELETE) block modification/deletion of nest visit records from previous seasons (visit_date year < current year). Admin override via `SET app.admin_override = 'true'`.
 
 ### 2.6 `territory_assignments` — Territory Occupancy Records
 

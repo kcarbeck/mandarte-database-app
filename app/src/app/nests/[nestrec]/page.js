@@ -825,7 +825,7 @@ export default function NestDetailPage({ params }) {
                     <div className="grid grid-cols-3 gap-2 mt-2">
                       <div>
                         <label className="block text-[11px] text-gray-600 mb-0.5"># banded</label>
-                        <input type="number" value={card.band}
+                        <input type="number" min="0" value={card.band}
                           onChange={e => setCard({...card, band: e.target.value})}
                           className="w-full border rounded px-2 py-1.5 text-sm" />
                       </div>
@@ -850,7 +850,7 @@ export default function NestDetailPage({ params }) {
                   <div className="grid grid-cols-3 gap-2">
                     <div>
                       <label className="block text-[11px] text-gray-600 mb-0.5"># fledglings seen</label>
-                      <input type="number" value={card.fledge}
+                      <input type="number" min="0" value={card.fledge}
                         onChange={e => setCard({...card, fledge: e.target.value})}
                         className="w-full border rounded px-2 py-1.5 text-sm" />
                     </div>
@@ -919,7 +919,7 @@ export default function NestDetailPage({ params }) {
                       <label className="block text-[11px] text-gray-600 mb-0.5">
                         # independent (or enter manually)
                       </label>
-                      <input type="number" value={card.indep}
+                      <input type="number" min="0" value={card.indep}
                         onChange={e => setCard({...card, indep: e.target.value})}
                         className="w-full border rounded px-2 py-1.5 text-sm" />
                     </div>
@@ -1110,7 +1110,7 @@ export default function NestDetailPage({ params }) {
                 <div className="grid grid-cols-2 gap-2">
                   <div>
                     <label className="block text-[11px] text-gray-600 mb-0.5">Hatch day</label>
-                    <input type="number" value={card.date_hatch}
+                    <input type="number" min="1" value={card.date_hatch}
                       onChange={e => setCard({...card, date_hatch: e.target.value})}
                       placeholder="Julian day"
                       className="w-full border rounded px-2 py-2 text-sm font-mono bg-white" />

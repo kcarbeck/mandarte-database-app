@@ -289,11 +289,11 @@ CREATE TABLE nest_visits (
     visit_time         TIME,
     observer           TEXT NOT NULL,
     nest_stage         TEXT,
-    egg_count          INTEGER,
-    chick_count        INTEGER,
+    egg_count          INTEGER CHECK (egg_count >= 0),
+    chick_count        INTEGER CHECK (chick_count >= 0),
     chick_age_estimate INTEGER,
-    cowbird_eggs       INTEGER,
-    cowbird_chicks     INTEGER,
+    cowbird_eggs       INTEGER CHECK (cowbird_eggs >= 0),
+    cowbird_chicks     INTEGER CHECK (cowbird_chicks >= 0),
     band_combos_seen   JSONB,
     contents_description TEXT,
     comments           TEXT,
@@ -826,3 +826,51 @@ END;
 $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER protect_territory_visits_update BEFORE UPDATE ON territory_visits FOR EACH ROW EXECUTE FUNCTION protect_territory_visits();
+
+-- Protect nest_visits: block update/delete if visit_date year < current_year (admin can override)
+CREATE OR REPLACE FUNCTION protect_nest_visits()
+RETURNS TRIGGER AS $$
+DECLARE
+    active_season INTEGER;
+    is_admin BOOLEAN;
+BEGIN
+    BEGIN
+        is_admin := current_setting('app.admin_override', true) = 'true';
+    EXCEPTION WHEN OTHERS THEN
+        is_admin := false;
+    END;
+    IF is_admin THEN RETURN NEW; END IF;
+
+    active_season := EXTRACT(YEAR FROM CURRENT_DATE)::INTEGER;
+    IF OLD.visit_date IS NOT NULL AND EXTRACT(YEAR FROM OLD.visit_date)::INTEGER < active_season THEN
+        RAISE EXCEPTION 'BLOCKED: Cannot modify nest visit from % (nest_visit_id=%).',
+            EXTRACT(YEAR FROM OLD.visit_date)::INTEGER, OLD.nest_visit_id;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION protect_nest_visits_delete()
+RETURNS TRIGGER AS $$
+DECLARE
+    active_season INTEGER;
+    is_admin BOOLEAN;
+BEGIN
+    BEGIN
+        is_admin := current_setting('app.admin_override', true) = 'true';
+    EXCEPTION WHEN OTHERS THEN
+        is_admin := false;
+    END;
+    IF is_admin THEN RETURN OLD; END IF;
+
+    active_season := EXTRACT(YEAR FROM CURRENT_DATE)::INTEGER;
+    IF OLD.visit_date IS NOT NULL AND EXTRACT(YEAR FROM OLD.visit_date)::INTEGER < active_season THEN
+        RAISE EXCEPTION 'BLOCKED: Cannot delete nest visit from % (nest_visit_id=%). Historical records cannot be deleted through the field app.',
+            EXTRACT(YEAR FROM OLD.visit_date)::INTEGER, OLD.nest_visit_id;
+    END IF;
+    RETURN OLD;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER protect_nest_visits_on_update BEFORE UPDATE ON nest_visits FOR EACH ROW EXECUTE FUNCTION protect_nest_visits();
+CREATE TRIGGER protect_nest_visits_on_delete BEFORE DELETE ON nest_visits FOR EACH ROW EXECUTE FUNCTION protect_nest_visits_delete();

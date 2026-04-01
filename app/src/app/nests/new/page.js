@@ -172,7 +172,7 @@ function NewNestForm() {
           </div>
           <div>
             <label className="block text-xs font-semibold text-gray-600 mb-1">Eggs at find</label>
-            <input type="number" value={form.eggs}
+            <input type="number" min="0" value={form.eggs}
               onChange={e => updateForm('eggs', e.target.value)}
               placeholder="Count" className="w-24 border rounded-lg px-3 py-2 text-sm" />
           </div>
