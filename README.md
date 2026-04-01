@@ -1,6 +1,6 @@
 # Mandarte Database & Field App
 
-Database infrastructure and field data collection app for the Mandarte Island Song Sparrow long-term population study (1975–present), run through the Arcese Lab at the University of British Columbia.
+Database infrastructure and field data collection app for the Mandarte Island Song Sparrow long-term population study (1975–present). Mandarte Island is located within the territory of the W̱SÁNEĆ peoples.
 
 ## What is this?
 
@@ -56,13 +56,13 @@ See [database_spec.md](docs/database_spec.md) for the complete schema.
 ## Tech stack
 
 - **Database:** PostgreSQL via [Supabase](https://supabase.com) (free tier)
-- **Field App:** TBD (mobile-first web app)
+- **Field App:** Next.js 14 mobile-first web app (hosted on Vercel)
 - **Admin UI:** TBD (lightweight database browser)
 - **Data analysis:** R (via `RPostgres` / `DBI`) or CSV/Excel export
 
 ## Status
 
-🟡 **Design phase.** Database schema is specified. Field app PRD is drafted. Implementation has not started. Historical data has not been migrated — this will happen only after thorough testing and validation.
+🟢 **Field app launching for 2026 season.** Database is live on Supabase. Field app is built and undergoing final QA. Historical data migration will follow after end-of-season proofing.
 
 ## Data safety
 
