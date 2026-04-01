@@ -44,34 +44,33 @@ export default function BirdsPage() {
       .select('*')
       .order('band_id', { ascending: true })
 
-    // Load fledglings: chicks banded this year (kid1-kid5 from breed records)
+    // Load juveniles: banded chicks from this year (kid1-kid5 from breed records)
     const { data: breedData } = await supabase
       .from('breed')
-      .select('breed_id, nestrec, territory, male_id, female_id, kid1, kid2, kid3, kid4, kid5, band, fledge, indep')
+      .select('breed_id, nestrec, territory, kid1, kid2, kid3, kid4, kid5, band, indep')
       .eq('year', currentYear)
     const fledgeList = []
     if (breedData) {
-      for (const nest of breedData) {
+      // Number nests per territory for readable labels when nestrec is null
+      const nestsByTerr = {}
+      const sortedNests = [...breedData].sort((a, b) => a.breed_id - b.breed_id)
+      for (const nest of sortedNests) {
+        if (!nestsByTerr[nest.territory]) nestsByTerr[nest.territory] = 0
+        nestsByTerr[nest.territory]++
+        const nestNum = nestsByTerr[nest.territory]
+        const nestLabel = nest.nestrec ? `Nest #${nest.nestrec}` : `Nest ${nestNum}`
         for (let i = 1; i <= 5; i++) {
           const kidId = nest[`kid${i}`]
           if (!kidId) continue
           const bird = (birdData || []).find(b => b.band_id === kidId)
-          // Find parent birds
-          const maleBird = nest.male_id ? (birdData || []).find(b => b.band_id === nest.male_id) : null
-          const femaleBird = nest.female_id ? (birdData || []).find(b => b.band_id === nest.female_id) : null
           fledgeList.push({
             band_id: kidId,
             color_combo: bird?.color_combo || '',
             territory: nest.territory,
-            nestrec: nest.nestrec,
+            nestLabel,
             breed_id: nest.breed_id,
-            male_id: nest.male_id,
-            female_id: nest.female_id,
-            male_combo: maleBird?.color_combo || '',
-            female_combo: femaleBird?.color_combo || '',
-            nest_band: nest.band,
-            nest_fledge: nest.fledge,
-            nest_indep: nest.indep,
+            nestrec: nest.nestrec,
+            isIndependent: nest.indep != null && nest.indep > 0,
           })
         }
       }
@@ -780,6 +779,7 @@ export default function BirdsPage() {
           { key: 'females', label: 'Females' },
           { key: 'unbanded', label: 'Unbanded' },
           { key: 'floaters', label: 'Floaters' },
+          { key: 'juveniles', label: `Juveniles${fledglings.length > 0 ? ` (${fledglings.length})` : ''}` },
         ].map(f => (
           <button key={f.key} onClick={() => setFilter(f.key)}
             className={`px-3 py-1.5 rounded-full whitespace-nowrap ${
@@ -992,8 +992,40 @@ export default function BirdsPage() {
         </form>
       )}
 
+      {/* Juveniles view */}
+      {filter === 'juveniles' && (
+        <div>
+          {fledglings.length === 0 ? (
+            <div className="bg-white rounded-lg border p-6 text-center text-gray-400">
+              <p className="text-sm">No juveniles banded yet this season.</p>
+              <p className="text-xs mt-1">Juveniles appear here once chicks are banded on a nest card.</p>
+            </div>
+          ) : (
+            <div className="space-y-1.5">
+              {fledglings.map((f, i) => (
+                <a key={`juv-${f.band_id}-${i}`}
+                  href={`/nests/${f.nestrec || f.breed_id}`}
+                  className="block bg-white rounded-lg border p-3 active:bg-gray-50">
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono font-semibold text-sm">{f.color_combo || '—'}</span>
+                      <span className="text-xs text-gray-400">{f.band_id}</span>
+                      <span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full">juvenile</span>
+                      {f.isIndependent && (
+                        <span className="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full font-medium">✓ independent</span>
+                      )}
+                    </div>
+                    <span className="text-xs text-gray-400">{f.nestLabel}, Terr {f.territory}</span>
+                  </div>
+                </a>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Bird roster */}
-      {roster.length === 0 ? (
+      {filter !== 'juveniles' && (roster.length === 0 ? (
         <div className="bg-white rounded-lg border p-6 text-center text-gray-400">
           <p className="text-sm">No birds in roster yet.</p>
           <p className="text-xs mt-1">Tap &quot;+ Add Bird&quot; to start building this season&apos;s roster.</p>
@@ -1058,45 +1090,7 @@ export default function BirdsPage() {
             </div>
           ))}
         </div>
-      )}
-
-      {/* ═══════════════════════════════════════════════════════════
-          FLEDGLINGS — banded chicks from this year
-          ═══════════════════════════════════════════════════════════ */}
-      {fledglings.length > 0 && (
-        <div className="mt-4">
-          <h3 className="text-sm font-semibold text-gray-700 mb-2">
-            Fledglings — {currentYear}{' '}
-            <span className="text-xs font-normal text-gray-400">({fledglings.length} banded)</span>
-          </h3>
-          <div className="space-y-1.5">
-            {fledglings.map((f, i) => (
-              <div key={`fledge-${f.band_id}-${i}`} className="bg-white rounded-lg border p-3">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <span className="font-mono font-semibold text-sm">{f.color_combo || '—'}</span>
-                    <span className="text-xs text-gray-400 ml-2">{f.band_id}</span>
-                    <span className="ml-2 text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full">chick</span>
-                  </div>
-                  <span className="text-xs text-gray-400">
-                    Terr {f.territory}
-                    {f.nestrec && <span> · Nest #{f.nestrec}</span>}
-                  </span>
-                </div>
-                <div className="text-[11px] text-gray-500 mt-1 flex gap-3 flex-wrap">
-                  {f.male_combo && <span>♂ <span className="font-mono">{f.male_combo}</span></span>}
-                  {f.female_combo && <span>♀ <span className="font-mono">{f.female_combo}</span></span>}
-                  {!f.male_combo && f.male_id && <span>♂ {f.male_id < 0 ? 'unbanded' : f.male_id}</span>}
-                  {!f.female_combo && f.female_id && <span>♀ {f.female_id < 0 ? 'unbanded' : f.female_id}</span>}
-                  {f.nest_band != null && <span>Banded: {f.nest_band}</span>}
-                  {f.nest_fledge != null && <span>Fledged: {f.nest_fledge}</span>}
-                  {f.nest_indep != null && <span>Indep: {f.nest_indep}</span>}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      ))}
 
       {/* ============================================= */}
       {/* MODALS                                        */}
