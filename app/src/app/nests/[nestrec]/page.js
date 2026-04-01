@@ -25,27 +25,10 @@ export default function NestDetailPage({ params }) {
 
   // Card state — mirrors the breed record
   const [card, setCard] = useState({})
-  // Visit observation — what you're recording right now
-  const [visit, setVisit] = useState({
-    visit_date: localDateString(),
-    visit_time: localTimeString(),
-    observer: '',
-    nest_stage: '',
-    egg_count: '',
-    chick_count: '',
-    chick_age_estimate: '',
-    cowbird_eggs: '',
-    cowbird_chicks: '',
-    comments: '',
-  })
+  const [nestSequence, setNestSequence] = useState(null)
 
   // ── Data loading ─────────────────────────────────────────────────────
   useEffect(() => { loadNest(); loadLookups() }, [nestId])
-
-  useEffect(() => {
-    const saved = typeof window !== 'undefined' ? localStorage.getItem('mandarte_observer') : null
-    if (saved) setVisit(v => ({ ...v, observer: saved }))
-  }, [])
 
   async function loadLookups() {
     const { data } = await supabase.from('lookup_failcode').select('*')
@@ -142,6 +125,24 @@ export default function NestDetailPage({ params }) {
 
       setNest(n)
       setVisits(allVisits)
+
+      // Calculate nest sequence for this territory+year
+      if (n.territory) {
+        try {
+          const { data: nestList } = await supabase.from('breed')
+            .select('breed_id, nestrec')
+            .eq('territory', n.territory)
+            .eq('year', n.year || currentYear)
+            .not('breed_id', 'is', null)
+            .order('breed_id', { ascending: true })
+          if (nestList) {
+            const seq = nestList.findIndex(nt => nt.breed_id === n.breed_id) + 1
+            setNestSequence(seq > 0 ? seq : null)
+          }
+        } catch (err) {
+          console.error('Error calculating nest sequence:', err)
+        }
+      }
     } catch (err) {
       console.error('Error loading nest:', err)
     } finally {
@@ -209,7 +210,6 @@ export default function NestDetailPage({ params }) {
   // ── Save handler ─────────────────────────────────────────────────────
   async function handleSave(e) {
     e.preventDefault()
-    if (!visit.observer.trim()) { alert('Observer name is required.'); return }
 
     // Validate band numbers: only validate NEW bands (not already saved in the DB)
     // This prevents existing test/legacy data from blocking saves
@@ -301,42 +301,6 @@ export default function NestDetailPage({ params }) {
         if (error) throw new Error('Card save failed: ' + error.message)
       }
 
-      // Log the visit — include per-kid independence data when doing an indep check
-      let visitComments = visit.comments || ''
-      if (visit.nest_stage === 'independent') {
-        const indepKids = [1,2,3,4,5]
-          .filter(i => card[`kid${i}`] && card[`kid${i}_indep`])
-          .map(i => `${card[`kid${i}_combo`] || 'kid' + i} (${card[`kid${i}`]})`)
-        if (indepKids.length > 0) {
-          const indepNote = `Independent: ${indepKids.join(', ')}`
-          visitComments = visitComments ? `${visitComments} | ${indepNote}` : indepNote
-        }
-      }
-
-      await supabase.from('nest_visits').insert({
-        breed_id: nest.breed_id,
-        nestrec: nest.nestrec || null,
-        visit_date: visit.visit_date,
-        visit_time: visit.visit_time || null,
-        observer: visit.observer.trim(),
-        nest_stage: visit.nest_stage || null,
-        egg_count: visit.egg_count ? parseInt(visit.egg_count) : null,
-        chick_count: visit.chick_count ? parseInt(visit.chick_count) : null,
-        chick_age_estimate: visit.chick_age_estimate ? parseInt(visit.chick_age_estimate) : null,
-        cowbird_eggs: visit.cowbird_eggs ? parseInt(visit.cowbird_eggs) : null,
-        cowbird_chicks: visit.cowbird_chicks ? parseInt(visit.cowbird_chicks) : null,
-        comments: visitComments || null,
-      })
-
-      // Save observer to localStorage
-      if (typeof window !== 'undefined') localStorage.setItem('mandarte_observer', visit.observer.trim())
-
-      setVisit(v => ({ ...v,
-        visit_date: localDateString(),
-        visit_time: localTimeString(),
-        nest_stage: '', egg_count: '', chick_count: '', chick_age_estimate: '',
-        cowbird_eggs: '', cowbird_chicks: '', comments: '',
-      }))
       setEditing(false)
       loadNest()
     } catch (err) {
@@ -452,9 +416,6 @@ export default function NestDetailPage({ params }) {
     return result
   }, [visits, nest])
 
-  // Current visit stage for conditional fields
-  const stage = visit.nest_stage
-
   // ── Render ───────────────────────────────────────────────────────────
   if (loading) return <div className="text-center py-8 text-gray-500">Loading nest...</div>
   if (!nest) return <div className="text-center py-8 text-gray-500">Nest not found.</div>
@@ -494,7 +455,9 @@ export default function NestDetailPage({ params }) {
         <div className="bg-white rounded-t-lg border border-b-0 p-4">
           <div className="flex justify-between items-start mb-2">
             <h2 className="text-lg font-bold">
-              {nest.nestrec ? `Nest #${nest.nestrec}` : 'Nest (draft)'}
+              {nest.territory && nestSequence
+                ? `Terr ${nest.territory}, Nest #${nestSequence}`
+                : nest.nestrec ? `Nest #${nest.nestrec}` : 'Nest (new)'}
             </h2>
             <div className="flex items-center gap-2">
               {nest.field_complete && (
@@ -597,400 +560,57 @@ export default function NestDetailPage({ params }) {
         </div>
 
         {/* ╔═══════════════════════════════════════════════════════════════╗
-           ║  UPDATE CARD BUTTON / EDIT MODE                             ║
+           ║  EDIT BUTTON / EDIT MODE                                    ║
            ╚═══════════════════════════════════════════════════════════════╝ */}
         {!editing ? (
           <div className="bg-white rounded-b-lg border p-4">
             <button type="button" onClick={() => setEditing(true)}
               className="w-full bg-blue-600 text-white rounded-lg py-3 text-sm font-semibold">
-              Update Card
+              Edit Card
             </button>
           </div>
         ) : (
           <>
-            {/* ═══════════════════════════════════════════════════════════
-                THIS VISIT — blue section, clearly separate
-                ═══════════════════════════════════════════════════════════ */}
-            <div className="bg-blue-600 text-white px-4 py-2 text-sm font-bold tracking-wide">
-              THIS VISIT
-            </div>
-            <div className="bg-blue-50 border-x border-blue-200 p-4 space-y-3">
-              {/* Date / Time / Observer */}
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block text-[11px] text-blue-800 font-medium mb-0.5">Date *</label>
-                  <input type="date" value={visit.visit_date} required
-                    onChange={e => setVisit({...visit, visit_date: e.target.value})}
-                    className="w-full border border-blue-200 rounded px-2 py-2 text-sm bg-white" />
-                </div>
-                <div>
-                  <label className="block text-[11px] text-blue-800 font-medium mb-0.5">Time</label>
-                  <input type="time" value={visit.visit_time}
-                    onChange={e => setVisit({...visit, visit_time: e.target.value})}
-                    className="w-full border border-blue-200 rounded px-2 py-2 text-sm bg-white" />
-                </div>
-                <div className="col-span-2">
-                  <label className="block text-[11px] text-blue-800 font-medium mb-0.5">Observer *</label>
-                  <select value={OBSERVER_LIST.includes(visit.observer) ? visit.observer : (visit.observer ? '__other__' : '')}
-                    onChange={e => {
-                      const v = e.target.value
-                      if (v === '__other__') setVisit({ ...visit, observer: '' })
-                      else setVisit({ ...visit, observer: v })
-                    }}
-                    className="w-full border border-blue-200 rounded px-2 py-1.5 text-sm bg-white" required>
-                    <option value="">Select observer...</option>
-                    {OBSERVER_LIST.map(name => <option key={name} value={name}>{name}</option>)}
-                    <option value="__other__">Other...</option>
-                  </select>
-                  {!OBSERVER_LIST.includes(visit.observer) && visit.observer !== '' && (
-                    <input type="text" value={visit.observer}
-                      onChange={e => setVisit({ ...visit, observer: e.target.value })}
-                      placeholder="Enter name" className="w-full border border-blue-200 rounded px-2 py-1.5 text-sm mt-1 bg-white" />
-                  )}
-                </div>
-              </div>
-
-              {/* Stage selector */}
-              <div>
-                <label className="block text-[11px] text-blue-800 font-medium mb-1">What stage is this nest at?</label>
-                <div className="flex gap-1.5 flex-wrap">
-                  {[
-                    { v: 'building', l: 'Building' },
-                    { v: 'laying', l: 'Laying' },
-                    { v: 'incubating', l: 'Incubating' },
-                    { v: 'nestling', l: 'Nestling' },
-                    { v: 'fledged', l: 'Fledge check' },
-                    { v: 'independent', l: 'Indep check' },
-                    { v: 'failed', l: 'Failed' },
-                    { v: 'abandoned', l: 'Abandoned' },
-                  ].map(s => (
-                    <button key={s.v} type="button"
-                      onClick={() => setVisit({...visit, nest_stage: visit.nest_stage === s.v ? '' : s.v})}
-                      className={`px-3 py-2 rounded-full text-xs font-medium transition min-h-[44px] ${
-                        visit.nest_stage === s.v
-                          ? 'bg-blue-700 text-white shadow'
-                          : 'bg-white text-blue-800 border border-blue-200'
-                      }`}>
-                      {s.l}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* ── Stage-specific fields ── */}
-
-              {/* BUILDING / LAYING: just notes + nest location */}
-              {(stage === 'building' || stage === 'laying') && (
-                <div className="bg-white rounded-lg p-3 space-y-2 border border-blue-200">
-                  <p className="text-xs text-gray-600">Record nest location and any observations.</p>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="block text-[11px] text-gray-600 mb-0.5">Nest height (m)</label>
-                      <input type="text" value={card.nest_height}
-                        onChange={e => setCard({...card, nest_height: e.target.value})}
-                        placeholder="e.g. 1.2"
-                        className="w-full border rounded px-2 py-1.5 text-sm" />
-                    </div>
-                    <div>
-                      <label className="block text-[11px] text-gray-600 mb-0.5">Vegetation</label>
-                      <input type="text" value={card.vegetation}
-                        onChange={e => setCard({...card, vegetation: e.target.value})}
-                        placeholder="e.g. Rosa nutkana"
-                        className="w-full border rounded px-2 py-1.5 text-sm" />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-[11px] text-gray-600 mb-0.5">Nest description / location</label>
-                    <textarea value={card.nest_description}
-                      onChange={e => setCard({...card, nest_description: e.target.value})}
-                      placeholder="Where is the nest? Structure, visibility, landmarks"
-                      className="w-full border rounded px-2 py-1.5 text-sm" rows={2} />
-                  </div>
-                  {stage === 'laying' && (
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <label className="block text-[11px] text-gray-600 mb-0.5">Eggs seen today</label>
-                        <input type="number" min="0" value={visit.egg_count}
-                          onChange={e => setVisit({...visit, egg_count: e.target.value})}
-                          className="w-full border rounded px-2 py-1.5 text-sm" />
-                      </div>
-                      <div>
-                        <label className="block text-[11px] text-gray-600 mb-0.5">Cowbird eggs</label>
-                        <input type="number" min="0" value={visit.cowbird_eggs}
-                          onChange={e => setVisit({...visit, cowbird_eggs: e.target.value})}
-                          className="w-full border rounded px-2 py-1.5 text-sm" />
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* INCUBATING: egg count, cowbird */}
-              {stage === 'incubating' && (
-                <div className="bg-white rounded-lg p-3 space-y-2 border border-blue-200">
-                  <p className="text-xs text-gray-600">How many eggs? Is the female incubating?</p>
-                  <div className="grid grid-cols-3 gap-3">
-                    <div>
-                      <label className="block text-xs text-gray-600 mb-0.5">SOSP eggs</label>
-                      <input type="number" min="0" value={visit.egg_count}
-                        onChange={e => setVisit({...visit, egg_count: e.target.value})}
-                        className="w-full border rounded px-2 py-1.5 text-sm" />
-                    </div>
-                    <div>
-                      <label className="block text-xs text-gray-600 mb-0.5">CB eggs</label>
-                      <input type="number" min="0" value={visit.cowbird_eggs}
-                        onChange={e => setVisit({...visit, cowbird_eggs: e.target.value})}
-                        className="w-full border rounded px-2 py-2 text-sm" />
-                    </div>
-                    <div>
-                      <label className="block text-xs text-gray-600 mb-0.5" title="Is the bird incubating? If yes, the clutch is complete.">Whole clutch?</label>
-                      <select value={card.whole_clutch}
-                        onChange={e => setCard({...card, whole_clutch: e.target.value})}
-                        title="Y = bird seen incubating, clutch is complete. N = uncertain."
-                        className="w-full border rounded px-2 py-1.5 text-sm bg-white">
-                        <option value="">—</option>
-                        <option value="Y">Y — Complete</option>
-                        <option value="N">N — Not sure</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* NESTLING: chick count, age, banding fields */}
-              {stage === 'nestling' && (
-                <div className="bg-white rounded-lg p-3 space-y-3 border border-blue-200">
-                  <p className="text-xs text-gray-600">How many chicks? What day? If banding today, enter bands below.</p>
-                  <div className="grid grid-cols-3 gap-3">
-                    <div>
-                      <label className="block text-xs text-gray-600 mb-0.5">Chicks</label>
-                      <input type="number" min="0" value={visit.chick_count}
-                        onChange={e => setVisit({...visit, chick_count: e.target.value})}
-                        className="w-full border rounded px-2 py-2 text-sm" />
-                    </div>
-                    <div>
-                      <label className="block text-xs text-gray-600 mb-0.5">Age (day)</label>
-                      <input type="number" min="0" value={visit.chick_age_estimate}
-                        onChange={e => setVisit({...visit, chick_age_estimate: e.target.value})}
-                        placeholder="e.g. 6"
-                        className="w-full border rounded px-2 py-2 text-sm" />
-                    </div>
-                    <div>
-                      <label className="block text-xs text-gray-600 mb-0.5">CB chicks</label>
-                      <input type="number" min="0" value={visit.cowbird_chicks}
-                        onChange={e => setVisit({...visit, cowbird_chicks: e.target.value})}
-                        className="w-full border rounded px-2 py-2 text-sm" />
-                    </div>
-                  </div>
-
-                  {/* Banding section */}
-                  <div className="border-t pt-3">
-                    <p className="text-xs font-semibold text-gray-700 mb-1">Banding chicks</p>
-                    <p className="text-[11px] text-gray-500 mb-2">
-                      Enter the 9-digit metal band number and color band combination for each chick you banded.
-                      Leave blank for unbanded chicks.
-                    </p>
-                    <div className="grid grid-cols-2 gap-2 mb-1">
-                      <div className="text-xs text-gray-400 px-0.5">Metal band #</div>
-                      <div className="text-xs text-gray-400 px-0.5">Color combo</div>
-                    </div>
-                    {[1,2,3,4,5].map(i => {
-                      const kidVal = card[`kid${i}`] ? String(card[`kid${i}`]) : ''
-                      const kidLen = kidVal.length
-                      const isNew = kidVal && ![nest.kid1, nest.kid2, nest.kid3, nest.kid4, nest.kid5].filter(Boolean).map(String).includes(kidVal)
-                      return (
-                      <div key={i} className="grid grid-cols-2 gap-2 mb-1.5">
-                        <div>
-                          <input type="text" value={card[`kid${i}`]}
-                            onChange={e => {
-                              const v = e.target.value.replace(/\D/g, '').slice(0, 9)
-                              setCard({...card, [`kid${i}`]: v})
-                            }}
-                            placeholder={`Chick ${i} (9 digits)`}
-                            pattern="[0-9]{9}" inputMode="numeric" maxLength={9}
-                            className={`w-full border rounded px-2 py-1.5 text-xs font-mono ${
-                              isNew && kidLen > 0 && kidLen !== 9
-                                ? 'border-red-300 bg-red-50' : ''
-                            }`} />
-                          {isNew && kidLen > 0 && kidLen !== 9 && (
-                            <div className="text-[9px] text-red-500 mt-0.5">{kidLen}/9 digits</div>
-                          )}
-                        </div>
-                        <input type="text" value={card[`kid${i}_combo`]}
-                          onChange={e => setCard({...card, [`kid${i}_combo`]: e.target.value})}
-                          placeholder="color combo"
-                          className="border rounded px-2 py-1.5 text-xs font-mono" />
-                      </div>
-                    )})}
-                    <div className="grid grid-cols-3 gap-2 mt-2">
-                      <div>
-                        <label className="block text-[11px] text-gray-600 mb-0.5"># banded</label>
-                        <input type="number" min="0" value={card.band}
-                          onChange={e => setCard({...card, band: e.target.value})}
-                          className="w-full border rounded px-2 py-1.5 text-sm" />
-                      </div>
-                      <div>
-                        <label className="block text-[11px] text-gray-600 mb-0.5">CB at banding</label>
-                        <input type="text" value={card.cow_band}
-                          onChange={e => setCard({...card, cow_band: e.target.value})}
-                          className="w-full border rounded px-2 py-1.5 text-sm" />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* FLEDGE CHECK: # fledged + notes */}
-              {stage === 'fledged' && (
-                <div className="bg-white rounded-lg p-3 space-y-2 border border-blue-200">
-                  <p className="text-xs text-gray-600">
-                    Check nest is empty. Count fledglings seen near the nest.
-                    Describe nest contents (empty, dead chick, unhatched eggs) in notes below.
-                  </p>
-                  <div className="grid grid-cols-3 gap-2">
-                    <div>
-                      <label className="block text-[11px] text-gray-600 mb-0.5"># fledglings seen</label>
-                      <input type="number" min="0" value={card.fledge}
-                        onChange={e => setCard({...card, fledge: e.target.value})}
-                        className="w-full border rounded px-2 py-1.5 text-sm" />
-                    </div>
-                    <div>
-                      <label className="block text-[11px] text-gray-600 mb-0.5">CB fledged</label>
-                      <input type="text" value={card.cow_fledge}
-                        onChange={e => setCard({...card, cow_fledge: e.target.value})}
-                        className="w-full border rounded px-2 py-1.5 text-sm" />
-                    </div>
-                    <div>
-                      <label className="block text-[11px] text-gray-600 mb-0.5">Unhatched eggs</label>
-                      <input type="text" value={card.unhatch}
-                        onChange={e => setCard({...card, unhatch: e.target.value})}
-                        placeholder="e.g. 1 unfertilized"
-                        className="w-full border rounded px-2 py-1.5 text-sm" />
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* INDEPENDENCE CHECK: kid checklist */}
-              {stage === 'independent' && (
-                <div className="bg-white rounded-lg p-3 space-y-2 border border-blue-200">
-                  <p className="text-xs text-gray-600">
-                    Which chicks from this nest are feeding independently? Check each one you confirmed.
-                    If you can't read bands, just enter a count below.
-                  </p>
-                  {/* Kid checklist */}
-                  {[1,2,3,4,5].map(i => {
-                    const id = card[`kid${i}`]
-                    if (!id) return null
-                    const combo = card[`kid${i}_combo`] || kidBirds[id]?.color_combo || ''
-                    return (
-                      <button key={i} type="button"
-                        onClick={() => {
-                          const on = !card[`kid${i}_indep`]
-                          const c = { ...card, [`kid${i}_indep`]: on }
-                          const n = [1,2,3,4,5].filter(j => j === i ? on : c[`kid${j}_indep`]).length
-                          if (n > 0) c.indep = String(n)
-                          setCard(c)
-                        }}
-                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border-2 text-left transition ${
-                          card[`kid${i}_indep`]
-                            ? 'border-green-500 bg-green-50'
-                            : 'border-gray-200 bg-white'
-                        }`}>
-                        <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${
-                          card[`kid${i}_indep`]
-                            ? 'bg-green-600 text-white'
-                            : 'bg-gray-200 text-gray-400'
-                        }`}>
-                          {card[`kid${i}_indep`] ? '\u2713' : i}
-                        </div>
-                        <div>
-                          <div className="font-mono text-sm font-medium">{combo || `Kid ${i}`}</div>
-                          <div className="text-[11px] text-gray-400">Band: {id}</div>
-                        </div>
-                        {card[`kid${i}_indep`] && (
-                          <span className="ml-auto text-xs font-bold text-green-700">INDEPENDENT</span>
-                        )}
-                      </button>
-                    )
-                  })}
-                  <div className="grid grid-cols-2 gap-2 pt-1">
-                    <div>
-                      <label className="block text-[11px] text-gray-600 mb-0.5">
-                        # independent (or enter manually)
-                      </label>
-                      <input type="number" min="0" value={card.indep}
-                        onChange={e => setCard({...card, indep: e.target.value})}
-                        className="w-full border rounded px-2 py-1.5 text-sm" />
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* FAILED / ABANDONED */}
-              {(stage === 'failed' || stage === 'abandoned') && (
-                <div className="bg-white rounded-lg p-3 space-y-2 border border-blue-200">
-                  <p className="text-xs text-gray-600">What happened to this nest?</p>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="block text-[11px] text-gray-600 mb-0.5">Fail code</label>
-                      <select value={card.fail_code}
-                        onChange={e => setCard({...card, fail_code: e.target.value})}
-                        className="w-full border rounded px-2 py-1.5 text-sm bg-white">
-                        <option value="">Select...</option>
-                        {failcodes.filter(f => f.code !== '24').map(f => (
-                          <option key={f.code} value={f.code}>{f.code} — {f.description}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-[11px] text-gray-600 mb-0.5">Stage at failure</label>
-                      <select value={card.stage_fail}
-                        onChange={e => setCard({...card, stage_fail: e.target.value})}
-                        className="w-full border rounded px-2 py-1.5 text-sm bg-white">
-                        <option value="">—</option>
-                        <option value="NB">Building</option>
-                        <option value="EL">Laying</option>
-                        <option value="IC">Incubating</option>
-                        <option value="HY">Hatched young</option>
-                      </select>
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-[11px] text-gray-600 mb-0.5">What happened?</label>
-                    <input type="text" value={card.fail_notes}
-                      onChange={e => setCard({...card, fail_notes: e.target.value})}
-                      placeholder="Describe the failure"
-                      className="w-full border rounded px-2 py-1.5 text-sm" />
-                  </div>
-                </div>
-              )}
-
-              {/* Comments — always shown */}
-              <div>
-                <label className="block text-[11px] text-blue-800 font-medium mb-0.5">Notes / comments</label>
-                <textarea value={visit.comments}
-                  onChange={e => setVisit({...visit, comments: e.target.value})}
-                  placeholder="What did you observe? Behavior, location of fledglings, nest contents, concerns..."
-                  className="w-full border border-blue-200 rounded px-2 py-1.5 text-sm bg-white" rows={2} />
-              </div>
-            </div>
-
-            {/* ═══════════════════════════════════════════════════════════
-                NEST CARD — gray section, all breedfile fields
-                ═══════════════════════════════════════════════════════════ */}
+            {/* NEST CARD — gray section, all breedfile fields in edit mode */}
             <div className="bg-gray-700 text-white px-4 py-2 text-sm font-bold tracking-wide">
-              NEST CARD
+              NEST CARD (EDIT MODE)
             </div>
             <div className="bg-gray-50 border-x border-gray-300 p-4 space-y-4">
               <p className="text-[11px] text-gray-500">
-                These are the running totals for this nest. Values are saved from previous visits.
-                Update anything that changed.
+                Update any fields below. Visit data is recorded from the territory page.
               </p>
 
-              {/* Discovery */}
+              {/* Nest Site — moved to top */}
               <div>
-                <p className="text-[11px] text-gray-400 font-bold uppercase mb-1">Discovery</p>
+                <p className="text-[11px] text-gray-400 font-bold uppercase mb-1">Nest Site</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-[11px] text-gray-600 mb-0.5" title="Height of nest above ground in meters">Height (m)</label>
+                    <input type="text" value={card.nest_height}
+                      onChange={e => setCard({...card, nest_height: e.target.value})}
+                      placeholder="e.g. 1.2"
+                      className="w-full border rounded px-2 py-1.5 text-sm bg-white" />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] text-gray-600 mb-0.5" title="Plant species nest is built in, e.g., Snowberry, Rosa, Grass">Vegetation</label>
+                    <input type="text" value={card.vegetation}
+                      onChange={e => setCard({...card, vegetation: e.target.value})}
+                      placeholder="e.g. Rosa nutkana"
+                      className="w-full border rounded px-2 py-1.5 text-sm bg-white" />
+                  </div>
+                </div>
+                <div className="mt-2">
+                  <label className="block text-[11px] text-gray-600 mb-0.5" title="Location description, landmarks, visibility">Nest description</label>
+                  <textarea value={card.nest_description}
+                    onChange={e => setCard({...card, nest_description: e.target.value})}
+                    placeholder="Where is the nest? Structure, visibility, landmarks"
+                    className="w-full border rounded px-2 py-1.5 text-sm bg-white" rows={2} />
+                </div>
+              </div>
+
+              {/* Discovery & Parents */}
+              <div>
+                <p className="text-[11px] text-gray-400 font-bold uppercase mb-1">Discovery & Parents</p>
                 <div className="grid grid-cols-3 gap-3">
                   <div>
                     <label className="block text-xs text-gray-600 mb-0.5">Stage found</label>
@@ -1064,19 +684,19 @@ export default function NestDetailPage({ params }) {
 
               {/* SOSP counts + quality flags + dates */}
               <div>
-                <p className="text-[11px] text-gray-400 font-bold uppercase mb-1">SOSP counts</p>
+                <p className="text-[11px] text-gray-400 font-bold uppercase mb-1">SOSP Counts & Dates</p>
                 <div className="grid grid-cols-5 gap-1.5">
                   {[
-                    { k: 'eggs', q: 'eggs_quality', l: 'Eggs' },
-                    { k: 'hatch', q: 'hatch_quality', l: 'Hatch' },
-                    { k: 'band', q: 'band_quality', l: 'Band' },
-                    { k: 'fledge', q: 'fledge_quality', l: 'Fledge' },
-                    { k: 'indep', q: 'indep_quality', l: 'Indep' },
+                    { k: 'eggs', q: 'eggs_quality', l: 'Eggs', t: 'Number of eggs laid' },
+                    { k: 'hatch', q: 'hatch_quality', l: 'Hatch', t: 'Number of eggs that hatched' },
+                    { k: 'band', q: 'band_quality', l: 'Band', t: 'Number of chicks that reached banding age (~day 6). NOT the count of chicks that received metal bands.' },
+                    { k: 'fledge', q: 'fledge_quality', l: 'Fledge', t: 'Number of chicks that left the nest alive (day 12-14). Can be revised upward with later sightings.' },
+                    { k: 'indep', q: 'indep_quality', l: 'Indep', t: 'Number of juveniles confirmed independent (seen at or after day 22-24). Can be revised upward.' },
                   ].map(f => {
                     const md = milestoneDates[f.k]
                     return (
                       <div key={f.k}>
-                        <div className="text-[10px] text-gray-400 text-center">{f.l}</div>
+                        <div className="text-[10px] text-gray-400 text-center" title={f.t}>{f.l}</div>
                         <input type="number" min="0" value={card[f.k]}
                           onChange={e => setCard({...card, [f.k]: e.target.value})}
                           placeholder="—"
@@ -1109,7 +729,7 @@ export default function NestDetailPage({ params }) {
                 <p className="text-[11px] text-gray-400 font-bold uppercase mb-1">Timing</p>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="block text-[11px] text-gray-600 mb-0.5">Hatch day</label>
+                    <label className="block text-[11px] text-gray-600 mb-0.5" title="Julian day chicks hatched. Auto-derived from chick age visits.">Hatch day</label>
                     <input type="number" min="1" value={card.date_hatch}
                       onChange={e => setCard({...card, date_hatch: e.target.value})}
                       placeholder="Julian day"
@@ -1118,7 +738,7 @@ export default function NestDetailPage({ params }) {
                     <div className="text-[10px] text-gray-400">Auto from chick age visits</div>
                   </div>
                   <div>
-                    <label className="block text-[11px] text-gray-600 mb-0.5">DFE</label>
+                    <label className="block text-[11px] text-gray-600 mb-0.5" title="Date of First Egg (Julian day). Auto-calculated: DFE = Hatch date - 13 - (Clutch Size - 1)">DFE</label>
                     <input type="number" value={card.dfe}
                       onChange={e => setCard({...card, dfe: e.target.value})}
                       placeholder="Julian day"
@@ -1159,10 +779,9 @@ export default function NestDetailPage({ params }) {
                 </div>
               </div>
 
-              {/* Chicks / I buttons (outside of nestling stage) */}
-              {stage !== 'nestling' && stage !== 'independent' && (
-                <div>
-                  <p className="text-[11px] text-gray-400 font-bold uppercase mb-1">Banded chicks</p>
+              {/* Banded Chicks */}
+              <div>
+                <p className="text-[11px] text-gray-400 font-bold uppercase mb-1">Banded Chicks</p>
                   {[1,2,3,4,5].map(i => {
                     const id = card[`kid${i}`]
                     if (!id && i > 1 && !card[`kid${i-1}`]) return null // hide empty trailing slots
@@ -1200,9 +819,9 @@ export default function NestDetailPage({ params }) {
                     )
                   })}
                 </div>
-              )}
+              </div>
 
-              {/* Other fields */}
+              {/* Other Fields */}
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label className="block text-[11px] text-gray-600 mb-0.5">Unhatched eggs</label>
@@ -1220,9 +839,8 @@ export default function NestDetailPage({ params }) {
               </div>
 
               {/* Outcome */}
-              {stage !== 'failed' && stage !== 'abandoned' && (
-                <div>
-                  <p className="text-[11px] text-gray-400 font-bold uppercase mb-1">Outcome</p>
+              <div>
+                <p className="text-[11px] text-gray-400 font-bold uppercase mb-1">Outcome</p>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
                       <label className="block text-[11px] text-gray-600 mb-0.5">Fail code (24 = success)</label>
@@ -1250,34 +868,6 @@ export default function NestDetailPage({ params }) {
                     </div>
                   </div>
                 </div>
-              )}
-
-              {/* Nest site (if not already shown in visit) */}
-              {stage !== 'building' && stage !== 'laying' && (
-                <div>
-                  <p className="text-[11px] text-gray-400 font-bold uppercase mb-1">Nest site</p>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="block text-[11px] text-gray-600 mb-0.5">Height (m)</label>
-                      <input type="text" value={card.nest_height}
-                        onChange={e => setCard({...card, nest_height: e.target.value})}
-                        className="w-full border rounded px-2 py-1.5 text-sm bg-white" />
-                    </div>
-                    <div>
-                      <label className="block text-[11px] text-gray-600 mb-0.5">Vegetation</label>
-                      <input type="text" value={card.vegetation}
-                        onChange={e => setCard({...card, vegetation: e.target.value})}
-                        className="w-full border rounded px-2 py-1.5 text-sm bg-white" />
-                    </div>
-                  </div>
-                  <div className="mt-2">
-                    <label className="block text-[11px] text-gray-600 mb-0.5">Nest description</label>
-                    <textarea value={card.nest_description}
-                      onChange={e => setCard({...card, nest_description: e.target.value})}
-                      className="w-full border rounded px-2 py-1.5 text-sm bg-white" rows={2} />
-                  </div>
-                </div>
-              )}
 
               {/* Notes */}
               <div>
