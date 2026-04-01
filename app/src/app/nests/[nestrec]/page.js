@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase'
 import { getTerritoryResidents, birdLabel, calculateDFE, estimateHatchDate, toJulianDay, fromJulianDay, localDateString, localTimeString } from '@/lib/helpers'
 
 // 2026 field crew — update this list each season
-const OBSERVER_LIST = ['Katherine']
+const OBSERVER_LIST = ['Katherine', 'Emma', 'Anna', 'Jon', 'Jen']
 
 export default function NestDetailPage({ params }) {
   const { nestrec: nestParam } = params
@@ -301,9 +301,17 @@ export default function NestDetailPage({ params }) {
     const w = []
     const today = new Date()
     const jToday = toJulianDay(today.getFullYear(), today.getMonth() + 1, today.getDate())
+    const isFailed = nest.fail_code && nest.fail_code !== '24'
+
+    // If nest failed, show that and skip protocol warnings
+    if (isFailed) {
+      w.push({ t: 'info', m: `Nest failed (code ${nest.fail_code}). No further protocol actions needed.` })
+    }
+
     let hd = parseInt(nest.date_hatch)
     if (!hd && nest.dfe && nest.eggs) hd = nest.dfe + 13 + (nest.eggs - 1)
-    if (hd) {
+
+    if (hd && !isFailed) {
       const age = jToday - hd
       // Active warnings — current protocol windows
       if (age >= 9 && age <= 11) w.push({ t: 'danger', m: `DO NOT APPROACH — chicks are Day ${age}, will jump prematurely!` })
@@ -316,6 +324,12 @@ export default function NestDetailPage({ params }) {
       if (age >= 8 && !nest.band && nest.hatch > 0) w.push({ t: 'warn', m: `Banding may be overdue — chicks are Day ${age}. Record # banded.` })
       if (age >= 15 && !nest.fledge && nest.hatch > 0) w.push({ t: 'warn', m: `Fledge check overdue — chicks are Day ${age}. Record # fledged.` })
       if (age >= 27 && !nest.indep && nest.fledge > 0) w.push({ t: 'warn', m: `Independence check overdue — chicks are Day ${age}. Record # independent.` })
+    } else if (!hd && !isFailed && nest.eggs_laid === 'Y' && nest.hatch > 0) {
+      // Nest has hatched chicks but no hatch date — protocol warnings can't fire
+      w.push({ t: 'warn', m: 'No hatch date estimated yet — enter a chick age visit to enable protocol scheduling.' })
+    } else if (!hd && !isFailed && (nest.eggs_laid === 'Y' || (nest.eggs && nest.eggs > 0) || nest.stage_find === 'IC' || nest.stage_find === 'EL')) {
+      // Active pre-hatch nest — eggs laid or incubating, no hatch yet
+      w.push({ t: 'info', m: 'Pre-hatch: keep visiting every 2–3 days to catch hatch and determine chick age for scheduling.' })
     }
     // Parent warnings — distinguish between "no parent assigned" and "parent is unbanded"
     if (!nest.male_id) {
@@ -867,6 +881,20 @@ export default function NestDetailPage({ params }) {
                     <input type="number" value={card.brood}
                       onChange={e => setCard({...card, brood: e.target.value})}
                       placeholder="1, 2, 3..."
+                      className="w-full border rounded px-2 py-1.5 text-sm bg-white" />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] text-gray-600 mb-0.5">♂ attempt #</label>
+                    <input type="number" value={card.male_attempt}
+                      onChange={e => setCard({...card, male_attempt: e.target.value})}
+                      placeholder="1, 2..."
+                      className="w-full border rounded px-2 py-1.5 text-sm bg-white" />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] text-gray-600 mb-0.5">♀ attempt #</label>
+                    <input type="number" value={card.female_attempt}
+                      onChange={e => setCard({...card, female_attempt: e.target.value})}
+                      placeholder="1, 2..."
                       className="w-full border rounded px-2 py-1.5 text-sm bg-white" />
                   </div>
                 </div>

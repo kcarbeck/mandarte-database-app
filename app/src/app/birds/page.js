@@ -427,6 +427,17 @@ export default function BirdsPage() {
         .eq('year', currentYear)
       if (confErr) console.warn('Could not mark assignments confirmed:', confErr.message)
 
+      // Step 4: Log to corrections for audit trail
+      await supabase.from('corrections').insert({
+        table_name: 'birds',
+        record_id: String(newId),
+        column_name: 'band_id',
+        old_value: String(oldId),
+        new_value: String(newId),
+        reason: `Banded: unbanded bird (${oldId}) assigned metal band ${newId}, combo ${colorCombo}`,
+        corrected_by: typeof window !== 'undefined' ? (localStorage.getItem('mandarte_observer') || 'unknown') : 'unknown',
+      })
+
       setModal(null)
       loadData()
     } catch (err) {
@@ -507,6 +518,12 @@ export default function BirdsPage() {
     const role = newRole || 'territory_holder'
 
     try {
+      // End the old assignment first — a bird can only hold one territory at a time
+      const { error: endErr } = await supabase.from('territory_assignments')
+        .update({ end_date: startDate, departure_reason: 'moved' })
+        .eq('assignment_id', r.assignment_id)
+      if (endErr) throw new Error('Failed to end old assignment: ' + endErr.message)
+
       const { data: inserted, error } = await supabase.from('territory_assignments').insert({
         territory,
         year: currentYear,
@@ -515,8 +532,8 @@ export default function BirdsPage() {
         sex: r.sex,
         role,
         start_date: startDate,
-        confirmed: r.confirmed,
-        notes: modalForm.notes || null,
+        confirmed: false,  // New territory — not yet confirmed by observation
+        notes: modalForm.notes ? `Moved from ${r.territory}. ${modalForm.notes}` : `Moved from ${r.territory}`,
       }).select()
       if (error) throw new Error(error.message)
       if (!inserted || inserted.length === 0) throw new Error('Insert returned no rows — reassignment may not have saved.')

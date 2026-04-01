@@ -19,6 +19,7 @@ const RENEST_COLOR = '#fed7aa' // orange-200
 const RENEST_IDEAL_COLOR = '#f97316' // orange-500
 
 const VISIT_OVERDUE_DAYS = 5
+const NEST_CHECK_DAYS = 3  // Territories with active pre-hatch nests need visits every 3 days
 const COL_W = 28
 const LABEL_W = 58
 const CELL_H = 32
@@ -55,7 +56,7 @@ function getNestEvent(chickDay, nest) {
 }
 
 // Event priority (lower = more important)
-const EVENT_PRIORITY = { danger: 0, band: 1, fledge: 2, indep: 3, renest: 4 }
+const EVENT_PRIORITY = { danger: 0, band: 1, fledge: 2, indep: 3, renest: 4, nestcheck: 5, visit: 6 }
 
 export default function Home() {
   const [territories, setTerritories] = useState([])
@@ -235,6 +236,26 @@ export default function Home() {
       const lastVisitJD = visitDatesSorted.length > 0 ? dateStrToJD(visitDatesSorted[visitDatesSorted.length - 1]) : null
       const daysSinceVisit = lastVisitJD != null ? todayJD - lastVisitJD : null
 
+      // Active pre-hatch nests: schedule check visits every NEST_CHECK_DAYS
+      const activePreHatchNests = tNests.filter(n =>
+        !n.hatchJD && (!n.fail_code || n.fail_code === '24') && n.stage_find !== 'NFN'
+      )
+      if (activePreHatchNests.length > 0 && (daysSinceVisit === null || daysSinceVisit >= NEST_CHECK_DAYS)) {
+        const nestLabels = activePreHatchNests.map(n => n.nestrec ? `#${n.nestrec}` : `(${n.breed_id})`).join(', ')
+        const stageHint = activePreHatchNests.some(n => n.eggs > 0 || n.stage_find === 'IC') ? 'check for hatch' : 'check nest progress'
+        today.push({
+          id: `nestcheck-${territory}`, type: 'nestcheck',
+          label: `Nest ${nestLabels}: ${stageHint}`,
+          territory, nestLabel: null,
+          nestLink: activePreHatchNests.length === 1
+            ? `/nests/${activePreHatchNests[0].nestrec || activePreHatchNests[0].breed_id}`
+            : `/territories/${encodeURIComponent(territory)}`,
+          dateLabel: daysSinceVisit != null ? `${daysSinceVisit}d since visit` : 'Never visited',
+          jd: todayJD, chickDay: null,
+          color: '#fde68a', idealColor: '#d97706',
+        })
+      }
+
       for (const nest of tNests) {
         if (!nest.hatchJD) continue
         if (nest.fail_code && nest.fail_code !== '24') continue
@@ -276,7 +297,8 @@ export default function Home() {
           dateLabel: 'Today', jd: todayJD, chickDay: null,
           color: '#fef9c3', idealColor: '#ca8a04',
         })
-      } else if (daysSinceVisit === null && tNests.length > 0) {
+      } else if (daysSinceVisit === null) {
+        // Territory has never been visited this season — flag it
         today.push({
           id: `visit-${territory}`, type: 'visit',
           label: 'Visit territory (never visited)',

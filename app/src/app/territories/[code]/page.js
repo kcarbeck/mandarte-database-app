@@ -7,7 +7,7 @@ import { supabase } from '@/lib/supabase'
 import { getTerritoryResidents, birdLabel, localDateString, localTimeString, toJulianDay, fromJulianDay } from '@/lib/helpers'
 
 // 2026 field crew — update this list each season
-const OBSERVER_LIST = ['Katherine']
+const OBSERVER_LIST = ['Katherine', 'Emma', 'Anna', 'Jon', 'Jen']
 
 export default function TerritoryDetailPage({ params }) {
   const { code } = params
