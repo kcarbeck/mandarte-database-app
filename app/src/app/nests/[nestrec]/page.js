@@ -1038,11 +1038,11 @@ export default function NestDetailPage({ params }) {
                 </div>
                 <div className="grid grid-cols-3 gap-3 mt-2">
                   <div>
-                    <label className="block text-[11px] text-gray-600 mb-0.5" title="Which successfully hatched brood is this for this female this season? 1 = first brood, 2 = second (renest after success), etc.">Brood #</label>
+                    <label className="block text-[11px] text-gray-600 mb-0.5" title="Successful brood sequence for this pair/territory in the season. 1 = first successful brood, 2 = second, etc. Tracks the pair, not individual.">Brood #</label>
                     <input type="number" min="1" value={card.brood}
                       onChange={e => setCard({...card, brood: e.target.value})}
                       placeholder="1, 2, 3..."
-                      title="Successfully hatched brood number for this female this season. 1 = first, 2 = renest after success."
+                      title="Successful brood sequence for this pair/territory in the season. 1 = first successful brood, 2 = second, etc."
                       className="w-full border rounded px-2 py-1.5 text-sm bg-white" />
                   </div>
                   <div>
