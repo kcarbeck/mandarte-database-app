@@ -96,6 +96,14 @@ export default function NestDetailPage({ params }) {
       }
       setKidBirds(km)
 
+      // Independence sightings — load per-kid independence status from normalized table
+      let indepMap = {}
+      if (n.breed_id) {
+        const { data: sightings } = await supabase.from('independence_sightings')
+          .select('band_id').eq('breed_id', n.breed_id)
+        if (sightings) sightings.forEach(s => { indepMap[s.band_id] = true })
+      }
+
       // Card state from breed record
       setCard({
         eggs: n.eggs ?? '', hatch: n.hatch ?? '', band: n.band ?? '',
@@ -110,6 +118,11 @@ export default function NestDetailPage({ params }) {
         kid3_combo: km[n.kid3]?.color_combo ?? '',
         kid4_combo: km[n.kid4]?.color_combo ?? '',
         kid5_combo: km[n.kid5]?.color_combo ?? '',
+        kid1_indep: !!(n.kid1 && indepMap[n.kid1]),
+        kid2_indep: !!(n.kid2 && indepMap[n.kid2]),
+        kid3_indep: !!(n.kid3 && indepMap[n.kid3]),
+        kid4_indep: !!(n.kid4 && indepMap[n.kid4]),
+        kid5_indep: !!(n.kid5 && indepMap[n.kid5]),
         stage_find: n.stage_find ?? '', whole_clutch: n.whole_clutch ?? '',
         eggs_laid: n.eggs_laid ?? '', unhatch: n.unhatch ?? '',
         broke_egg: n.broke_egg ?? '', nest_height: n.nest_height ?? '',
@@ -297,6 +310,24 @@ export default function NestDetailPage({ params }) {
         const combo = card[`kid${i}_combo`]?.trim()
         if (combo) {
           await supabase.from('birds').update({ color_combo: combo }).eq('band_id', bandId)
+        }
+      }
+
+      // Save independence sightings to normalized table
+      for (let i = 1; i <= 5; i++) {
+        const bandId = card[`kid${i}`] ? parseInt(card[`kid${i}`]) : null
+        if (!bandId) continue
+        if (card[`kid${i}_indep`]) {
+          // Upsert: mark this chick as independent
+          await supabase.from('independence_sightings').upsert({
+            band_id: bandId,
+            breed_id: nest.breed_id,
+            sighting_date: localDateString(),
+          }, { onConflict: 'band_id,breed_id', ignoreDuplicates: true })
+        } else {
+          // Remove sighting if toggle was turned off
+          await supabase.from('independence_sightings')
+            .delete().eq('band_id', bandId).eq('breed_id', nest.breed_id)
         }
       }
 
@@ -666,21 +697,31 @@ export default function NestDetailPage({ params }) {
                 <p className="text-[11px] text-gray-400 font-bold uppercase mb-1">SOSP Counts</p>
                 <div className="grid grid-cols-5 gap-1.5 text-center">
                   {[
-                    { k: 'eggs', q: 'eggs_quality', l: 'Eggs' },
-                    { k: 'hatch', q: 'hatch_quality', l: 'Hatch' },
-                    { k: 'band', q: 'band_quality', l: 'Band' },
-                    { k: 'fledge', q: 'fledge_quality', l: 'Fledge' },
-                    { k: 'indep', q: 'indep_quality', l: 'Indep' },
+                    { k: 'eggs', q: 'eggs_quality', l: 'Eggs', desc: 'Clutch size' },
+                    { k: 'hatch', q: 'hatch_quality', l: 'Hatch', desc: 'Eggs hatched' },
+                    { k: 'band', q: 'band_quality', l: 'Band', desc: 'Reached day 6' },
+                    { k: 'fledge', q: 'fledge_quality', l: 'Fledge', desc: 'Left nest' },
+                    { k: 'indep', q: 'indep_quality', l: 'Indep', desc: 'Day 22+' },
                   ].map((f, i) => {
                     const md = milestoneDates[f.k]
                     return (
-                      <div key={f.k}>
-                        <div className="text-[10px] text-gray-400">{f.l}</div>
+                      <div key={f.k} className={`rounded-lg p-1.5 ${
+                        card[f.k] !== '' && card[f.k] != null ? 'bg-blue-50 border border-blue-200' : 'bg-gray-50 border border-gray-200'
+                      }`}>
+                        <div className="text-[10px] text-gray-500 font-medium">{f.l}</div>
                         <div className="text-lg font-bold font-mono">
                           {card[f.k] !== '' && card[f.k] != null ? card[f.k] : <span className="text-gray-300">—</span>}
                         </div>
-                        {card[f.q] && <div className="text-[10px] text-gray-400">{card[f.q]}</div>}
-                        {md && <div className="text-[8px] text-gray-400">{md.label}</div>}
+                        {card[f.q] && (
+                          <div className={`text-[10px] font-medium ${
+                            card[f.q] === '.' ? 'text-green-600' :
+                            card[f.q] === '?' ? 'text-yellow-600' :
+                            card[f.q] === '+' ? 'text-blue-600' :
+                            card[f.q] === '-' ? 'text-orange-600' : 'text-gray-400'
+                          }`}>{card[f.q] === '.' ? '● reliable' : card[f.q] === '?' ? '? uncertain' : card[f.q] === '+' ? '+ minimum' : card[f.q] === '-' ? '− overcount' : card[f.q]}</div>
+                        )}
+                        {md && <div className="text-[8px] text-gray-400 leading-tight">JD {md.jd}<br/>{md.label}</div>}
+                        <div className="text-[8px] text-gray-300 mt-0.5">{f.desc}</div>
                       </div>
                     )
                   })}
@@ -715,7 +756,9 @@ export default function NestDetailPage({ params }) {
                     { k: 'cow_egg', l: 'Eggs' }, { k: 'cow_hatch', l: 'Hatch' },
                     { k: 'cow_band', l: 'Band' }, { k: 'cow_fledge', l: 'Fledge' },
                   ].map(f => (
-                    <div key={f.k}>
+                    <div key={f.k} className={`rounded-lg p-1.5 ${
+                      card[f.k] !== '' && card[f.k] != null ? 'bg-amber-50 border border-amber-200' : 'bg-gray-50 border border-gray-200'
+                    }`}>
                       <div className="text-[10px] text-gray-400">{f.l}</div>
                       <div className="text-sm font-bold font-mono">
                         {card[f.k] !== '' && card[f.k] != null ? card[f.k] : <span className="text-gray-300">—</span>}
@@ -729,16 +772,22 @@ export default function NestDetailPage({ params }) {
               {(card.kid1 || card.kid2 || card.kid3) && (
                 <div>
                   <p className="text-[11px] text-gray-400 font-bold uppercase mb-1">Banded Chicks</p>
-                  <div className="space-y-1">
+                  <div className="space-y-1.5">
                     {[1,2,3,4,5].map(i => {
                       const id = card[`kid${i}`]
                       if (!id) return null
                       const combo = card[`kid${i}_combo`] || kidBirds[id]?.color_combo
+                      const isIndep = card[`kid${i}_indep`]
                       return (
-                        <div key={i} className="flex items-center gap-2 text-sm">
-                          <span className="font-mono font-medium">{combo || '—'}</span>
-                          <span className="text-gray-400 text-xs">({id})</span>
-                          {card[`kid${i}_indep`] && <span className="text-green-600 text-xs font-bold">✓ Independent</span>}
+                        <div key={i} className={`flex items-center gap-2 text-sm rounded-lg px-2.5 py-1.5 ${
+                          isIndep ? 'bg-green-50 border border-green-200' : 'bg-gray-50 border border-gray-200'
+                        }`}>
+                          <span className="text-gray-400 text-xs font-medium">#{i}</span>
+                          <span className="font-mono font-semibold">{combo || '—'}</span>
+                          <span className="text-gray-400 text-xs">({String(id)})</span>
+                          {isIndep
+                            ? <span className="ml-auto text-green-600 text-xs font-bold">✓ Independent</span>
+                            : <span className="ml-auto text-gray-300 text-xs">not confirmed</span>}
                         </div>
                       )
                     })}
@@ -746,19 +795,32 @@ export default function NestDetailPage({ params }) {
                 </div>
               )}
 
-              {/* Other */}
+              {/* Egg Fate */}
               {(card.unhatch || card.broke_egg) && (
-                <div className="grid grid-cols-2 gap-3 text-sm">
-                  {card.unhatch && <div><div className="text-[11px] text-gray-500">Unhatched</div><div>{card.unhatch}</div></div>}
-                  {card.broke_egg && <div><div className="text-[11px] text-gray-500">Broken eggs</div><div>{card.broke_egg}</div></div>}
+                <div>
+                  <p className="text-[11px] text-gray-400 font-bold uppercase mb-1">Egg Fate</p>
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    {card.unhatch && (
+                      <div className="bg-gray-50 rounded-lg border border-gray-200 px-2.5 py-1.5">
+                        <div className="text-[10px] text-gray-400">Unhatched eggs</div>
+                        <div className="font-medium">{card.unhatch}</div>
+                      </div>
+                    )}
+                    {card.broke_egg && (
+                      <div className="bg-gray-50 rounded-lg border border-gray-200 px-2.5 py-1.5">
+                        <div className="text-[10px] text-gray-400">Broken eggs</div>
+                        <div className="font-medium">{card.broke_egg}</div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
 
-              {/* Other notes */}
+              {/* Notes */}
               {card.other_notes && (
                 <div>
-                  <div className="text-[11px] text-gray-500">Notes</div>
-                  <div className="text-sm">{card.other_notes}</div>
+                  <p className="text-[11px] text-gray-400 font-bold uppercase mb-1">Notes</p>
+                  <div className="text-sm bg-gray-50 rounded-lg border border-gray-200 px-2.5 py-1.5">{card.other_notes}</div>
                 </div>
               )}
             </div>
@@ -1021,20 +1083,24 @@ export default function NestDetailPage({ params }) {
                   })}
               </div>
 
-              {/* Other Fields */}
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block text-[11px] text-gray-600 mb-0.5">Unhatched eggs</label>
-                  <input type="text" value={card.unhatch}
-                    onChange={e => setCard({...card, unhatch: e.target.value})}
-                    placeholder="e.g. 1 unfertilized"
-                    className="w-full border rounded px-2 py-1.5 text-sm bg-white" />
-                </div>
-                <div>
-                  <label className="block text-[11px] text-gray-600 mb-0.5">Broken eggs</label>
-                  <input type="text" value={card.broke_egg}
-                    onChange={e => setCard({...card, broke_egg: e.target.value})}
-                    className="w-full border rounded px-2 py-1.5 text-sm bg-white" />
+              {/* Egg Fate */}
+              <div>
+                <p className="text-[11px] text-gray-400 font-bold uppercase mb-1">Egg Fate</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-[11px] text-gray-600 mb-0.5" title="Number/description of unhatched eggs remaining in nest after hatching">Unhatched eggs</label>
+                    <input type="text" value={card.unhatch}
+                      onChange={e => setCard({...card, unhatch: e.target.value})}
+                      placeholder="e.g. 1 unfertilized"
+                      className="w-full border rounded px-2 py-1.5 text-sm bg-white" />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] text-gray-600 mb-0.5" title="Description of broken/damaged eggs found in or near nest">Broken eggs</label>
+                    <input type="text" value={card.broke_egg}
+                      onChange={e => setCard({...card, broke_egg: e.target.value})}
+                      placeholder="e.g. shell fragments"
+                      className="w-full border rounded px-2 py-1.5 text-sm bg-white" />
+                  </div>
                 </div>
               </div>
 
