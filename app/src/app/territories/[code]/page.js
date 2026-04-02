@@ -152,7 +152,7 @@ export default function TerritoryDetailPage({ params }) {
               chick_age_estimate: obs.chick_age_estimate ? parseInt(obs.chick_age_estimate) : null,
               cowbird_eggs: obs.cowbird_eggs ? parseInt(obs.cowbird_eggs) : null,
               cowbird_chicks: obs.cowbird_chicks ? parseInt(obs.cowbird_chicks) : null,
-              comments: visitForm.notes.trim(),
+              comments: obs.nest_comment?.trim() || null,
             }
           })
 
@@ -336,22 +336,12 @@ export default function TerritoryDetailPage({ params }) {
 
           <div>
             <label className="block text-xs text-gray-500 mb-1">Observer *</label>
-            <select value={OBSERVER_LIST.includes(visitForm.observer) ? visitForm.observer : (visitForm.observer ? '__other__' : '')}
-              onChange={e => {
-                const v = e.target.value
-                if (v === '__other__') setVisitForm({ ...visitForm, observer: '' })
-                else setVisitForm({ ...visitForm, observer: v })
-              }}
+            <select value={visitForm.observer}
+              onChange={e => setVisitForm({ ...visitForm, observer: e.target.value })}
               className="w-full border rounded-lg px-3 py-2 text-sm bg-white" required>
               <option value="">Select observer...</option>
               {OBSERVER_LIST.map(name => <option key={name} value={name}>{name}</option>)}
-              <option value="__other__">Other...</option>
             </select>
-            {!OBSERVER_LIST.includes(visitForm.observer) && visitForm.observer !== '' && (
-              <input type="text" value={visitForm.observer}
-                onChange={e => setVisitForm({ ...visitForm, observer: e.target.value })}
-                placeholder="Enter name" className="w-full border rounded-lg px-3 py-2 text-sm mt-1" />
-            )}
           </div>
 
           {/* Seen checkboxes — simple, no band re-entry */}
@@ -375,19 +365,31 @@ export default function TerritoryDetailPage({ params }) {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs text-gray-500 mb-1">Minutes spent</label>
-              <input type="number" value={visitForm.minutes_spent}
+              <input type="number" min="0" value={visitForm.minutes_spent}
                 onChange={e => setVisitForm({ ...visitForm, minutes_spent: e.target.value })}
                 placeholder="e.g., 15" className="w-full border rounded-lg px-3 py-2 text-sm" />
             </div>
             <div>
               <label className="block text-xs text-gray-500 mb-1">Nest activity</label>
-              <select value={visitForm.nest_status_flag}
-                onChange={e => setVisitForm({ ...visitForm, nest_status_flag: e.target.value })}
-                className="w-full border rounded-lg px-3 py-2 text-sm bg-white">
-                <option value="no_change">None</option>
-                <option value="existing_nest_checked">Checked nest</option>
-                <option value="new_nest_found">New nest!</option>
-              </select>
+              {nests.filter(n => !n.fail_code).length > 0 ? (
+                <>
+                  <select value={visitForm.nest_status_flag}
+                    onChange={e => setVisitForm({ ...visitForm, nest_status_flag: e.target.value })}
+                    className="w-full border rounded-lg px-3 py-2 text-sm bg-white">
+                    <option value="no_change">Use nest cards below</option>
+                    <option value="new_nest_found">New nest!</option>
+                  </select>
+                  <p className="text-[10px] text-gray-400 mt-0.5">Record nest observations in the cards below</p>
+                </>
+              ) : (
+                <select value={visitForm.nest_status_flag}
+                  onChange={e => setVisitForm({ ...visitForm, nest_status_flag: e.target.value })}
+                  className="w-full border rounded-lg px-3 py-2 text-sm bg-white">
+                  <option value="no_change">None</option>
+                  <option value="existing_nest_checked">Checked nest</option>
+                  <option value="new_nest_found">New nest!</option>
+                </select>
+              )}
             </div>
           </div>
 
@@ -520,6 +522,67 @@ export default function TerritoryDetailPage({ params }) {
                                 />
                               </div>
                             </>
+                          )}
+
+                          {obs.stage === 'fledged' && (
+                            <div>
+                              <label className="block text-xs text-gray-600 mb-1" title="Number of SOSP fledglings seen alive near nest area (day 12-14)">
+                                Fledge count
+                              </label>
+                              <input
+                                type="number"
+                                min="0"
+                                value={obs.chick_count || ''}
+                                onChange={e => setNestObs({ ...nestObs, [nest.breed_id]: { ...obs, chick_count: e.target.value } })}
+                                placeholder="0"
+                                className="w-full border rounded-lg px-3 py-2 text-sm"
+                              />
+                            </div>
+                          )}
+
+                          {obs.stage === 'independent' && (
+                            <div>
+                              <label className="block text-xs text-gray-600 mb-1" title="Number of juveniles confirmed independent (seen at or after day 22-24)">
+                                Independent count
+                              </label>
+                              <input
+                                type="number"
+                                min="0"
+                                value={obs.chick_count || ''}
+                                onChange={e => setNestObs({ ...nestObs, [nest.breed_id]: { ...obs, chick_count: e.target.value } })}
+                                placeholder="0"
+                                className="w-full border rounded-lg px-3 py-2 text-sm"
+                              />
+                            </div>
+                          )}
+
+                          {obs.stage === 'failed' && (
+                            <div>
+                              <label className="block text-xs text-gray-600 mb-1" title="What did you observe? Empty nest, broken eggs, predator signs, etc.">
+                                What happened?
+                              </label>
+                              <input
+                                type="text"
+                                value={obs.nest_comment || ''}
+                                onChange={e => setNestObs({ ...nestObs, [nest.breed_id]: { ...obs, nest_comment: e.target.value } })}
+                                placeholder="Empty nest, broken eggs, predator signs..."
+                                className="w-full border rounded-lg px-3 py-2 text-sm"
+                              />
+                            </div>
+                          )}
+
+                          {/* Per-nest note — separate from territory observations */}
+                          {obs.stage !== 'failed' && (
+                            <div>
+                              <label className="block text-xs text-gray-600 mb-1">Nest note (optional)</label>
+                              <input
+                                type="text"
+                                value={obs.nest_comment || ''}
+                                onChange={e => setNestObs({ ...nestObs, [nest.breed_id]: { ...obs, nest_comment: e.target.value } })}
+                                placeholder="Nest-specific observation..."
+                                className="w-full border rounded-lg px-3 py-2 text-sm"
+                              />
+                            </div>
                           )}
                         </div>
                       )}

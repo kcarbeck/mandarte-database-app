@@ -186,11 +186,25 @@ export default function NestDetailPage({ params }) {
       const eggCounts = visits.filter(v => v.egg_count != null && v.egg_count > 0).map(v => v.egg_count)
       if (eggCounts.length > 0) updates.eggs = Math.max(...eggCounts)
     }
-    // Hatch: first chick_count observed (earliest visit with chicks)
+    // Hatch: first chick_count from nestling visits only (not fledge/indep visits)
     if (nest.hatch == null) {
-      const chickVisits = visits.filter(v => v.chick_count != null && v.chick_count > 0)
+      const chickVisits = visits
+        .filter(v => v.chick_count != null && v.chick_count > 0
+          && (!v.nest_stage || v.nest_stage === 'nestling'))
         .sort((a, b) => new Date(a.visit_date) - new Date(b.visit_date))
       if (chickVisits.length > 0) updates.hatch = chickVisits[0].chick_count
+    }
+    // Fledge: max chick_count from fledge-stage visits
+    if (nest.fledge == null) {
+      const fledgeVisits = visits.filter(v => v.chick_count != null && v.chick_count > 0
+        && v.nest_stage === 'fledged')
+      if (fledgeVisits.length > 0) updates.fledge = Math.max(...fledgeVisits.map(v => v.chick_count))
+    }
+    // Indep: max chick_count from independence-stage visits
+    if (nest.indep == null) {
+      const indepVisits = visits.filter(v => v.chick_count != null && v.chick_count > 0
+        && v.nest_stage === 'independent')
+      if (indepVisits.length > 0) updates.indep = Math.max(...indepVisits.map(v => v.chick_count))
     }
     // Cowbird eggs: max observed
     if (nest.cow_egg == null) {
@@ -963,7 +977,7 @@ export default function NestDetailPage({ params }) {
                             const on = !card[`kid${i}_indep`]
                             const c = { ...card, [`kid${i}_indep`]: on }
                             const n = [1,2,3,4,5].filter(j => j === i ? on : c[`kid${j}_indep`]).length
-                            if (n > 0) c.indep = String(n)
+                            c.indep = n > 0 ? String(n) : ''
                             setCard(c)
                           }}
                           title="Mark this chick as independent"
