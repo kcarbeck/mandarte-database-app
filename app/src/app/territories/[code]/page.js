@@ -306,9 +306,12 @@ export default function TerritoryDetailPage({ params }) {
           const breedUpdates = {}
           if (obs.stage === 'laying') {
             if (safeInt(obs.egg_count) != null && nest.eggs == null) breedUpdates.eggs = safeInt(obs.egg_count)
+            // DFE = date first egg. Back-calculate: one egg per day.
             if (nest.dfe == null) {
               const [y, m, d] = visitForm.visit_date.split('-').map(Number)
-              breedUpdates.dfe = toJulianDay(y, m, d)
+              const visitJD = toJulianDay(y, m, d)
+              const eggsSeen = safeInt(obs.egg_count)
+              breedUpdates.dfe = eggsSeen != null && eggsSeen > 1 ? visitJD - (eggsSeen - 1) : visitJD
             }
           }
           if (obs.stage === 'incubating') {
@@ -463,10 +466,13 @@ export default function TerritoryDetailPage({ params }) {
 
       if (obs.stage === 'laying') {
         if (safeInt(obs.egg_count) != null && nest.eggs == null) breedUpdates.eggs = safeInt(obs.egg_count)
-        // DFE = date first egg (Julian day) — set from visit date if not already set
+        // DFE = date first egg. Back-calculate: one egg laid per day, so
+        // DFE = visit_date - (eggs_seen - 1). If egg count unknown, use visit date as-is.
         if (nest.dfe == null) {
           const [y, m, d] = visitDate.split('-').map(Number)
-          breedUpdates.dfe = toJulianDay(y, m, d)
+          const visitJD = toJulianDay(y, m, d)
+          const eggsSeen = safeInt(obs.egg_count)
+          breedUpdates.dfe = eggsSeen != null && eggsSeen > 1 ? visitJD - (eggsSeen - 1) : visitJD
         }
       }
       if (obs.stage === 'incubating') {
