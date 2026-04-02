@@ -74,21 +74,42 @@ export default function TerritoryDetailPage({ params }) {
     return m
   }, [nests])
 
-  // Merged visit log: territory + nest visits, sorted oldest-first
-  const mergedVisits = useMemo(() => {
+  // Grouped visit log: territory visits as anchors, nest visits folded in
+  const groupedVisits = useMemo(() => {
     const allNestVisits = Object.values(nestVisitsMap).flat()
-    return [
-      ...visits.map(v => ({ ...v, type: 'territory' })),
-      ...allNestVisits.map(v => ({ ...v, type: 'nest', nestLabel: `Nest #${nestSeq[v.breed_id] || '?'}` })),
-    ].sort((a, b) => {
+
+    // Territory visits are the anchors — attach matching nest visits
+    const groups = visits.map(tv => ({
+      ...tv,
+      type: 'territory',
+      nestObs: [],
+    }))
+
+    // Match nest visits to territory visits by date + time + observer
+    const unmatched = []
+    for (const nv of allNestVisits) {
+      const match = groups.find(g =>
+        g.visit_date === nv.visit_date &&
+        g.visit_time === nv.visit_time &&
+        g.observer === nv.observer
+      )
+      if (match) {
+        match.nestObs.push({ ...nv, nestLabel: `Nest #${nestSeq[nv.breed_id] || '?'}` })
+      } else {
+        // Orphaned nest visit (no matching territory visit) — show standalone
+        unmatched.push({ ...nv, type: 'nest_only', nestLabel: `Nest #${nestSeq[nv.breed_id] || '?'}`, nestObs: [] })
+      }
+    }
+
+    return [...groups, ...unmatched].sort((a, b) => {
       const dateA = a.visit_date || ''
       const dateB = b.visit_date || ''
       if (dateA !== dateB) return dateA.localeCompare(dateB)
-      const timeA = a.visit_time || ''
-      const timeB = b.visit_time || ''
-      return timeA.localeCompare(timeB)
+      return (a.visit_time || '').localeCompare(b.visit_time || '')
     })
   }, [visits, nestVisitsMap, nestSeq])
+
+  const totalVisitCount = visits.length + Object.values(nestVisitsMap).flat().length
 
   useEffect(() => { loadAll() }, [territoryCode])
 
@@ -1335,147 +1356,157 @@ export default function TerritoryDetailPage({ params }) {
       )}
 
       {/* ═══════════════════════════════════════════════════════════════
-          COMBINED VISIT LOG — territory + nest visits, oldest first
+          VISIT LOG — one row per visit, nest observations folded in
           ═══════════════════════════════════════════════════════════════ */}
       <div>
         <h3 className="text-sm font-semibold text-gray-700 mb-2">
-          Visit Log ({mergedVisits.length})
+          Visit Log ({groupedVisits.length})
         </h3>
-        {mergedVisits.length === 0 ? (
+        {groupedVisits.length === 0 ? (
           <p className="text-sm text-gray-400 bg-white rounded-lg border p-4">No visits logged yet.</p>
         ) : (
-          <table className="w-full text-left bg-white rounded-lg border overflow-hidden">
-            <thead>
-              <tr className="text-[10px] text-gray-400 uppercase border-b bg-gray-50">
-                <th className="py-1.5 px-2 font-medium">Date</th>
-                <th className="py-1.5 pr-1 font-medium">Time</th>
-                <th className="py-1.5 pr-1 font-medium">Content</th>
-                <th className="py-1.5 pr-2 font-medium">Notes</th>
-              </tr>
-            </thead>
-            <tbody>
-              {mergedVisits.map((v, idx) => {
-                const isTerritory = v.type === 'territory'
-                const isEditing = isTerritory && editingVisit === v.visit_id
+          <div className="bg-white rounded-lg border overflow-hidden divide-y divide-gray-100">
+            {groupedVisits.map((v, idx) => {
+              const isTerritory = v.type === 'territory'
+              const isEditing = isTerritory && editingVisit === v.visit_id
 
-                if (isEditing) {
-                  return (
-                    <tr key={`t-${v.visit_id}`}><td colSpan={4} className="p-2">
-                      <div className="bg-yellow-50 rounded-lg border-2 border-yellow-300 p-3 space-y-2">
-                        <div className="grid grid-cols-2 gap-2">
-                          <div>
-                            <label className="block text-[10px] text-gray-500 mb-0.5">Date</label>
-                            <input type="date" value={editForm.visit_date || ''}
-                              onChange={e => setEditForm({ ...editForm, visit_date: e.target.value })}
-                              className="w-full border rounded px-2 py-1.5 text-sm" />
-                          </div>
-                          <div>
-                            <label className="block text-[10px] text-gray-500 mb-0.5">Time</label>
-                            <input type="time" value={editForm.visit_time || ''}
-                              onChange={e => setEditForm({ ...editForm, visit_time: e.target.value })}
-                              className="w-full border rounded px-2 py-1.5 text-sm" />
-                          </div>
+              if (isEditing) {
+                return (
+                  <div key={`edit-${v.visit_id}`} className="p-2">
+                    <div className="bg-yellow-50 rounded-lg border-2 border-yellow-300 p-3 space-y-2">
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="block text-[10px] text-gray-500 mb-0.5">Date</label>
+                          <input type="date" value={editForm.visit_date || ''}
+                            onChange={e => setEditForm({ ...editForm, visit_date: e.target.value })}
+                            className="w-full border rounded px-2 py-1.5 text-sm" />
                         </div>
                         <div>
-                          <label className="block text-[10px] text-gray-500 mb-0.5">Observer</label>
-                          <select value={editForm.observer || ''}
-                            onChange={e => setEditForm({ ...editForm, observer: e.target.value })}
-                            className="w-full border rounded px-2 py-1.5 text-sm bg-white">
-                            <option value="">Select observer...</option>
-                            {OBSERVER_LIST.map(name => <option key={name} value={name}>{name}</option>)}
-                          </select>
-                        </div>
-                        <div className="flex gap-4 flex-wrap">
-                          <label className="flex items-center gap-1.5 text-xs">
-                            <input type="checkbox" checked={editForm.male_seen || false}
-                              onChange={e => setEditForm({ ...editForm, male_seen: e.target.checked })}
-                              className="w-4 h-4 rounded" />
-                            ♂ seen
-                          </label>
-                          <label className="flex items-center gap-1.5 text-xs">
-                            <input type="checkbox" checked={editForm.female_seen || false}
-                              onChange={e => setEditForm({ ...editForm, female_seen: e.target.checked })}
-                              className="w-4 h-4 rounded" />
-                            ♀ seen
-                          </label>
-                        </div>
-                        <div>
-                          <label className="block text-[10px] text-gray-500 mb-0.5">Notes</label>
-                          <textarea value={editForm.notes || ''}
-                            onChange={e => setEditForm({ ...editForm, notes: e.target.value })}
-                            className="w-full border rounded px-2 py-1.5 text-sm" rows={2} />
-                        </div>
-                        <div className="flex gap-2">
-                          <button type="button" onClick={() => handleSaveVisitEdit(v.visit_id)}
-                            className="flex-1 bg-blue-600 text-white rounded py-1.5 text-xs font-semibold">Save</button>
-                          <button type="button" onClick={() => { setEditingVisit(null); setEditForm({}) }}
-                            className="px-4 border rounded py-1.5 text-xs text-gray-600">Cancel</button>
+                          <label className="block text-[10px] text-gray-500 mb-0.5">Time</label>
+                          <input type="time" value={editForm.visit_time || ''}
+                            onChange={e => setEditForm({ ...editForm, visit_time: e.target.value })}
+                            className="w-full border rounded px-2 py-1.5 text-sm" />
                         </div>
                       </div>
-                    </td></tr>
-                  )
-                }
-
-                if (isTerritory) {
-                  const content = [
-                    v.male_seen ? '♂ ✓' : null,
-                    v.female_seen ? '♀ ✓' : null,
-                    v.minutes_spent ? `${v.minutes_spent} min` : null,
-                    v.other_birds_notes || null,
-                  ].filter(Boolean).join(', ') || '—'
-                  return (
-                    <tr key={`t-${v.visit_id}`} className="border-t border-gray-100 align-top">
-                      <td className="py-1.5 px-2 text-[11px] text-gray-600 whitespace-nowrap">{fmtVisitDate(v.visit_date)}</td>
-                      <td className="py-1.5 pr-1 text-[11px] text-gray-400 whitespace-nowrap">{fmtVisitTime(v.visit_time)}</td>
-                      <td className="py-1.5 pr-1 text-[11px] text-gray-600">
-                        <span className="bg-gray-100 text-gray-500 px-1 py-0.5 rounded text-[9px] font-medium mr-1">TERR</span>
-                        {content}
-                      </td>
-                      <td className="py-1.5 pr-2 text-[11px]">
-                        <div className="flex items-start justify-between gap-1">
-                          <span className="text-gray-600">{v.notes}</span>
-                          <button type="button"
-                            onClick={() => {
-                              setEditingVisit(v.visit_id)
-                              setEditForm({
-                                visit_date: v.visit_date || '', visit_time: v.visit_time || '',
-                                observer: v.observer || '', male_seen: v.male_seen || false,
-                                female_seen: v.female_seen || false, minutes_spent: v.minutes_spent || '',
-                                other_birds_notes: v.other_birds_notes || '', notes: v.notes || '',
-                              })
-                            }}
-                            className="text-[10px] text-blue-500 hover:text-blue-700 shrink-0">edit</button>
-                        </div>
-                      </td>
-                    </tr>
-                  )
-                }
-
-                // Nest visit row
-                const content = [
-                  v.egg_count != null ? `${v.egg_count} eggs` : null,
-                  v.chick_count != null ? `${v.chick_count} chicks` : null,
-                  v.chick_age_estimate != null ? `D${v.chick_age_estimate}` : null,
-                  v.cowbird_eggs > 0 ? `${v.cowbird_eggs} CB eggs` : null,
-                  v.cowbird_chicks > 0 ? `${v.cowbird_chicks} CB chicks` : null,
-                ].filter(Boolean).join(', ') || '—'
-                return (
-                  <tr key={`n-${v.nest_visit_id}`} className="border-t border-gray-100 align-top bg-blue-50/30">
-                    <td className="py-1.5 px-2 text-[11px] text-gray-600 whitespace-nowrap">{fmtVisitDate(v.visit_date)}</td>
-                    <td className="py-1.5 pr-1 text-[11px] text-gray-400 whitespace-nowrap">{fmtVisitTime(v.visit_time)}</td>
-                    <td className="py-1.5 pr-1 text-[11px] text-gray-600">
-                      <span className="bg-blue-100 text-blue-600 px-1 py-0.5 rounded text-[9px] font-medium mr-1">{v.nestLabel}</span>
-                      {content}
-                    </td>
-                    <td className="py-1.5 pr-2 text-[11px]">
-                      {v.nest_stage && <span className="text-blue-700 font-medium">{v.nest_stage.charAt(0).toUpperCase() + v.nest_stage.slice(1)}</span>}
-                      {v.comments && <span className="text-gray-500 ml-1">{v.comments}</span>}
-                    </td>
-                  </tr>
+                      <div>
+                        <label className="block text-[10px] text-gray-500 mb-0.5">Observer</label>
+                        <select value={editForm.observer || ''}
+                          onChange={e => setEditForm({ ...editForm, observer: e.target.value })}
+                          className="w-full border rounded px-2 py-1.5 text-sm bg-white">
+                          <option value="">Select observer...</option>
+                          {OBSERVER_LIST.map(name => <option key={name} value={name}>{name}</option>)}
+                        </select>
+                      </div>
+                      <div className="flex gap-4 flex-wrap">
+                        <label className="flex items-center gap-1.5 text-xs">
+                          <input type="checkbox" checked={editForm.male_seen || false}
+                            onChange={e => setEditForm({ ...editForm, male_seen: e.target.checked })}
+                            className="w-4 h-4 rounded" />
+                          ♂ seen
+                        </label>
+                        <label className="flex items-center gap-1.5 text-xs">
+                          <input type="checkbox" checked={editForm.female_seen || false}
+                            onChange={e => setEditForm({ ...editForm, female_seen: e.target.checked })}
+                            className="w-4 h-4 rounded" />
+                          ♀ seen
+                        </label>
+                      </div>
+                      <div>
+                        <label className="block text-[10px] text-gray-500 mb-0.5">Notes</label>
+                        <textarea value={editForm.notes || ''}
+                          onChange={e => setEditForm({ ...editForm, notes: e.target.value })}
+                          className="w-full border rounded px-2 py-1.5 text-sm" rows={2} />
+                      </div>
+                      <div className="flex gap-2">
+                        <button type="button" onClick={() => handleSaveVisitEdit(v.visit_id)}
+                          className="flex-1 bg-blue-600 text-white rounded py-1.5 text-xs font-semibold">Save</button>
+                        <button type="button" onClick={() => { setEditingVisit(null); setEditForm({}) }}
+                          className="px-4 border rounded py-1.5 text-xs text-gray-600">Cancel</button>
+                      </div>
+                    </div>
+                  </div>
                 )
-              })}
-            </tbody>
-          </table>
+              }
+
+              if (isTerritory) {
+                // Territory visit with nest observations folded in
+                const seenParts = [
+                  v.male_seen ? '♂ ✓' : null,
+                  v.female_seen ? '♀ ✓' : null,
+                ].filter(Boolean).join(', ')
+                return (
+                  <div key={`t-${v.visit_id}`} className="px-3 py-2">
+                    {/* Header line: date, time, observer, seen, edit */}
+                    <div className="flex items-baseline justify-between gap-2">
+                      <div className="flex items-baseline gap-2 text-[11px]">
+                        <span className="text-gray-700 font-semibold whitespace-nowrap">{fmtVisitDate(v.visit_date)}</span>
+                        <span className="text-gray-400 whitespace-nowrap">{fmtVisitTime(v.visit_time)}</span>
+                        {seenParts && <span className="text-gray-400">{seenParts}</span>}
+                        {v.minutes_spent != null && <span className="text-gray-400">{v.minutes_spent} min</span>}
+                      </div>
+                      <button type="button"
+                        onClick={() => {
+                          setEditingVisit(v.visit_id)
+                          setEditForm({
+                            visit_date: v.visit_date || '', visit_time: v.visit_time || '',
+                            observer: v.observer || '', male_seen: v.male_seen || false,
+                            female_seen: v.female_seen || false, minutes_spent: v.minutes_spent || '',
+                            other_birds_notes: v.other_birds_notes || '', notes: v.notes || '',
+                          })
+                        }}
+                        className="text-[10px] text-blue-500 hover:text-blue-700 shrink-0">edit</button>
+                    </div>
+                    {/* Notes */}
+                    {v.notes && <p className="text-[11px] text-gray-600 mt-0.5 leading-snug">{v.notes}</p>}
+                    {v.other_birds_notes && <p className="text-[10px] text-gray-400 mt-0.5">Other birds: {v.other_birds_notes}</p>}
+                    {/* Nest observations from this visit */}
+                    {v.nestObs.length > 0 && (
+                      <div className="mt-1.5 space-y-0.5">
+                        {v.nestObs.map(nv => {
+                          const nestContent = [
+                            nv.nest_stage ? nv.nest_stage.charAt(0).toUpperCase() + nv.nest_stage.slice(1) : null,
+                            nv.egg_count != null ? `${nv.egg_count} eggs` : null,
+                            nv.chick_count != null ? `${nv.chick_count} chicks` : null,
+                            nv.chick_age_estimate != null ? `D${nv.chick_age_estimate}` : null,
+                            nv.cowbird_eggs > 0 ? `${nv.cowbird_eggs} CB eggs` : null,
+                            nv.cowbird_chicks > 0 ? `${nv.cowbird_chicks} CB chicks` : null,
+                          ].filter(Boolean).join(', ')
+                          return (
+                            <div key={nv.nest_visit_id} className="flex items-baseline gap-1.5 text-[10px]">
+                              <span className="bg-blue-100 text-blue-600 px-1 py-0.5 rounded text-[9px] font-medium shrink-0">{nv.nestLabel}</span>
+                              <span className="text-blue-700">{nestContent || '—'}</span>
+                              {nv.comments && <span className="text-gray-400">— {nv.comments}</span>}
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )
+              }
+
+              // Orphaned nest visit (no matching territory visit)
+              const nestContent = [
+                v.nest_stage ? v.nest_stage.charAt(0).toUpperCase() + v.nest_stage.slice(1) : null,
+                v.egg_count != null ? `${v.egg_count} eggs` : null,
+                v.chick_count != null ? `${v.chick_count} chicks` : null,
+                v.chick_age_estimate != null ? `D${v.chick_age_estimate}` : null,
+                v.cowbird_eggs > 0 ? `${v.cowbird_eggs} CB eggs` : null,
+                v.cowbird_chicks > 0 ? `${v.cowbird_chicks} CB chicks` : null,
+              ].filter(Boolean).join(', ')
+              return (
+                <div key={`n-${v.nest_visit_id}`} className="px-3 py-2 bg-blue-50/30">
+                  <div className="flex items-baseline gap-2 text-[11px]">
+                    <span className="text-gray-700 font-semibold whitespace-nowrap">{fmtVisitDate(v.visit_date)}</span>
+                    <span className="text-gray-400 whitespace-nowrap">{fmtVisitTime(v.visit_time)}</span>
+                    <span className="bg-blue-100 text-blue-600 px-1 py-0.5 rounded text-[9px] font-medium">{v.nestLabel}</span>
+                  </div>
+                  <p className="text-[11px] text-blue-700 mt-0.5">{nestContent || '—'}</p>
+                  {v.comments && <p className="text-[10px] text-gray-500 mt-0.5">{v.comments}</p>}
+                </div>
+              )
+            })}
+          </div>
         )}
       </div>
     </div>

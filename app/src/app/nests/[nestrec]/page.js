@@ -1283,8 +1283,9 @@ export default function NestDetailPage({ params }) {
               <tr className="text-[10px] text-gray-400 uppercase">
                 <th className="py-1 pr-1 font-medium">Date</th>
                 <th className="py-1 pr-1 font-medium">Time</th>
-                <th className="py-1 pr-1 font-medium">Content</th>
-                <th className="py-1 font-medium">Status</th>
+                <th className="py-1 pr-1 font-medium">Obs</th>
+                <th className="py-1 pr-1 font-medium">Stage</th>
+                <th className="py-1 font-medium">Notes</th>
               </tr>
             </thead>
             <tbody>
@@ -1293,7 +1294,7 @@ export default function NestDetailPage({ params }) {
 
               if (isEditingThis) {
                 return (
-                  <tr key={v.nest_visit_id}><td colSpan={4} className="py-1">
+                  <tr key={v.nest_visit_id}><td colSpan={5} className="py-1">
                   <div className="bg-yellow-50 rounded-lg border-2 border-yellow-300 px-3 py-2 space-y-2">
                     <div className="grid grid-cols-2 gap-2">
                       <div>
@@ -1448,12 +1449,12 @@ export default function NestDetailPage({ params }) {
                   <td className="py-1.5 pr-1 text-[11px] text-gray-600 whitespace-nowrap">{fmtVisitDate(v.visit_date)}</td>
                   <td className="py-1.5 pr-1 text-[11px] text-gray-400 whitespace-nowrap">{fmtTime(v.visit_time)}</td>
                   <td className="py-1.5 pr-1 text-[11px] text-gray-600">{content}</td>
+                  <td className="py-1.5 pr-1 text-[11px]">
+                    {stage && <span className="text-blue-700 font-medium">{stage}</span>}
+                  </td>
                   <td className="py-1.5 text-[11px]">
                     <div className="flex items-start justify-between gap-1">
-                      <div>
-                        {stage && <span className="text-blue-700 font-medium">{stage}</span>}
-                        {v.comments && <div className="text-gray-500 mt-0.5">{v.comments}</div>}
-                      </div>
+                      <span className="text-gray-600">{v.comments || ''}</span>
                       <button type="button"
                         onClick={() => {
                           setEditingVisit(v.nest_visit_id)
