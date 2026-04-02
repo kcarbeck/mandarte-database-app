@@ -26,6 +26,8 @@ export default function NestDetailPage({ params }) {
   // Card state — mirrors the breed record
   const [card, setCard] = useState({})
   const [nestSequence, setNestSequence] = useState(null)
+  const [editingVisit, setEditingVisit] = useState(null) // nest_visit_id being edited
+  const [editVisitForm, setEditVisitForm] = useState({})
 
   // ── Data loading ─────────────────────────────────────────────────────
   useEffect(() => { loadNest(); loadLookups() }, [nestId])
@@ -321,6 +323,32 @@ export default function NestDetailPage({ params }) {
       alert('Error: ' + err.message)
     } finally {
       setSaving(false)
+    }
+  }
+
+  // ── Save nest visit edit ─────────────────────────────────────────────
+  async function handleSaveNestVisitEdit(visitId) {
+    try {
+      const f = editVisitForm
+      const updates = {
+        visit_date: f.visit_date,
+        visit_time: f.visit_time || null,
+        observer: f.observer?.trim() || null,
+        nest_stage: f.nest_stage || null,
+        egg_count: f.egg_count !== '' && f.egg_count != null ? parseInt(f.egg_count) : null,
+        chick_count: f.chick_count !== '' && f.chick_count != null ? parseInt(f.chick_count) : null,
+        chick_age_estimate: f.chick_age_estimate !== '' && f.chick_age_estimate != null ? parseInt(f.chick_age_estimate) : null,
+        cowbird_eggs: f.cowbird_eggs !== '' && f.cowbird_eggs != null ? parseInt(f.cowbird_eggs) : null,
+        cowbird_chicks: f.cowbird_chicks !== '' && f.cowbird_chicks != null ? parseInt(f.cowbird_chicks) : null,
+        comments: f.comments?.trim() || null,
+      }
+      const { error } = await supabase.from('nest_visits').update(updates).eq('nest_visit_id', visitId)
+      if (error) throw error
+      setEditingVisit(null)
+      setEditVisitForm({})
+      loadNest()
+    } catch (err) {
+      alert('Error updating nest visit: ' + err.message)
     }
   }
 
@@ -1188,29 +1216,147 @@ export default function NestDetailPage({ params }) {
           <p className="text-sm text-gray-400 bg-white rounded-lg border p-4">No visits recorded yet.</p>
         ) : (
           <div className="space-y-1.5">
-            {visits.map(v => (
-              <div key={v.nest_visit_id} className="bg-white rounded-lg border px-3 py-2">
-                <div className="flex justify-between text-xs">
-                  <span className="text-gray-600">
-                    {v.visit_date}{v.visit_time ? ` ${v.visit_time}` : ''}
-                    <span className="text-gray-400 ml-1.5">{v.observer}</span>
-                  </span>
-                  {v.nest_stage && (
-                    <span className="bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded text-[11px] font-medium">
-                      {v.nest_stage.charAt(0).toUpperCase() + v.nest_stage.slice(1)}
+            {visits.map(v => {
+              const isEditingThis = editingVisit === v.nest_visit_id
+
+              if (isEditingThis) {
+                return (
+                  <div key={v.nest_visit_id} className="bg-yellow-50 rounded-lg border-2 border-yellow-300 px-3 py-2 space-y-2">
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-[10px] text-gray-500 mb-0.5">Date</label>
+                        <input type="date" value={editVisitForm.visit_date || ''}
+                          onChange={e => setEditVisitForm({ ...editVisitForm, visit_date: e.target.value })}
+                          className="w-full border rounded px-2 py-1.5 text-sm" />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] text-gray-500 mb-0.5">Time</label>
+                        <input type="time" value={editVisitForm.visit_time || ''}
+                          onChange={e => setEditVisitForm({ ...editVisitForm, visit_time: e.target.value })}
+                          className="w-full border rounded px-2 py-1.5 text-sm" />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-[10px] text-gray-500 mb-0.5">Observer</label>
+                        <select value={editVisitForm.observer || ''}
+                          onChange={e => setEditVisitForm({ ...editVisitForm, observer: e.target.value })}
+                          className="w-full border rounded px-2 py-1.5 text-sm bg-white">
+                          <option value="">Select...</option>
+                          {OBSERVER_LIST.map(name => <option key={name} value={name}>{name}</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-[10px] text-gray-500 mb-0.5">Stage</label>
+                        <select value={editVisitForm.nest_stage || ''}
+                          onChange={e => setEditVisitForm({ ...editVisitForm, nest_stage: e.target.value })}
+                          className="w-full border rounded px-2 py-1.5 text-sm bg-white">
+                          <option value="">—</option>
+                          {['building', 'laying', 'incubating', 'hatching', 'nestling', 'fledged', 'independent', 'failed'].map(s => (
+                            <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      <div>
+                        <label className="block text-[10px] text-gray-500 mb-0.5">Eggs</label>
+                        <input type="number" min="0" value={editVisitForm.egg_count ?? ''}
+                          onChange={e => setEditVisitForm({ ...editVisitForm, egg_count: e.target.value })}
+                          className="w-full border rounded px-2 py-1.5 text-sm" />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] text-gray-500 mb-0.5">Chicks</label>
+                        <input type="number" min="0" value={editVisitForm.chick_count ?? ''}
+                          onChange={e => setEditVisitForm({ ...editVisitForm, chick_count: e.target.value })}
+                          className="w-full border rounded px-2 py-1.5 text-sm" />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] text-gray-500 mb-0.5">Chick age</label>
+                        <input type="number" min="0" value={editVisitForm.chick_age_estimate ?? ''}
+                          onChange={e => setEditVisitForm({ ...editVisitForm, chick_age_estimate: e.target.value })}
+                          className="w-full border rounded px-2 py-1.5 text-sm" />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-[10px] text-gray-500 mb-0.5">CB eggs</label>
+                        <input type="number" min="0" value={editVisitForm.cowbird_eggs ?? ''}
+                          onChange={e => setEditVisitForm({ ...editVisitForm, cowbird_eggs: e.target.value })}
+                          className="w-full border rounded px-2 py-1.5 text-sm" />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] text-gray-500 mb-0.5">CB chicks</label>
+                        <input type="number" min="0" value={editVisitForm.cowbird_chicks ?? ''}
+                          onChange={e => setEditVisitForm({ ...editVisitForm, cowbird_chicks: e.target.value })}
+                          className="w-full border rounded px-2 py-1.5 text-sm" />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] text-gray-500 mb-0.5">Comments</label>
+                      <textarea value={editVisitForm.comments || ''}
+                        onChange={e => setEditVisitForm({ ...editVisitForm, comments: e.target.value })}
+                        className="w-full border rounded px-2 py-1.5 text-sm" rows={2} />
+                    </div>
+                    <div className="flex gap-2">
+                      <button type="button" onClick={() => handleSaveNestVisitEdit(v.nest_visit_id)}
+                        className="flex-1 bg-blue-600 text-white rounded py-1.5 text-xs font-semibold">
+                        Save
+                      </button>
+                      <button type="button" onClick={() => { setEditingVisit(null); setEditVisitForm({}) }}
+                        className="px-4 border rounded py-1.5 text-xs text-gray-600">
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )
+              }
+
+              return (
+                <div key={v.nest_visit_id} className="bg-white rounded-lg border px-3 py-2">
+                  <div className="flex justify-between text-xs">
+                    <span className="text-gray-600">
+                      {v.visit_date}{v.visit_time ? ` ${v.visit_time}` : ''}
+                      <span className="text-gray-400 ml-1.5">{v.observer}</span>
                     </span>
-                  )}
+                    <div className="flex items-center gap-1.5">
+                      {v.nest_stage && (
+                        <span className="bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded text-[11px] font-medium">
+                          {v.nest_stage.charAt(0).toUpperCase() + v.nest_stage.slice(1)}
+                        </span>
+                      )}
+                      <button type="button"
+                        onClick={() => {
+                          setEditingVisit(v.nest_visit_id)
+                          setEditVisitForm({
+                            visit_date: v.visit_date || '',
+                            visit_time: v.visit_time || '',
+                            observer: v.observer || '',
+                            nest_stage: v.nest_stage || '',
+                            egg_count: v.egg_count ?? '',
+                            chick_count: v.chick_count ?? '',
+                            chick_age_estimate: v.chick_age_estimate ?? '',
+                            cowbird_eggs: v.cowbird_eggs ?? '',
+                            cowbird_chicks: v.cowbird_chicks ?? '',
+                            comments: v.comments || '',
+                          })
+                        }}
+                        className="text-[10px] text-blue-500 hover:text-blue-700">
+                        edit
+                      </button>
+                    </div>
+                  </div>
+                  <div className="text-xs text-gray-500 mt-0.5 flex gap-3 flex-wrap">
+                    {v.egg_count != null && <span>Eggs: {v.egg_count}</span>}
+                    {v.chick_count != null && <span>Chicks: {v.chick_count}</span>}
+                    {v.chick_age_estimate != null && <span>Age: D{v.chick_age_estimate}</span>}
+                    {v.cowbird_eggs > 0 && <span>CB eggs: {v.cowbird_eggs}</span>}
+                    {v.cowbird_chicks > 0 && <span>CB chicks: {v.cowbird_chicks}</span>}
+                  </div>
+                  {v.comments && <p className="text-xs text-gray-600 mt-0.5">{v.comments}</p>}
                 </div>
-                <div className="text-xs text-gray-500 mt-0.5 flex gap-3 flex-wrap">
-                  {v.egg_count != null && <span>Eggs: {v.egg_count}</span>}
-                  {v.chick_count != null && <span>Chicks: {v.chick_count}</span>}
-                  {v.chick_age_estimate != null && <span>Age: D{v.chick_age_estimate}</span>}
-                  {v.cowbird_eggs > 0 && <span>CB eggs: {v.cowbird_eggs}</span>}
-                  {v.cowbird_chicks > 0 && <span>CB chicks: {v.cowbird_chicks}</span>}
-                </div>
-                {v.comments && <p className="text-xs text-gray-600 mt-0.5">{v.comments}</p>}
-              </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </div>
