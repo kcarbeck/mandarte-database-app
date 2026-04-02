@@ -574,31 +574,8 @@ export default function NestDetailPage({ params }) {
               )
             })}
           </div>
-          <div className="mt-2 text-xs text-gray-500 space-y-0.5">
-            {displayDFE && <div>DFE: {displayDFE} ({julianLabel(displayDFE)}) {nest.corr_dfe ? '(corrected)' : ''}</div>}
-            {card.date_hatch && <div>Hatch date: {card.date_hatch} ({julianLabel(card.date_hatch)})</div>}
-            {milestoneDates.stage_find && <div>Found: JD {milestoneDates.stage_find.jd} ({milestoneDates.stage_find.label})</div>}
-          </div>
-          {/* Milestone visit comments */}
-          {Object.entries(milestoneDates).some(([, v]) => v?.comments) && (
-            <div className="mt-2 bg-gray-50 rounded-lg p-2 space-y-1">
-              <div className="text-[10px] text-gray-400 font-bold uppercase">Visit notes by stage</div>
-              {[
-                { k: 'stage_find', l: 'Found' }, { k: 'eggs', l: 'Eggs' },
-                { k: 'hatch', l: 'Hatch' }, { k: 'band', l: 'Band' },
-                { k: 'fledge', l: 'Fledge' }, { k: 'indep', l: 'Indep' },
-                { k: 'failed', l: 'Failed' },
-              ].map(({ k, l }) => {
-                const md = milestoneDates[k]
-                if (!md?.comments) return null
-                return (
-                  <div key={k} className="text-[11px] text-gray-600">
-                    <span className="font-medium text-gray-500">{l} ({md.label}):</span>{' '}
-                    {md.comments}
-                  </div>
-                )
-              })}
-            </div>
+          {nest.corr_dfe && (
+            <div className="mt-2 text-[10px] text-gray-400">DFE corrected: {nest.corr_dfe} ({julianLabel(nest.corr_dfe)})</div>
           )}
           {/* Offspring summary */}
           {card.kid1 && (
@@ -642,59 +619,42 @@ export default function NestDetailPage({ params }) {
                 ═══════════════════════════════════════════════════════════ */}
             <div className="bg-gray-50 border-x border-gray-300 p-4 space-y-4">
 
-              {/* Nest Site */}
-              <div>
-                <p className="text-[11px] text-gray-400 font-bold uppercase mb-1">Nest Site</p>
-                <div className="grid grid-cols-3 gap-3 text-sm">
-                  <div>
-                    <div className="text-[11px] text-gray-500">Height</div>
-                    <div className="font-medium">{card.nest_height || <span className="text-gray-300">—</span>}</div>
-                  </div>
-                  <div>
-                    <div className="text-[11px] text-gray-500">Vegetation</div>
-                    <div className="font-medium">{card.vegetation || <span className="text-gray-300">—</span>}</div>
-                  </div>
-                  <div className="col-span-3">
-                    <div className="text-[11px] text-gray-500">Description</div>
-                    <div className="font-medium">{card.nest_description || <span className="text-gray-300">—</span>}</div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Discovery */}
-              <div>
-                <p className="text-[11px] text-gray-400 font-bold uppercase mb-1">Discovery</p>
-                <div className="grid grid-cols-3 gap-3 text-sm">
-                  <div>
-                    <div className="text-[11px] text-gray-500">Stage found</div>
-                    <div className="font-medium">{card.stage_find || <span className="text-gray-300">—</span>}</div>
-                  </div>
-                  <div>
-                    <div className="text-[11px] text-gray-500">Eggs laid?</div>
-                    <div className="font-medium">{card.eggs_laid || <span className="text-gray-300">—</span>}</div>
-                  </div>
-                  <div>
-                    <div className="text-[11px] text-gray-500">Whole clutch?</div>
-                    <div className="font-medium">{card.whole_clutch || <span className="text-gray-300">—</span>}</div>
-                  </div>
-                  <div>
-                    <div className="text-[11px] text-gray-500">Brood #</div>
-                    <div className="font-medium">{card.brood || <span className="text-gray-300">—</span>}</div>
-                  </div>
-                  <div>
-                    <div className="text-[11px] text-gray-500">♂ attempt</div>
-                    <div className="font-medium">{card.male_attempt || <span className="text-gray-300">—</span>}</div>
-                  </div>
-                  <div>
-                    <div className="text-[11px] text-gray-500">♀ attempt</div>
-                    <div className="font-medium">{card.female_attempt || <span className="text-gray-300">—</span>}</div>
-                  </div>
-                </div>
-              </div>
-
-              {/* SOSP Counts */}
+              {/* SOSP Counts — main pipeline with timing integrated */}
               <div>
                 <p className="text-[11px] text-gray-400 font-bold uppercase mb-1">SOSP Counts</p>
+                {/* Timing row: DFE, Hatch day, Found */}
+                <div className="grid grid-cols-3 gap-1.5 mb-2 text-center">
+                  <div className="rounded-lg p-1.5 bg-gray-50 border border-gray-200">
+                    <div className="text-[10px] text-gray-400">DFE</div>
+                    <div className="text-sm font-bold font-mono">
+                      {displayDFE ? displayDFE : <span className="text-gray-300">—</span>}
+                    </div>
+                    {displayDFE && <div className="text-[8px] text-gray-400">{julianLabel(displayDFE)}</div>}
+                    {card.dfe_quality && (
+                      <div className={`text-[9px] font-medium ${card.dfe_quality === '.' ? 'text-green-600' : card.dfe_quality === '?' ? 'text-yellow-600' : 'text-gray-400'}`}>
+                        {card.dfe_quality === '.' ? '● reliable' : card.dfe_quality === '?' ? '? uncertain' : card.dfe_quality === '+' ? '+ min' : card.dfe_quality}
+                      </div>
+                    )}
+                    <div className="text-[8px] text-gray-300">Date first egg</div>
+                  </div>
+                  <div className="rounded-lg p-1.5 bg-gray-50 border border-gray-200">
+                    <div className="text-[10px] text-gray-400">Hatch Day</div>
+                    <div className="text-sm font-bold font-mono">
+                      {card.date_hatch ? card.date_hatch : <span className="text-gray-300">—</span>}
+                    </div>
+                    {card.date_hatch && <div className="text-[8px] text-gray-400">{julianLabel(card.date_hatch)}</div>}
+                    <div className="text-[8px] text-gray-300">Julian day</div>
+                  </div>
+                  <div className="rounded-lg p-1.5 bg-gray-50 border border-gray-200">
+                    <div className="text-[10px] text-gray-400">Found</div>
+                    <div className="text-sm font-bold font-mono">
+                      {card.stage_find || <span className="text-gray-300">—</span>}
+                    </div>
+                    {milestoneDates.stage_find && <div className="text-[8px] text-gray-400">{milestoneDates.stage_find.label}</div>}
+                    <div className="text-[8px] text-gray-300">Stage at discovery</div>
+                  </div>
+                </div>
+                {/* Count pipeline: Eggs → Hatch → Band → Fledge → Indep */}
                 <div className="grid grid-cols-5 gap-1.5 text-center">
                   {[
                     { k: 'eggs', q: 'eggs_quality', l: 'Eggs', desc: 'Clutch size' },
@@ -702,7 +662,7 @@ export default function NestDetailPage({ params }) {
                     { k: 'band', q: 'band_quality', l: 'Band', desc: 'Reached day 6' },
                     { k: 'fledge', q: 'fledge_quality', l: 'Fledge', desc: 'Left nest' },
                     { k: 'indep', q: 'indep_quality', l: 'Indep', desc: 'Day 22+' },
-                  ].map((f, i) => {
+                  ].map((f) => {
                     const md = milestoneDates[f.k]
                     return (
                       <div key={f.k} className={`rounded-lg p-1.5 ${
@@ -713,60 +673,93 @@ export default function NestDetailPage({ params }) {
                           {card[f.k] !== '' && card[f.k] != null ? card[f.k] : <span className="text-gray-300">—</span>}
                         </div>
                         {card[f.q] && (
-                          <div className={`text-[10px] font-medium ${
+                          <div className={`text-[9px] font-medium ${
                             card[f.q] === '.' ? 'text-green-600' :
                             card[f.q] === '?' ? 'text-yellow-600' :
                             card[f.q] === '+' ? 'text-blue-600' :
                             card[f.q] === '-' ? 'text-orange-600' : 'text-gray-400'
-                          }`}>{card[f.q] === '.' ? '● reliable' : card[f.q] === '?' ? '? uncertain' : card[f.q] === '+' ? '+ minimum' : card[f.q] === '-' ? '− overcount' : card[f.q]}</div>
+                          }`}>{card[f.q] === '.' ? '● reliable' : card[f.q] === '?' ? '? uncertain' : card[f.q] === '+' ? '+ min' : card[f.q] === '-' ? '− over' : card[f.q]}</div>
                         )}
-                        {md && <div className="text-[8px] text-gray-400 leading-tight">JD {md.jd}<br/>{md.label}</div>}
-                        <div className="text-[8px] text-gray-300 mt-0.5">{f.desc}</div>
+                        {md && <div className="text-[8px] text-gray-400">{md.label}</div>}
+                        <div className="text-[8px] text-gray-300">{f.desc}</div>
                       </div>
                     )
                   })}
                 </div>
               </div>
 
-              {/* Timing */}
+              {/* Discovery details */}
               <div>
-                <p className="text-[11px] text-gray-400 font-bold uppercase mb-1">Timing</p>
-                <div className="grid grid-cols-2 gap-3 text-sm">
+                <p className="text-[11px] text-gray-400 font-bold uppercase mb-1">Discovery & Nesting</p>
+                <div className="grid grid-cols-3 gap-2 text-sm">
                   <div>
-                    <div className="text-[11px] text-gray-500">Hatch day</div>
-                    <div className="font-medium font-mono">
-                      {card.date_hatch ? `${card.date_hatch} (${julianLabel(card.date_hatch)})` : <span className="text-gray-300">—</span>}
-                    </div>
+                    <div className="text-[10px] text-gray-400">Eggs laid?</div>
+                    <div className="font-medium">{card.eggs_laid || <span className="text-gray-300">—</span>}</div>
                   </div>
                   <div>
-                    <div className="text-[11px] text-gray-500">DFE</div>
-                    <div className="font-medium font-mono">
-                      {displayDFE ? `${displayDFE} (${julianLabel(displayDFE)})` : <span className="text-gray-300">—</span>}
-                      {card.dfe_quality && <span className="text-gray-400 text-xs ml-1">{card.dfe_quality}</span>}
-                    </div>
+                    <div className="text-[10px] text-gray-400">Whole clutch?</div>
+                    <div className="font-medium">{card.whole_clutch || <span className="text-gray-300">—</span>}</div>
                   </div>
+                  <div>
+                    <div className="text-[10px] text-gray-400">Brood #</div>
+                    <div className="font-medium">{card.brood || <span className="text-gray-300">—</span>}</div>
+                  </div>
+                  {(card.male_attempt || card.female_attempt) && (
+                    <>
+                      <div>
+                        <div className="text-[10px] text-gray-400">♂ attempt</div>
+                        <div className="font-medium">{card.male_attempt || '—'}</div>
+                      </div>
+                      <div>
+                        <div className="text-[10px] text-gray-400">♀ attempt</div>
+                        <div className="font-medium">{card.female_attempt || '—'}</div>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
 
-              {/* Cowbird */}
-              <div>
-                <p className="text-[11px] text-gray-400 font-bold uppercase mb-1">Cowbird</p>
-                <div className="grid grid-cols-4 gap-1.5 text-center">
-                  {[
-                    { k: 'cow_egg', l: 'Eggs' }, { k: 'cow_hatch', l: 'Hatch' },
-                    { k: 'cow_band', l: 'Band' }, { k: 'cow_fledge', l: 'Fledge' },
-                  ].map(f => (
-                    <div key={f.k} className={`rounded-lg p-1.5 ${
-                      card[f.k] !== '' && card[f.k] != null ? 'bg-amber-50 border border-amber-200' : 'bg-gray-50 border border-gray-200'
-                    }`}>
-                      <div className="text-[10px] text-gray-400">{f.l}</div>
-                      <div className="text-sm font-bold font-mono">
-                        {card[f.k] !== '' && card[f.k] != null ? card[f.k] : <span className="text-gray-300">—</span>}
+              {/* Nest Site */}
+              {(card.nest_height || card.vegetation || card.nest_description) && (
+                <div>
+                  <p className="text-[11px] text-gray-400 font-bold uppercase mb-1">Nest Site</p>
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    {card.nest_height && (
+                      <div>
+                        <div className="text-[10px] text-gray-400">Height</div>
+                        <div className="font-medium">{card.nest_height}</div>
                       </div>
+                    )}
+                    {card.vegetation && (
+                      <div>
+                        <div className="text-[10px] text-gray-400">Vegetation</div>
+                        <div className="font-medium">{card.vegetation}</div>
+                      </div>
+                    )}
+                  </div>
+                  {card.nest_description && (
+                    <div className="mt-1 text-sm">
+                      <div className="text-[10px] text-gray-400">Description</div>
+                      <div className="font-medium">{card.nest_description}</div>
                     </div>
-                  ))}
+                  )}
                 </div>
-              </div>
+              )}
+
+              {/* Cowbird — compact inline */}
+              {(card.cow_egg || card.cow_hatch || card.cow_band || card.cow_fledge) && (
+                <div>
+                  <p className="text-[11px] text-gray-400 font-bold uppercase mb-1">Cowbird</p>
+                  <div className="text-sm text-gray-600">
+                    {[
+                      card.cow_egg != null && card.cow_egg !== '' && `Eggs: ${card.cow_egg}`,
+                      card.cow_hatch != null && card.cow_hatch !== '' && `Hatch: ${card.cow_hatch}`,
+                      card.cow_band != null && card.cow_band !== '' && `Band: ${card.cow_band}`,
+                      card.cow_fledge != null && card.cow_fledge !== '' && `Fledge: ${card.cow_fledge}`,
+                    ].filter(Boolean).join(' · ') || '—'}
+                  </div>
+                </div>
+              )}
 
               {/* Banded Chicks */}
               {(card.kid1 || card.kid2 || card.kid3) && (
@@ -950,16 +943,16 @@ export default function NestDetailPage({ params }) {
                 <p className="text-[11px] text-gray-400 font-bold uppercase mb-1">SOSP Counts & Dates</p>
                 <div className="grid grid-cols-5 gap-1.5">
                   {[
-                    { k: 'eggs', q: 'eggs_quality', l: 'Eggs', t: 'Number of eggs laid' },
-                    { k: 'hatch', q: 'hatch_quality', l: 'Hatch', t: 'Number of eggs that hatched' },
-                    { k: 'band', q: 'band_quality', l: 'Band', t: 'Number of chicks that reached banding age (~day 6). NOT the count of chicks that received metal bands.' },
-                    { k: 'fledge', q: 'fledge_quality', l: 'Fledge', t: 'Number of chicks that left the nest alive (day 12-14). Can be revised upward with later sightings.' },
-                    { k: 'indep', q: 'indep_quality', l: 'Indep', t: 'Number of juveniles confirmed independent (seen at or after day 22-24). Can be revised upward.' },
+                    { k: 'eggs', q: 'eggs_quality', l: 'Eggs', desc: 'Clutch size' },
+                    { k: 'hatch', q: 'hatch_quality', l: 'Hatch', desc: 'Eggs hatched' },
+                    { k: 'band', q: 'band_quality', l: 'Band', desc: 'Day 6 count' },
+                    { k: 'fledge', q: 'fledge_quality', l: 'Fledge', desc: 'Left nest' },
+                    { k: 'indep', q: 'indep_quality', l: 'Indep', desc: 'Day 22+' },
                   ].map(f => {
                     const md = milestoneDates[f.k]
                     return (
                       <div key={f.k}>
-                        <div className="text-[10px] text-gray-400 text-center" title={f.t}>{f.l}</div>
+                        <div className="text-[10px] text-gray-400 text-center">{f.l}</div>
                         <input type="number" min="0" value={card[f.k]}
                           onChange={e => setCard({...card, [f.k]: e.target.value})}
                           placeholder="—"
@@ -980,6 +973,7 @@ export default function NestDetailPage({ params }) {
                             JD {md.jd}<br/>{md.label}
                           </div>
                         )}
+                        <div className="text-[8px] text-gray-300 text-center mt-0.5">{f.desc}</div>
                       </div>
                     )
                   })}
@@ -1281,13 +1275,23 @@ export default function NestDetailPage({ params }) {
         {visits.length === 0 ? (
           <p className="text-sm text-gray-400 bg-white rounded-lg border p-4">No visits recorded yet.</p>
         ) : (
-          <div className="space-y-1.5">
+          <table className="w-full text-left">
+            <thead>
+              <tr className="text-[10px] text-gray-400 uppercase">
+                <th className="py-1 pr-1 font-medium">Date</th>
+                <th className="py-1 pr-1 font-medium">Time</th>
+                <th className="py-1 pr-1 font-medium">Content</th>
+                <th className="py-1 font-medium">Status</th>
+              </tr>
+            </thead>
+            <tbody>
             {visits.map(v => {
               const isEditingThis = editingVisit === v.nest_visit_id
 
               if (isEditingThis) {
                 return (
-                  <div key={v.nest_visit_id} className="bg-yellow-50 rounded-lg border-2 border-yellow-300 px-3 py-2 space-y-2">
+                  <tr key={v.nest_visit_id}><td colSpan={4} className="py-1">
+                  <div className="bg-yellow-50 rounded-lg border-2 border-yellow-300 px-3 py-2 space-y-2">
                     <div className="grid grid-cols-2 gap-2">
                       <div>
                         <label className="block text-[10px] text-gray-500 mb-0.5">Date</label>
@@ -1375,22 +1379,47 @@ export default function NestDetailPage({ params }) {
                       </button>
                     </div>
                   </div>
+                  </td></tr>
                 )
               }
 
+              // Build content summary (like paper card's "content" column)
+              const content = [
+                v.egg_count != null ? `${v.egg_count} eggs` : null,
+                v.chick_count != null ? `${v.chick_count} chicks` : null,
+                v.chick_age_estimate != null ? `D${v.chick_age_estimate}` : null,
+                v.cowbird_eggs > 0 ? `${v.cowbird_eggs} CB eggs` : null,
+                v.cowbird_chicks > 0 ? `${v.cowbird_chicks} CB chicks` : null,
+              ].filter(Boolean).join(', ') || '—'
+
+              // Status = stage + comments (like paper card's "status" column)
+              const stage = v.nest_stage ? v.nest_stage.charAt(0).toUpperCase() + v.nest_stage.slice(1) : ''
+
+              // Format date as M/D
+              const fmtVisitDate = (d) => {
+                if (!d) return ''
+                const [y, m, day] = d.split('-')
+                return `${parseInt(m)}/${parseInt(day)}`
+              }
+              // Format time as h:mm AM/PM
+              const fmtTime = (t) => {
+                if (!t) return ''
+                const [h, m] = t.split(':').map(Number)
+                const ampm = h >= 12 ? 'PM' : 'AM'
+                return `${h > 12 ? h - 12 : h || 12}:${String(m).padStart(2, '0')} ${ampm}`
+              }
+
               return (
-                <div key={v.nest_visit_id} className="bg-white rounded-lg border px-3 py-2">
-                  <div className="flex justify-between text-xs">
-                    <span className="text-gray-600">
-                      {v.visit_date}{v.visit_time ? ` ${v.visit_time}` : ''}
-                      <span className="text-gray-400 ml-1.5">{v.observer}</span>
-                    </span>
-                    <div className="flex items-center gap-1.5">
-                      {v.nest_stage && (
-                        <span className="bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded text-[11px] font-medium">
-                          {v.nest_stage.charAt(0).toUpperCase() + v.nest_stage.slice(1)}
-                        </span>
-                      )}
+                <tr key={v.nest_visit_id} className="border-t border-gray-200 align-top">
+                  <td className="py-1.5 pr-1 text-[11px] text-gray-600 whitespace-nowrap">{fmtVisitDate(v.visit_date)}</td>
+                  <td className="py-1.5 pr-1 text-[11px] text-gray-400 whitespace-nowrap">{fmtTime(v.visit_time)}</td>
+                  <td className="py-1.5 pr-1 text-[11px] text-gray-600">{content}</td>
+                  <td className="py-1.5 text-[11px]">
+                    <div className="flex items-start justify-between gap-1">
+                      <div>
+                        {stage && <span className="text-blue-700 font-medium">{stage}</span>}
+                        {v.comments && <div className="text-gray-500 mt-0.5">{v.comments}</div>}
+                      </div>
                       <button type="button"
                         onClick={() => {
                           setEditingVisit(v.nest_visit_id)
@@ -1407,23 +1436,16 @@ export default function NestDetailPage({ params }) {
                             comments: v.comments || '',
                           })
                         }}
-                        className="text-[10px] text-blue-500 hover:text-blue-700">
+                        className="text-[10px] text-blue-500 hover:text-blue-700 shrink-0">
                         edit
                       </button>
                     </div>
-                  </div>
-                  <div className="text-xs text-gray-500 mt-0.5 flex gap-3 flex-wrap">
-                    {v.egg_count != null && <span>Eggs: {v.egg_count}</span>}
-                    {v.chick_count != null && <span>Chicks: {v.chick_count}</span>}
-                    {v.chick_age_estimate != null && <span>Age: D{v.chick_age_estimate}</span>}
-                    {v.cowbird_eggs > 0 && <span>CB eggs: {v.cowbird_eggs}</span>}
-                    {v.cowbird_chicks > 0 && <span>CB chicks: {v.cowbird_chicks}</span>}
-                  </div>
-                  {v.comments && <p className="text-xs text-gray-600 mt-0.5">{v.comments}</p>}
-                </div>
+                  </td>
+                </tr>
               )
             })}
-          </div>
+            </tbody>
+          </table>
         )}
       </div>
     </div>

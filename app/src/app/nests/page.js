@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
-import { birdLabel } from '@/lib/helpers'
+import { birdLabel, fromJulianDay } from '@/lib/helpers'
 
 export default function NestsPage() {
   const [nests, setNests] = useState([])
@@ -143,13 +143,35 @@ export default function NestsPage() {
                   <span>♂ <span className="font-mono">{nest.male_id ? birdLabel(birdMap[nest.male_id] || { band_id: nest.male_id, is_unbanded: nest.male_id < 0 }) : birdLabel(parents.male)}</span></span>
                   <span>♀ <span className="font-mono">{nest.female_id ? birdLabel(birdMap[nest.female_id] || { band_id: nest.female_id, is_unbanded: nest.female_id < 0 }) : birdLabel(parents.female)}</span></span>
                 </div>
-                <div className="text-xs text-gray-500 mt-1 flex gap-3">
-                  {nest.eggs != null && <span>Eggs: {nest.eggs}</span>}
-                  {nest.hatch != null && <span>Hatch: {nest.hatch}</span>}
-                  {nest.band != null && <span>Band: {nest.band}</span>}
-                  {nest.fledge != null && <span>Fledge: {nest.fledge}</span>}
-                  {nest.indep != null && <span>Indep: {nest.indep}</span>}
-                  {nest.dfe && <span>DFE: {nest.dfe}</span>}
+                {/* Pipeline flow: Eggs → Hatch → Band → Fledge → Indep */}
+                <div className="mt-1.5 flex items-center gap-0.5">
+                  {[
+                    { k: 'eggs', l: 'Eggs', d: nest.dfe },
+                    { k: 'hatch', l: 'Hatch', d: nest.date_hatch },
+                    { k: 'band', l: 'Band', d: null },
+                    { k: 'fledge', l: 'Fledge', d: null },
+                    { k: 'indep', l: 'Indep', d: null },
+                  ].map((s, i) => {
+                    const val = nest[s.k]
+                    const filled = val != null
+                    const jdLabel = s.d ? (() => {
+                      const { month, day } = fromJulianDay(nest.year || currentYear, parseInt(s.d))
+                      const m = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+                      return `${m[month - 1]} ${day}`
+                    })() : null
+                    return (
+                      <div key={s.k} className="flex items-center">
+                        {i > 0 && <span className="text-gray-300 text-[10px] mx-0.5">→</span>}
+                        <div className={`rounded px-1.5 py-0.5 text-center ${
+                          filled ? 'bg-blue-100 text-blue-800' : 'bg-gray-50 text-gray-400 border border-gray-200'
+                        }`}>
+                          <div className="text-[9px] leading-tight">{s.l}</div>
+                          <div className="text-xs font-bold font-mono leading-tight">{filled ? val : '—'}</div>
+                          {jdLabel && <div className="text-[8px] leading-tight opacity-70">{jdLabel}</div>}
+                        </div>
+                      </div>
+                    )
+                  })}
                 </div>
               </Link>
             )

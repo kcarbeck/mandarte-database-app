@@ -1026,9 +1026,7 @@ export default function TerritoryDetailPage({ params }) {
                               <div className="bg-emerald-50 rounded-lg p-3 border border-emerald-200">
                                 <p className="text-xs font-bold text-emerald-700 mb-1.5">Band Chicks</p>
                                 {[1,2,3,4,5].map(i => {
-                                  const isFilled = !!obs[`kid${i}`]
-                                  const isNextEmpty = i === 1 || !!obs[`kid${i-1}`]
-                                  if (!isFilled && !isNextEmpty) return null
+                                  // Show all 5 slots so crew can band multiple chicks at once
                                   return (
                                     <div key={i} className="grid grid-cols-2 gap-1.5 mb-1">
                                       <input type="text" value={obs[`kid${i}`] || ''}
@@ -1599,9 +1597,7 @@ export default function TerritoryDetailPage({ params }) {
                                     <div className="bg-emerald-50 rounded-lg p-2 border border-emerald-200">
                                       <p className="text-[10px] font-bold text-emerald-700 mb-1.5">Band Chicks</p>
                                       {[1,2,3,4,5].map(i => {
-                                        const isFilled = !!qObs[`kid${i}`]
-                                        const isNextEmpty = i === 1 || !!qObs[`kid${i-1}`]
-                                        if (!isFilled && !isNextEmpty) return null
+                                        // Show all 5 slots so crew can band multiple chicks at once
                                         return (
                                           <div key={i} className="grid grid-cols-2 gap-1.5 mb-1">
                                             <input type="text" value={qObs[`kid${i}`] || ''}
