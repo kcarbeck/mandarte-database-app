@@ -36,6 +36,8 @@ export default function TerritoryDetailPage({ params }) {
     notes: '',
   })
 
+  const [nestObs, setNestObs] = useState({}) // keyed by breed_id: { stage, egg_count, chick_count, chick_age_estimate, cowbird_eggs, cowbird_chicks, comments }
+
   useEffect(() => { loadAll() }, [territoryCode])
 
   useEffect(() => {
@@ -99,6 +101,10 @@ export default function TerritoryDetailPage({ params }) {
 
     setSubmitting(true)
     try {
+      // Determine if any nest observations were recorded
+      const hasNestObs = Object.values(nestObs).some(obs => obs.stage && obs.stage !== 'no_change')
+      const finalNestStatusFlag = hasNestObs ? 'existing_nest_checked' : visitForm.nest_status_flag
+
       const { error } = await supabase.from('territory_visits').insert({
         territory: territoryCode,
         year: currentYear,
@@ -113,18 +119,52 @@ export default function TerritoryDetailPage({ params }) {
         female_color_combo: female?.color_combo || null,
         minutes_spent: visitForm.minutes_spent ? parseInt(visitForm.minutes_spent) : null,
         other_birds_notes: visitForm.other_birds_notes || null,
-        nest_status_flag: visitForm.nest_status_flag,
+        nest_status_flag: finalNestStatusFlag,
         notes: visitForm.notes.trim(),
       })
 
       if (error) throw error
+
+      // Insert nest_visits rows for each nest with observations
+      if (hasNestObs) {
+        const nestVisitsToInsert = Object.entries(nestObs)
+          .filter(([_, obs]) => obs.stage && obs.stage !== 'no_change')
+          .map(([breedIdStr, obs]) => {
+            const breedId = parseInt(breedIdStr)
+            const nest = nests.find(n => n.breed_id === breedId)
+            return {
+              breed_id: breedId,
+              nestrec: nest?.nestrec || null,
+              visit_date: visitForm.visit_date,
+              visit_time: visitForm.visit_time || null,
+              observer: visitForm.observer.trim(),
+              nest_stage: obs.stage,
+              egg_count: obs.egg_count ? parseInt(obs.egg_count) : null,
+              chick_count: obs.chick_count ? parseInt(obs.chick_count) : null,
+              chick_age_estimate: obs.chick_age_estimate ? parseInt(obs.chick_age_estimate) : null,
+              cowbird_eggs: obs.cowbird_eggs ? parseInt(obs.cowbird_eggs) : null,
+              cowbird_chicks: obs.cowbird_chicks ? parseInt(obs.cowbird_chicks) : null,
+              comments: visitForm.notes.trim(),
+            }
+          })
+
+        if (nestVisitsToInsert.length > 0) {
+          const { error: nestError } = await supabase.from('nest_visits').insert(nestVisitsToInsert)
+          if (nestError) throw nestError
+        }
+      }
 
       // Save observer to localStorage
       if (typeof window !== 'undefined') localStorage.setItem('mandarte_observer', visitForm.observer.trim())
 
       // If new nest found, redirect to create nest card
       if (visitForm.nest_status_flag === 'new_nest_found') {
-        router.push(`/nests/new?territory=${encodeURIComponent(territoryCode)}`)
+        const params = new URLSearchParams({
+          territory: territoryCode,
+          visit_date: visitForm.visit_date,
+          observer: visitForm.observer.trim(),
+        })
+        router.push(`/nests/new?${params.toString()}`)
         return
       }
 
@@ -137,6 +177,7 @@ export default function TerritoryDetailPage({ params }) {
         minutes_spent: '', other_birds_notes: '',
         nest_status_flag: 'no_change', notes: '',
       }))
+      setNestObs({})
       loadAll()
     } catch (err) {
       alert('Error saving visit: ' + err.message)
@@ -360,6 +401,127 @@ export default function TerritoryDetailPage({ params }) {
               <p className="text-xs text-red-500 mt-1">Please add at least a brief observation.</p>
             )}
           </div>
+
+          {/* Nest observations section — one card per active nest */}
+          {nests.filter(n => !n.fail_code).length > 0 && (
+            <div className="border-t pt-3">
+              <h4 className="text-xs font-semibold text-gray-700 mb-2">Active Nest Observations</h4>
+              <div className="space-y-4">
+                {nests.filter(n => !n.fail_code).map(nest => {
+                  const obs = nestObs[nest.breed_id] || {}
+                  return (
+                    <div key={nest.breed_id} className="bg-gray-50 rounded-lg p-3 space-y-2">
+                      <div className="text-xs font-semibold text-gray-700">
+                        Nest #{nest.nestrec || `(ID ${nest.breed_id})`}
+                        {nest.territory && <span className="text-gray-500 ml-1">— Territory {nest.territory}</span>}
+                      </div>
+
+                      {/* Stage selector */}
+                      <div>
+                        <label className="block text-xs text-gray-600 mb-1">Stage</label>
+                        <div className="flex flex-wrap gap-1">
+                          {['building', 'laying', 'incubating', 'nestling', 'fledged', 'independent', 'failed', 'no_change'].map(stage => (
+                            <button
+                              key={stage}
+                              type="button"
+                              onClick={() => setNestObs({ ...nestObs, [nest.breed_id]: { ...obs, stage } })}
+                              className={`text-xs px-2 py-1 rounded ${
+                                obs.stage === stage
+                                  ? 'bg-blue-600 text-white'
+                                  : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
+                              }`}
+                            >
+                              {stage === 'no_change' ? 'No change' : stage.charAt(0).toUpperCase() + stage.slice(1)}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Stage-specific fields */}
+                      {obs.stage && obs.stage !== 'no_change' && (
+                        <div className="space-y-2">
+                          {(obs.stage === 'laying' || obs.stage === 'incubating') && (
+                            <>
+                              <div>
+                                <label className="block text-xs text-gray-600 mb-1" title="Number of SOSP eggs visible in nest">
+                                  Egg count
+                                </label>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  value={obs.egg_count || ''}
+                                  onChange={e => setNestObs({ ...nestObs, [nest.breed_id]: { ...obs, egg_count: e.target.value } })}
+                                  placeholder="0"
+                                  className="w-full border rounded-lg px-3 py-2 text-sm"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-xs text-gray-600 mb-1" title="Number of brown-headed cowbird eggs observed">
+                                  Cowbird eggs
+                                </label>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  value={obs.cowbird_eggs || ''}
+                                  onChange={e => setNestObs({ ...nestObs, [nest.breed_id]: { ...obs, cowbird_eggs: e.target.value } })}
+                                  placeholder="0"
+                                  className="w-full border rounded-lg px-3 py-2 text-sm"
+                                />
+                              </div>
+                            </>
+                          )}
+
+                          {obs.stage === 'nestling' && (
+                            <>
+                              <div>
+                                <label className="block text-xs text-gray-600 mb-1" title="Number of SOSP chicks alive in nest">
+                                  Chick count
+                                </label>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  value={obs.chick_count || ''}
+                                  onChange={e => setNestObs({ ...nestObs, [nest.breed_id]: { ...obs, chick_count: e.target.value } })}
+                                  placeholder="0"
+                                  className="w-full border rounded-lg px-3 py-2 text-sm"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-xs text-gray-600 mb-1" title="Estimated age in days. Day 1 = hatch day. Day 6 = pins breaking (banding age)">
+                                  Chick age (days)
+                                </label>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  value={obs.chick_age_estimate || ''}
+                                  onChange={e => setNestObs({ ...nestObs, [nest.breed_id]: { ...obs, chick_age_estimate: e.target.value } })}
+                                  placeholder="0"
+                                  className="w-full border rounded-lg px-3 py-2 text-sm"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-xs text-gray-600 mb-1" title="Number of cowbird chicks observed in nest">
+                                  Cowbird chicks
+                                </label>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  value={obs.cowbird_chicks || ''}
+                                  onChange={e => setNestObs({ ...nestObs, [nest.breed_id]: { ...obs, cowbird_chicks: e.target.value } })}
+                                  placeholder="0"
+                                  className="w-full border rounded-lg px-3 py-2 text-sm"
+                                />
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
 
           {visitForm.nest_status_flag === 'new_nest_found' && (
             <p className="text-xs text-blue-600 font-medium">

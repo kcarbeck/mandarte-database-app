@@ -563,12 +563,171 @@ export default function NestDetailPage({ params }) {
            ║  EDIT BUTTON / EDIT MODE                                    ║
            ╚═══════════════════════════════════════════════════════════════╝ */}
         {!editing ? (
-          <div className="bg-white rounded-b-lg border p-4">
-            <button type="button" onClick={() => setEditing(true)}
-              className="w-full bg-blue-600 text-white rounded-lg py-3 text-sm font-semibold">
-              Edit Card
-            </button>
-          </div>
+          <>
+            {/* ═══════════════════════════════════════════════════════════
+                VIEW MODE — read-only display of all card data
+                ═══════════════════════════════════════════════════════════ */}
+            <div className="bg-gray-50 border-x border-gray-300 p-4 space-y-4">
+
+              {/* Nest Site */}
+              <div>
+                <p className="text-[11px] text-gray-400 font-bold uppercase mb-1">Nest Site</p>
+                <div className="grid grid-cols-3 gap-3 text-sm">
+                  <div>
+                    <div className="text-[11px] text-gray-500">Height</div>
+                    <div className="font-medium">{card.nest_height || <span className="text-gray-300">—</span>}</div>
+                  </div>
+                  <div>
+                    <div className="text-[11px] text-gray-500">Vegetation</div>
+                    <div className="font-medium">{card.vegetation || <span className="text-gray-300">—</span>}</div>
+                  </div>
+                  <div className="col-span-3">
+                    <div className="text-[11px] text-gray-500">Description</div>
+                    <div className="font-medium">{card.nest_description || <span className="text-gray-300">—</span>}</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Discovery */}
+              <div>
+                <p className="text-[11px] text-gray-400 font-bold uppercase mb-1">Discovery</p>
+                <div className="grid grid-cols-3 gap-3 text-sm">
+                  <div>
+                    <div className="text-[11px] text-gray-500">Stage found</div>
+                    <div className="font-medium">{card.stage_find || <span className="text-gray-300">—</span>}</div>
+                  </div>
+                  <div>
+                    <div className="text-[11px] text-gray-500">Eggs laid?</div>
+                    <div className="font-medium">{card.eggs_laid || <span className="text-gray-300">—</span>}</div>
+                  </div>
+                  <div>
+                    <div className="text-[11px] text-gray-500">Whole clutch?</div>
+                    <div className="font-medium">{card.whole_clutch || <span className="text-gray-300">—</span>}</div>
+                  </div>
+                  <div>
+                    <div className="text-[11px] text-gray-500">Brood #</div>
+                    <div className="font-medium">{card.brood || <span className="text-gray-300">—</span>}</div>
+                  </div>
+                  <div>
+                    <div className="text-[11px] text-gray-500">♂ attempt</div>
+                    <div className="font-medium">{card.male_attempt || <span className="text-gray-300">—</span>}</div>
+                  </div>
+                  <div>
+                    <div className="text-[11px] text-gray-500">♀ attempt</div>
+                    <div className="font-medium">{card.female_attempt || <span className="text-gray-300">—</span>}</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* SOSP Counts */}
+              <div>
+                <p className="text-[11px] text-gray-400 font-bold uppercase mb-1">SOSP Counts</p>
+                <div className="grid grid-cols-5 gap-1.5 text-center">
+                  {[
+                    { k: 'eggs', q: 'eggs_quality', l: 'Eggs' },
+                    { k: 'hatch', q: 'hatch_quality', l: 'Hatch' },
+                    { k: 'band', q: 'band_quality', l: 'Band' },
+                    { k: 'fledge', q: 'fledge_quality', l: 'Fledge' },
+                    { k: 'indep', q: 'indep_quality', l: 'Indep' },
+                  ].map((f, i) => {
+                    const md = milestoneDates[f.k]
+                    return (
+                      <div key={f.k}>
+                        <div className="text-[10px] text-gray-400">{f.l}</div>
+                        <div className="text-lg font-bold font-mono">
+                          {card[f.k] !== '' && card[f.k] != null ? card[f.k] : <span className="text-gray-300">—</span>}
+                        </div>
+                        {card[f.q] && <div className="text-[10px] text-gray-400">{card[f.q]}</div>}
+                        {md && <div className="text-[8px] text-gray-400">{md.label}</div>}
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* Timing */}
+              <div>
+                <p className="text-[11px] text-gray-400 font-bold uppercase mb-1">Timing</p>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <div className="text-[11px] text-gray-500">Hatch day</div>
+                    <div className="font-medium font-mono">
+                      {card.date_hatch ? `${card.date_hatch} (${julianLabel(card.date_hatch)})` : <span className="text-gray-300">—</span>}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-[11px] text-gray-500">DFE</div>
+                    <div className="font-medium font-mono">
+                      {displayDFE ? `${displayDFE} (${julianLabel(displayDFE)})` : <span className="text-gray-300">—</span>}
+                      {card.dfe_quality && <span className="text-gray-400 text-xs ml-1">{card.dfe_quality}</span>}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Cowbird */}
+              <div>
+                <p className="text-[11px] text-gray-400 font-bold uppercase mb-1">Cowbird</p>
+                <div className="grid grid-cols-4 gap-1.5 text-center">
+                  {[
+                    { k: 'cow_egg', l: 'Eggs' }, { k: 'cow_hatch', l: 'Hatch' },
+                    { k: 'cow_band', l: 'Band' }, { k: 'cow_fledge', l: 'Fledge' },
+                  ].map(f => (
+                    <div key={f.k}>
+                      <div className="text-[10px] text-gray-400">{f.l}</div>
+                      <div className="text-sm font-bold font-mono">
+                        {card[f.k] !== '' && card[f.k] != null ? card[f.k] : <span className="text-gray-300">—</span>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Banded Chicks */}
+              {(card.kid1 || card.kid2 || card.kid3) && (
+                <div>
+                  <p className="text-[11px] text-gray-400 font-bold uppercase mb-1">Banded Chicks</p>
+                  <div className="space-y-1">
+                    {[1,2,3,4,5].map(i => {
+                      const id = card[`kid${i}`]
+                      if (!id) return null
+                      const combo = card[`kid${i}_combo`] || kidBirds[id]?.color_combo
+                      return (
+                        <div key={i} className="flex items-center gap-2 text-sm">
+                          <span className="font-mono font-medium">{combo || '—'}</span>
+                          <span className="text-gray-400 text-xs">({id})</span>
+                          {card[`kid${i}_indep`] && <span className="text-green-600 text-xs font-bold">✓ Independent</span>}
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Other */}
+              {(card.unhatch || card.broke_egg) && (
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  {card.unhatch && <div><div className="text-[11px] text-gray-500">Unhatched</div><div>{card.unhatch}</div></div>}
+                  {card.broke_egg && <div><div className="text-[11px] text-gray-500">Broken eggs</div><div>{card.broke_egg}</div></div>}
+                </div>
+              )}
+
+              {/* Other notes */}
+              {card.other_notes && (
+                <div>
+                  <div className="text-[11px] text-gray-500">Notes</div>
+                  <div className="text-sm">{card.other_notes}</div>
+                </div>
+              )}
+            </div>
+
+            <div className="bg-white rounded-b-lg border p-4">
+              <button type="button" onClick={() => setEditing(true)}
+                className="w-full bg-blue-600 text-white rounded-lg py-3 text-sm font-semibold">
+                Edit Card
+              </button>
+            </div>
+          </>
         ) : (
           <>
             {/* NEST CARD — gray section, all breedfile fields in edit mode */}
