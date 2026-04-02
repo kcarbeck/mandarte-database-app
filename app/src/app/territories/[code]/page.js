@@ -306,6 +306,9 @@ export default function TerritoryDetailPage({ params }) {
           const breedUpdates = {}
           if (obs.stage === 'laying') {
             if (safeInt(obs.egg_count) != null && nest.eggs == null) breedUpdates.eggs = safeInt(obs.egg_count)
+            if (obs.eggs_quality && !nest.eggs_quality) breedUpdates.eggs_quality = obs.eggs_quality
+            if (obs.eggs_laid && !nest.eggs_laid) breedUpdates.eggs_laid = obs.eggs_laid
+            if (obs.whole_clutch && !nest.whole_clutch) breedUpdates.whole_clutch = obs.whole_clutch
             // DFE = date first egg. Back-calculate: one egg per day.
             if (nest.dfe == null) {
               const [y, m, d] = visitForm.visit_date.split('-').map(Number)
@@ -316,12 +319,18 @@ export default function TerritoryDetailPage({ params }) {
           }
           if (obs.stage === 'incubating') {
             if (safeInt(obs.egg_count) != null && nest.eggs == null) breedUpdates.eggs = safeInt(obs.egg_count)
+            if (obs.eggs_quality && !nest.eggs_quality) breedUpdates.eggs_quality = obs.eggs_quality
+            if (obs.whole_clutch && !nest.whole_clutch) breedUpdates.whole_clutch = obs.whole_clutch
           }
           if (obs.stage === 'laying' || obs.stage === 'incubating') {
             if (safeInt(obs.cowbird_eggs) != null && nest.cow_egg == null) breedUpdates.cow_egg = safeInt(obs.cowbird_eggs)
           }
           if (obs.stage === 'hatching') {
             if (safeInt(obs.chick_count) != null && nest.hatch == null) breedUpdates.hatch = safeInt(obs.chick_count)
+            if (obs.hatch_quality && !nest.hatch_quality) breedUpdates.hatch_quality = obs.hatch_quality
+            if (obs.unhatch && !nest.unhatch) breedUpdates.unhatch = obs.unhatch
+            if (obs.broke_egg && !nest.broke_egg) breedUpdates.broke_egg = obs.broke_egg
+            if (safeInt(obs.cowbird_chicks) != null && nest.cow_hatch == null) breedUpdates.cow_hatch = safeInt(obs.cowbird_chicks)
             if (nest.date_hatch == null) {
               const [y, m, d] = visitForm.visit_date.split('-').map(Number)
               breedUpdates.date_hatch = toJulianDay(y, m, d)
@@ -330,12 +339,23 @@ export default function TerritoryDetailPage({ params }) {
           if (obs.stage === 'nestling') {
             if (safeInt(obs.chick_count) != null && nest.hatch == null) breedUpdates.hatch = safeInt(obs.chick_count)
             if (safeInt(obs.cowbird_chicks) != null && nest.cow_hatch == null) breedUpdates.cow_hatch = safeInt(obs.cowbird_chicks)
+            if (obs.band_quality && !nest.band_quality) breedUpdates.band_quality = obs.band_quality
+            if (obs.cow_band && !nest.cow_band) breedUpdates.cow_band = obs.cow_band
           }
           if (obs.stage === 'fledged') {
             if (safeInt(obs.chick_count) != null && nest.fledge == null) breedUpdates.fledge = safeInt(obs.chick_count)
+            if (obs.fledge_quality && !nest.fledge_quality) breedUpdates.fledge_quality = obs.fledge_quality
+            if (safeInt(obs.cow_fledge) != null && nest.cow_fledge == null) breedUpdates.cow_fledge = safeInt(obs.cow_fledge)
           }
           if (obs.stage === 'independent') {
             if (safeInt(obs.chick_count) != null && nest.indep == null) breedUpdates.indep = safeInt(obs.chick_count)
+            if (obs.indep_quality && !nest.indep_quality) breedUpdates.indep_quality = obs.indep_quality
+            // Kid independence toggles
+            for (let i = 1; i <= 5; i++) {
+              if (obs[`kid${i}_indep`] && nest[`kid${i}`] && !nest[`kid${i}_indep`]) {
+                breedUpdates[`kid${i}_indep`] = true
+              }
+            }
           }
           if (obs.stage === 'failed') {
             if (obs.fail_code && !nest.fail_code) breedUpdates.fail_code = obs.fail_code
@@ -466,6 +486,9 @@ export default function TerritoryDetailPage({ params }) {
 
       if (obs.stage === 'laying') {
         if (safeInt(obs.egg_count) != null && nest.eggs == null) breedUpdates.eggs = safeInt(obs.egg_count)
+        if (obs.eggs_quality && !nest.eggs_quality) breedUpdates.eggs_quality = obs.eggs_quality
+        if (obs.eggs_laid && !nest.eggs_laid) breedUpdates.eggs_laid = obs.eggs_laid
+        if (obs.whole_clutch && !nest.whole_clutch) breedUpdates.whole_clutch = obs.whole_clutch
         // DFE = date first egg. Back-calculate: one egg laid per day, so
         // DFE = visit_date - (eggs_seen - 1). If egg count unknown, use visit date as-is.
         if (nest.dfe == null) {
@@ -477,12 +500,18 @@ export default function TerritoryDetailPage({ params }) {
       }
       if (obs.stage === 'incubating') {
         if (safeInt(obs.egg_count) != null && nest.eggs == null) breedUpdates.eggs = safeInt(obs.egg_count)
+        if (obs.eggs_quality && !nest.eggs_quality) breedUpdates.eggs_quality = obs.eggs_quality
+        if (obs.whole_clutch && !nest.whole_clutch) breedUpdates.whole_clutch = obs.whole_clutch
       }
       if (obs.stage === 'laying' || obs.stage === 'incubating') {
         if (safeInt(obs.cowbird_eggs) != null && nest.cow_egg == null) breedUpdates.cow_egg = safeInt(obs.cowbird_eggs)
       }
       if (obs.stage === 'hatching') {
         if (safeInt(obs.chick_count) != null && nest.hatch == null) breedUpdates.hatch = safeInt(obs.chick_count)
+        if (obs.hatch_quality && !nest.hatch_quality) breedUpdates.hatch_quality = obs.hatch_quality
+        if (obs.unhatch && !nest.unhatch) breedUpdates.unhatch = obs.unhatch
+        if (obs.broke_egg && !nest.broke_egg) breedUpdates.broke_egg = obs.broke_egg
+        if (safeInt(obs.cowbird_chicks) != null && nest.cow_hatch == null) breedUpdates.cow_hatch = safeInt(obs.cowbird_chicks)
         // date_hatch = hatch date (Julian day) — set from visit date if not already set
         if (nest.date_hatch == null) {
           const [y, m, d] = visitDate.split('-').map(Number)
@@ -492,12 +521,23 @@ export default function TerritoryDetailPage({ params }) {
       if (obs.stage === 'nestling') {
         if (safeInt(obs.chick_count) != null && nest.hatch == null) breedUpdates.hatch = safeInt(obs.chick_count)
         if (safeInt(obs.cowbird_chicks) != null && nest.cow_hatch == null) breedUpdates.cow_hatch = safeInt(obs.cowbird_chicks)
+        if (obs.band_quality && !nest.band_quality) breedUpdates.band_quality = obs.band_quality
+        if (obs.cow_band && !nest.cow_band) breedUpdates.cow_band = obs.cow_band
       }
       if (obs.stage === 'fledged') {
         if (safeInt(obs.chick_count) != null && nest.fledge == null) breedUpdates.fledge = safeInt(obs.chick_count)
+        if (obs.fledge_quality && !nest.fledge_quality) breedUpdates.fledge_quality = obs.fledge_quality
+        if (safeInt(obs.cow_fledge) != null && nest.cow_fledge == null) breedUpdates.cow_fledge = safeInt(obs.cow_fledge)
       }
       if (obs.stage === 'independent') {
         if (safeInt(obs.chick_count) != null && nest.indep == null) breedUpdates.indep = safeInt(obs.chick_count)
+        if (obs.indep_quality && !nest.indep_quality) breedUpdates.indep_quality = obs.indep_quality
+        // Kid independence toggles
+        for (let i = 1; i <= 5; i++) {
+          if (obs[`kid${i}_indep`] && nest[`kid${i}`] && !nest[`kid${i}_indep`]) {
+            breedUpdates[`kid${i}_indep`] = true
+          }
+        }
       }
       if (obs.stage === 'failed') {
         if (obs.fail_code && !nest.fail_code) breedUpdates.fail_code = obs.fail_code
@@ -813,33 +853,102 @@ export default function TerritoryDetailPage({ params }) {
                         <div className="space-y-2">
                           {(obs.stage === 'laying' || obs.stage === 'incubating') && (
                             <>
-                              <div>
-                                <label className="block text-xs text-gray-600 mb-1">Egg count</label>
-                                <input type="number" min="0" value={obs.egg_count || ''}
-                                  onChange={e => setNestObs({ ...nestObs, [nest.breed_id]: { ...obs, egg_count: e.target.value } })}
-                                  placeholder="0" className="w-full border rounded-lg px-3 py-2 text-sm" />
+                              <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                  <label className="block text-xs text-gray-600 mb-1">Egg count</label>
+                                  <input type="number" min="0" value={obs.egg_count || ''}
+                                    onChange={e => setNestObs({ ...nestObs, [nest.breed_id]: { ...obs, egg_count: e.target.value } })}
+                                    placeholder="0" className="w-full border rounded-lg px-3 py-2 text-sm" />
+                                </div>
+                                <div>
+                                  <label className="block text-xs text-gray-600 mb-1">Eggs quality</label>
+                                  <select value={obs.eggs_quality || ''}
+                                    onChange={e => setNestObs({ ...nestObs, [nest.breed_id]: { ...obs, eggs_quality: e.target.value } })}
+                                    className="w-full border rounded-lg px-3 py-2 text-sm bg-white">
+                                    <option value="">flag</option>
+                                    <option value=".">. reliable</option>
+                                    <option value="?">? uncertain</option>
+                                    <option value="+">+ minimum</option>
+                                    <option value="-">- overcount</option>
+                                  </select>
+                                </div>
                               </div>
-                              <div>
-                                <label className="block text-xs text-gray-600 mb-1">Cowbird eggs</label>
-                                <input type="number" min="0" value={obs.cowbird_eggs || ''}
-                                  onChange={e => setNestObs({ ...nestObs, [nest.breed_id]: { ...obs, cowbird_eggs: e.target.value } })}
-                                  placeholder="0" className="w-full border rounded-lg px-3 py-2 text-sm" />
+                              <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                  <label className="block text-xs text-gray-600 mb-1">Cowbird eggs</label>
+                                  <input type="number" min="0" value={obs.cowbird_eggs || ''}
+                                    onChange={e => setNestObs({ ...nestObs, [nest.breed_id]: { ...obs, cowbird_eggs: e.target.value } })}
+                                    placeholder="0" className="w-full border rounded-lg px-3 py-2 text-sm" />
+                                </div>
+                                <div>
+                                  <label className="block text-xs text-gray-600 mb-1" title="Was the whole clutch observed? Y = bird seen incubating, clutch complete.">Whole clutch?</label>
+                                  <select value={obs.whole_clutch || ''}
+                                    onChange={e => setNestObs({ ...nestObs, [nest.breed_id]: { ...obs, whole_clutch: e.target.value } })}
+                                    className="w-full border rounded-lg px-3 py-2 text-sm bg-white">
+                                    <option value="">—</option>
+                                    <option value="Y">Y — Complete clutch</option>
+                                    <option value="N">N — Not sure</option>
+                                  </select>
+                                </div>
                               </div>
+                              {obs.stage === 'laying' && (
+                                <div>
+                                  <label className="block text-xs text-gray-600 mb-1" title="Were eggs laid? Y = at least one egg. N = nest abandoned before laying. U = unknown.">Eggs laid?</label>
+                                  <select value={obs.eggs_laid || ''}
+                                    onChange={e => setNestObs({ ...nestObs, [nest.breed_id]: { ...obs, eggs_laid: e.target.value } })}
+                                    className="w-full border rounded-lg px-3 py-2 text-sm bg-white">
+                                    <option value="">—</option>
+                                    <option value="Y">Y — Yes, eggs laid</option>
+                                    <option value="N">N — No eggs</option>
+                                    <option value="U">U — Unknown</option>
+                                  </select>
+                                </div>
+                              )}
                             </>
                           )}
 
                           {obs.stage === 'hatching' && (
                             <>
-                              <div>
-                                <label className="block text-xs text-gray-600 mb-1">Eggs still unhatched</label>
-                                <input type="number" min="0" value={obs.egg_count || ''}
-                                  onChange={e => setNestObs({ ...nestObs, [nest.breed_id]: { ...obs, egg_count: e.target.value } })}
-                                  placeholder="0" className="w-full border rounded-lg px-3 py-2 text-sm" />
+                              <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                  <label className="block text-xs text-gray-600 mb-1">Chicks hatched</label>
+                                  <input type="number" min="0" value={obs.chick_count || ''}
+                                    onChange={e => setNestObs({ ...nestObs, [nest.breed_id]: { ...obs, chick_count: e.target.value } })}
+                                    placeholder="0" className="w-full border rounded-lg px-3 py-2 text-sm" />
+                                </div>
+                                <div>
+                                  <label className="block text-xs text-gray-600 mb-1">Hatch quality</label>
+                                  <select value={obs.hatch_quality || ''}
+                                    onChange={e => setNestObs({ ...nestObs, [nest.breed_id]: { ...obs, hatch_quality: e.target.value } })}
+                                    className="w-full border rounded-lg px-3 py-2 text-sm bg-white">
+                                    <option value="">flag</option>
+                                    <option value=".">. reliable</option>
+                                    <option value="?">? uncertain</option>
+                                    <option value="+">+ minimum</option>
+                                    <option value="-">- overcount</option>
+                                  </select>
+                                </div>
+                              </div>
+                              <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                  <label className="block text-xs text-gray-600 mb-1">Unhatched eggs</label>
+                                  <input type="text" value={obs.unhatch || ''}
+                                    onChange={e => setNestObs({ ...nestObs, [nest.breed_id]: { ...obs, unhatch: e.target.value } })}
+                                    placeholder="e.g. 1 unfertilized"
+                                    className="w-full border rounded-lg px-3 py-2 text-sm" />
+                                </div>
+                                <div>
+                                  <label className="block text-xs text-gray-600 mb-1">Broken eggs</label>
+                                  <input type="text" value={obs.broke_egg || ''}
+                                    onChange={e => setNestObs({ ...nestObs, [nest.breed_id]: { ...obs, broke_egg: e.target.value } })}
+                                    placeholder="0"
+                                    className="w-full border rounded-lg px-3 py-2 text-sm" />
+                                </div>
                               </div>
                               <div>
-                                <label className="block text-xs text-gray-600 mb-1">Chicks hatched so far</label>
-                                <input type="number" min="0" value={obs.chick_count || ''}
-                                  onChange={e => setNestObs({ ...nestObs, [nest.breed_id]: { ...obs, chick_count: e.target.value } })}
+                                <label className="block text-xs text-gray-600 mb-1">Cowbird chicks hatched</label>
+                                <input type="number" min="0" value={obs.cowbird_chicks || ''}
+                                  onChange={e => setNestObs({ ...nestObs, [nest.breed_id]: { ...obs, cowbird_chicks: e.target.value } })}
                                   placeholder="0" className="w-full border rounded-lg px-3 py-2 text-sm" />
                               </div>
                             </>
@@ -847,25 +956,47 @@ export default function TerritoryDetailPage({ params }) {
 
                           {obs.stage === 'nestling' && (
                             <>
-                              <div>
-                                <label className="block text-xs text-gray-600 mb-1">Chick count</label>
-                                <input type="number" min="0" value={obs.chick_count || ''}
-                                  onChange={e => setNestObs({ ...nestObs, [nest.breed_id]: { ...obs, chick_count: e.target.value } })}
-                                  placeholder="0" className="w-full border rounded-lg px-3 py-2 text-sm" />
+                              <div className="grid grid-cols-3 gap-2">
+                                <div>
+                                  <label className="block text-xs text-gray-600 mb-1">Chick count</label>
+                                  <input type="number" min="0" value={obs.chick_count || ''}
+                                    onChange={e => setNestObs({ ...nestObs, [nest.breed_id]: { ...obs, chick_count: e.target.value } })}
+                                    placeholder="0" className="w-full border rounded-lg px-3 py-2 text-sm" />
+                                </div>
+                                <div>
+                                  <label className="block text-xs text-gray-600 mb-1" title="Day 1 = hatch day. Day 6 = pins breaking (banding age)">
+                                    Chick age (days)
+                                  </label>
+                                  <input type="number" min="0" value={obs.chick_age_estimate || ''}
+                                    onChange={e => setNestObs({ ...nestObs, [nest.breed_id]: { ...obs, chick_age_estimate: e.target.value } })}
+                                    placeholder="e.g. 6" className="w-full border rounded-lg px-3 py-2 text-sm" />
+                                </div>
+                                <div>
+                                  <label className="block text-xs text-gray-600 mb-1">Band quality</label>
+                                  <select value={obs.band_quality || ''}
+                                    onChange={e => setNestObs({ ...nestObs, [nest.breed_id]: { ...obs, band_quality: e.target.value } })}
+                                    className="w-full border rounded-lg px-3 py-2 text-sm bg-white">
+                                    <option value="">flag</option>
+                                    <option value=".">. reliable</option>
+                                    <option value="?">? uncertain</option>
+                                    <option value="+">+ minimum</option>
+                                    <option value="-">- overcount</option>
+                                  </select>
+                                </div>
                               </div>
-                              <div>
-                                <label className="block text-xs text-gray-600 mb-1" title="Day 1 = hatch day. Day 6 = pins breaking (banding age)">
-                                  Chick age (days)
-                                </label>
-                                <input type="number" min="0" value={obs.chick_age_estimate || ''}
-                                  onChange={e => setNestObs({ ...nestObs, [nest.breed_id]: { ...obs, chick_age_estimate: e.target.value } })}
-                                  placeholder="e.g. 6" className="w-full border rounded-lg px-3 py-2 text-sm" />
-                              </div>
-                              <div>
-                                <label className="block text-xs text-gray-600 mb-1">Cowbird chicks</label>
-                                <input type="number" min="0" value={obs.cowbird_chicks || ''}
-                                  onChange={e => setNestObs({ ...nestObs, [nest.breed_id]: { ...obs, cowbird_chicks: e.target.value } })}
-                                  placeholder="0" className="w-full border rounded-lg px-3 py-2 text-sm" />
+                              <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                  <label className="block text-xs text-gray-600 mb-1">Cowbird chicks</label>
+                                  <input type="number" min="0" value={obs.cowbird_chicks || ''}
+                                    onChange={e => setNestObs({ ...nestObs, [nest.breed_id]: { ...obs, cowbird_chicks: e.target.value } })}
+                                    placeholder="0" className="w-full border rounded-lg px-3 py-2 text-sm" />
+                                </div>
+                                <div>
+                                  <label className="block text-xs text-gray-600 mb-1" title="Number of cowbird chicks banded">Cowbird band</label>
+                                  <input type="text" value={obs.cow_band || ''}
+                                    onChange={e => setNestObs({ ...nestObs, [nest.breed_id]: { ...obs, cow_band: e.target.value } })}
+                                    placeholder="0" className="w-full border rounded-lg px-3 py-2 text-sm" />
+                                </div>
                               </div>
 
                               {/* Banding fields */}
@@ -898,25 +1029,83 @@ export default function TerritoryDetailPage({ params }) {
                           )}
 
                           {obs.stage === 'fledged' && (
-                            <div>
-                              <label className="block text-xs text-gray-600 mb-1" title="Number of SOSP fledglings seen alive near nest area (day 12-14)">
-                                Fledge count
-                              </label>
-                              <input type="number" min="0" value={obs.chick_count || ''}
-                                onChange={e => setNestObs({ ...nestObs, [nest.breed_id]: { ...obs, chick_count: e.target.value } })}
-                                placeholder="0" className="w-full border rounded-lg px-3 py-2 text-sm" />
-                            </div>
+                            <>
+                              <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                  <label className="block text-xs text-gray-600 mb-1" title="Number of SOSP fledglings seen alive near nest area (day 12-14)">
+                                    Fledge count
+                                  </label>
+                                  <input type="number" min="0" value={obs.chick_count || ''}
+                                    onChange={e => setNestObs({ ...nestObs, [nest.breed_id]: { ...obs, chick_count: e.target.value } })}
+                                    placeholder="0" className="w-full border rounded-lg px-3 py-2 text-sm" />
+                                </div>
+                                <div>
+                                  <label className="block text-xs text-gray-600 mb-1">Fledge quality</label>
+                                  <select value={obs.fledge_quality || ''}
+                                    onChange={e => setNestObs({ ...nestObs, [nest.breed_id]: { ...obs, fledge_quality: e.target.value } })}
+                                    className="w-full border rounded-lg px-3 py-2 text-sm bg-white">
+                                    <option value="">flag</option>
+                                    <option value=".">. reliable</option>
+                                    <option value="?">? uncertain</option>
+                                    <option value="+">+ minimum</option>
+                                    <option value="-">- overcount</option>
+                                  </select>
+                                </div>
+                              </div>
+                              <div>
+                                <label className="block text-xs text-gray-600 mb-1">Cowbird fledge count</label>
+                                <input type="number" min="0" value={obs.cow_fledge || ''}
+                                  onChange={e => setNestObs({ ...nestObs, [nest.breed_id]: { ...obs, cow_fledge: e.target.value } })}
+                                  placeholder="0" className="w-full border rounded-lg px-3 py-2 text-sm" />
+                              </div>
+                            </>
                           )}
 
                           {obs.stage === 'independent' && (
-                            <div>
-                              <label className="block text-xs text-gray-600 mb-1" title="Number of juveniles confirmed independent (day 22-24+)">
-                                Independent count
-                              </label>
-                              <input type="number" min="0" value={obs.chick_count || ''}
-                                onChange={e => setNestObs({ ...nestObs, [nest.breed_id]: { ...obs, chick_count: e.target.value } })}
-                                placeholder="0" className="w-full border rounded-lg px-3 py-2 text-sm" />
-                            </div>
+                            <>
+                              <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                  <label className="block text-xs text-gray-600 mb-1" title="Number of juveniles confirmed independent (day 22-24+)">
+                                    Independent count
+                                  </label>
+                                  <input type="number" min="0" value={obs.chick_count || ''}
+                                    onChange={e => setNestObs({ ...nestObs, [nest.breed_id]: { ...obs, chick_count: e.target.value } })}
+                                    placeholder="0" className="w-full border rounded-lg px-3 py-2 text-sm" />
+                                </div>
+                                <div>
+                                  <label className="block text-xs text-gray-600 mb-1">Indep quality</label>
+                                  <select value={obs.indep_quality || ''}
+                                    onChange={e => setNestObs({ ...nestObs, [nest.breed_id]: { ...obs, indep_quality: e.target.value } })}
+                                    className="w-full border rounded-lg px-3 py-2 text-sm bg-white">
+                                    <option value="">flag</option>
+                                    <option value=".">. reliable</option>
+                                    <option value="?">? uncertain</option>
+                                    <option value="+">+ minimum</option>
+                                    <option value="-">- overcount</option>
+                                  </select>
+                                </div>
+                              </div>
+                              {/* Kid independence toggles — show banded chicks so crew can mark which ones seen */}
+                              {(nest.kid1 || nest.kid2 || nest.kid3 || nest.kid4 || nest.kid5) && (
+                                <div className="bg-purple-50 rounded-lg p-3 border border-purple-200">
+                                  <p className="text-xs font-bold text-purple-700 mb-1.5">Which banded chicks confirmed independent?</p>
+                                  {[1,2,3,4,5].map(i => {
+                                    if (!nest[`kid${i}`]) return null
+                                    const kidBand = String(nest[`kid${i}`])
+                                    const isIndep = obs[`kid${i}_indep`] || false
+                                    return (
+                                      <label key={i} className="flex items-center gap-2 py-1">
+                                        <input type="checkbox" checked={isIndep}
+                                          onChange={e => setNestObs({ ...nestObs, [nest.breed_id]: { ...obs, [`kid${i}_indep`]: e.target.checked } })}
+                                          className="w-4 h-4 rounded" />
+                                        <span className="text-xs font-mono">{kidBand}</span>
+                                        {nest[`kid${i}_combo`] && <span className="text-xs text-gray-500">{nest[`kid${i}_combo`]}</span>}
+                                      </label>
+                                    )
+                                  })}
+                                </div>
+                              )}
+                            </>
                           )}
 
                           {obs.stage === 'failed' && (
@@ -1238,37 +1427,106 @@ export default function TerritoryDetailPage({ params }) {
                                 </div>
 
                                 {(qObs.stage === 'laying' || qObs.stage === 'incubating') && (
-                                  <div className="grid grid-cols-2 gap-2">
-                                    <div>
-                                      <label className="block text-[10px] text-gray-500 mb-0.5">Egg count</label>
-                                      <input type="number" min="0" value={qObs.egg_count || ''}
-                                        onChange={e => setQuickNestObs({ ...quickNestObs, [nest.breed_id]: { ...qObs, egg_count: e.target.value } })}
-                                        placeholder="0" className="w-full border rounded px-2 py-1.5 text-sm" />
+                                  <>
+                                    <div className="grid grid-cols-2 gap-2">
+                                      <div>
+                                        <label className="block text-[10px] text-gray-500 mb-0.5">Egg count</label>
+                                        <input type="number" min="0" value={qObs.egg_count || ''}
+                                          onChange={e => setQuickNestObs({ ...quickNestObs, [nest.breed_id]: { ...qObs, egg_count: e.target.value } })}
+                                          placeholder="0" className="w-full border rounded px-2 py-1.5 text-sm" />
+                                      </div>
+                                      <div>
+                                        <label className="block text-[10px] text-gray-500 mb-0.5">Eggs quality</label>
+                                        <select value={qObs.eggs_quality || ''}
+                                          onChange={e => setQuickNestObs({ ...quickNestObs, [nest.breed_id]: { ...qObs, eggs_quality: e.target.value } })}
+                                          className="w-full border rounded px-2 py-1.5 text-sm bg-white">
+                                          <option value="">flag</option>
+                                          <option value=".">. reliable</option>
+                                          <option value="?">? uncertain</option>
+                                          <option value="+">+ minimum</option>
+                                          <option value="-">- overcount</option>
+                                        </select>
+                                      </div>
                                     </div>
-                                    <div>
-                                      <label className="block text-[10px] text-gray-500 mb-0.5">Cowbird eggs</label>
-                                      <input type="number" min="0" value={qObs.cowbird_eggs || ''}
-                                        onChange={e => setQuickNestObs({ ...quickNestObs, [nest.breed_id]: { ...qObs, cowbird_eggs: e.target.value } })}
-                                        placeholder="0" className="w-full border rounded px-2 py-1.5 text-sm" />
+                                    <div className="grid grid-cols-2 gap-2">
+                                      <div>
+                                        <label className="block text-[10px] text-gray-500 mb-0.5">Cowbird eggs</label>
+                                        <input type="number" min="0" value={qObs.cowbird_eggs || ''}
+                                          onChange={e => setQuickNestObs({ ...quickNestObs, [nest.breed_id]: { ...qObs, cowbird_eggs: e.target.value } })}
+                                          placeholder="0" className="w-full border rounded px-2 py-1.5 text-sm" />
+                                      </div>
+                                      <div>
+                                        <label className="block text-[10px] text-gray-500 mb-0.5" title="Was the whole clutch observed? Y = bird seen incubating.">Whole clutch?</label>
+                                        <select value={qObs.whole_clutch || ''}
+                                          onChange={e => setQuickNestObs({ ...quickNestObs, [nest.breed_id]: { ...qObs, whole_clutch: e.target.value } })}
+                                          className="w-full border rounded px-2 py-1.5 text-sm bg-white">
+                                          <option value="">—</option>
+                                          <option value="Y">Y — Complete</option>
+                                          <option value="N">N — Not sure</option>
+                                        </select>
+                                      </div>
                                     </div>
-                                  </div>
+                                    {qObs.stage === 'laying' && (
+                                      <div>
+                                        <label className="block text-[10px] text-gray-500 mb-0.5" title="Were eggs laid? Y = at least one egg. N = abandoned before laying. U = unknown.">Eggs laid?</label>
+                                        <select value={qObs.eggs_laid || ''}
+                                          onChange={e => setQuickNestObs({ ...quickNestObs, [nest.breed_id]: { ...qObs, eggs_laid: e.target.value } })}
+                                          className="w-full border rounded px-2 py-1.5 text-sm bg-white">
+                                          <option value="">—</option>
+                                          <option value="Y">Y — Yes</option>
+                                          <option value="N">N — No eggs</option>
+                                          <option value="U">U — Unknown</option>
+                                        </select>
+                                      </div>
+                                    )}
+                                  </>
                                 )}
 
                                 {qObs.stage === 'hatching' && (
-                                  <div className="grid grid-cols-2 gap-2">
-                                    <div>
-                                      <label className="block text-[10px] text-gray-500 mb-0.5">Eggs still unhatched</label>
-                                      <input type="number" min="0" value={qObs.egg_count || ''}
-                                        onChange={e => setQuickNestObs({ ...quickNestObs, [nest.breed_id]: { ...qObs, egg_count: e.target.value } })}
-                                        placeholder="0" className="w-full border rounded px-2 py-1.5 text-sm" />
+                                  <>
+                                    <div className="grid grid-cols-2 gap-2">
+                                      <div>
+                                        <label className="block text-[10px] text-gray-500 mb-0.5">Chicks hatched</label>
+                                        <input type="number" min="0" value={qObs.chick_count || ''}
+                                          onChange={e => setQuickNestObs({ ...quickNestObs, [nest.breed_id]: { ...qObs, chick_count: e.target.value } })}
+                                          placeholder="0" className="w-full border rounded px-2 py-1.5 text-sm" />
+                                      </div>
+                                      <div>
+                                        <label className="block text-[10px] text-gray-500 mb-0.5">Hatch quality</label>
+                                        <select value={qObs.hatch_quality || ''}
+                                          onChange={e => setQuickNestObs({ ...quickNestObs, [nest.breed_id]: { ...qObs, hatch_quality: e.target.value } })}
+                                          className="w-full border rounded px-2 py-1.5 text-sm bg-white">
+                                          <option value="">flag</option>
+                                          <option value=".">. reliable</option>
+                                          <option value="?">? uncertain</option>
+                                          <option value="+">+ minimum</option>
+                                          <option value="-">- overcount</option>
+                                        </select>
+                                      </div>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-2">
+                                      <div>
+                                        <label className="block text-[10px] text-gray-500 mb-0.5">Unhatched eggs</label>
+                                        <input type="text" value={qObs.unhatch || ''}
+                                          onChange={e => setQuickNestObs({ ...quickNestObs, [nest.breed_id]: { ...qObs, unhatch: e.target.value } })}
+                                          placeholder="e.g. 1 unfertilized"
+                                          className="w-full border rounded px-2 py-1.5 text-sm" />
+                                      </div>
+                                      <div>
+                                        <label className="block text-[10px] text-gray-500 mb-0.5">Broken eggs</label>
+                                        <input type="text" value={qObs.broke_egg || ''}
+                                          onChange={e => setQuickNestObs({ ...quickNestObs, [nest.breed_id]: { ...qObs, broke_egg: e.target.value } })}
+                                          placeholder="0"
+                                          className="w-full border rounded px-2 py-1.5 text-sm" />
+                                      </div>
                                     </div>
                                     <div>
-                                      <label className="block text-[10px] text-gray-500 mb-0.5">Chicks hatched so far</label>
-                                      <input type="number" min="0" value={qObs.chick_count || ''}
-                                        onChange={e => setQuickNestObs({ ...quickNestObs, [nest.breed_id]: { ...qObs, chick_count: e.target.value } })}
+                                      <label className="block text-[10px] text-gray-500 mb-0.5">Cowbird chicks hatched</label>
+                                      <input type="number" min="0" value={qObs.cowbird_chicks || ''}
+                                        onChange={e => setQuickNestObs({ ...quickNestObs, [nest.breed_id]: { ...qObs, cowbird_chicks: e.target.value } })}
                                         placeholder="0" className="w-full border rounded px-2 py-1.5 text-sm" />
                                     </div>
-                                  </div>
+                                  </>
                                 )}
 
                                 {qObs.stage === 'nestling' && (
@@ -1287,9 +1545,29 @@ export default function TerritoryDetailPage({ params }) {
                                           placeholder="e.g. 6" className="w-full border rounded px-2 py-1.5 text-sm" />
                                       </div>
                                       <div>
+                                        <label className="block text-[10px] text-gray-500 mb-0.5">Band quality</label>
+                                        <select value={qObs.band_quality || ''}
+                                          onChange={e => setQuickNestObs({ ...quickNestObs, [nest.breed_id]: { ...qObs, band_quality: e.target.value } })}
+                                          className="w-full border rounded px-2 py-1.5 text-sm bg-white">
+                                          <option value="">flag</option>
+                                          <option value=".">. reliable</option>
+                                          <option value="?">? uncertain</option>
+                                          <option value="+">+ minimum</option>
+                                          <option value="-">- overcount</option>
+                                        </select>
+                                      </div>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-2">
+                                      <div>
                                         <label className="block text-[10px] text-gray-500 mb-0.5">Cowbird chicks</label>
                                         <input type="number" min="0" value={qObs.cowbird_chicks || ''}
                                           onChange={e => setQuickNestObs({ ...quickNestObs, [nest.breed_id]: { ...qObs, cowbird_chicks: e.target.value } })}
+                                          placeholder="0" className="w-full border rounded px-2 py-1.5 text-sm" />
+                                      </div>
+                                      <div>
+                                        <label className="block text-[10px] text-gray-500 mb-0.5" title="Number of cowbird chicks banded">Cowbird band</label>
+                                        <input type="text" value={qObs.cow_band || ''}
+                                          onChange={e => setQuickNestObs({ ...quickNestObs, [nest.breed_id]: { ...qObs, cow_band: e.target.value } })}
                                           placeholder="0" className="w-full border rounded px-2 py-1.5 text-sm" />
                                       </div>
                                     </div>
@@ -1324,21 +1602,79 @@ export default function TerritoryDetailPage({ params }) {
                                 )}
 
                                 {qObs.stage === 'fledged' && (
-                                  <div>
-                                    <label className="block text-[10px] text-gray-500 mb-0.5">Fledge count</label>
-                                    <input type="number" min="0" value={qObs.chick_count || ''}
-                                      onChange={e => setQuickNestObs({ ...quickNestObs, [nest.breed_id]: { ...qObs, chick_count: e.target.value } })}
-                                      placeholder="0" className="w-full border rounded px-2 py-1.5 text-sm" />
-                                  </div>
+                                  <>
+                                    <div className="grid grid-cols-2 gap-2">
+                                      <div>
+                                        <label className="block text-[10px] text-gray-500 mb-0.5">Fledge count</label>
+                                        <input type="number" min="0" value={qObs.chick_count || ''}
+                                          onChange={e => setQuickNestObs({ ...quickNestObs, [nest.breed_id]: { ...qObs, chick_count: e.target.value } })}
+                                          placeholder="0" className="w-full border rounded px-2 py-1.5 text-sm" />
+                                      </div>
+                                      <div>
+                                        <label className="block text-[10px] text-gray-500 mb-0.5">Fledge quality</label>
+                                        <select value={qObs.fledge_quality || ''}
+                                          onChange={e => setQuickNestObs({ ...quickNestObs, [nest.breed_id]: { ...qObs, fledge_quality: e.target.value } })}
+                                          className="w-full border rounded px-2 py-1.5 text-sm bg-white">
+                                          <option value="">flag</option>
+                                          <option value=".">. reliable</option>
+                                          <option value="?">? uncertain</option>
+                                          <option value="+">+ minimum</option>
+                                          <option value="-">- overcount</option>
+                                        </select>
+                                      </div>
+                                    </div>
+                                    <div>
+                                      <label className="block text-[10px] text-gray-500 mb-0.5">Cowbird fledge count</label>
+                                      <input type="number" min="0" value={qObs.cow_fledge || ''}
+                                        onChange={e => setQuickNestObs({ ...quickNestObs, [nest.breed_id]: { ...qObs, cow_fledge: e.target.value } })}
+                                        placeholder="0" className="w-full border rounded px-2 py-1.5 text-sm" />
+                                    </div>
+                                  </>
                                 )}
 
                                 {qObs.stage === 'independent' && (
-                                  <div>
-                                    <label className="block text-[10px] text-gray-500 mb-0.5">Independent count</label>
-                                    <input type="number" min="0" value={qObs.chick_count || ''}
-                                      onChange={e => setQuickNestObs({ ...quickNestObs, [nest.breed_id]: { ...qObs, chick_count: e.target.value } })}
-                                      placeholder="0" className="w-full border rounded px-2 py-1.5 text-sm" />
-                                  </div>
+                                  <>
+                                    <div className="grid grid-cols-2 gap-2">
+                                      <div>
+                                        <label className="block text-[10px] text-gray-500 mb-0.5">Independent count</label>
+                                        <input type="number" min="0" value={qObs.chick_count || ''}
+                                          onChange={e => setQuickNestObs({ ...quickNestObs, [nest.breed_id]: { ...qObs, chick_count: e.target.value } })}
+                                          placeholder="0" className="w-full border rounded px-2 py-1.5 text-sm" />
+                                      </div>
+                                      <div>
+                                        <label className="block text-[10px] text-gray-500 mb-0.5">Indep quality</label>
+                                        <select value={qObs.indep_quality || ''}
+                                          onChange={e => setQuickNestObs({ ...quickNestObs, [nest.breed_id]: { ...qObs, indep_quality: e.target.value } })}
+                                          className="w-full border rounded px-2 py-1.5 text-sm bg-white">
+                                          <option value="">flag</option>
+                                          <option value=".">. reliable</option>
+                                          <option value="?">? uncertain</option>
+                                          <option value="+">+ minimum</option>
+                                          <option value="-">- overcount</option>
+                                        </select>
+                                      </div>
+                                    </div>
+                                    {/* Kid independence toggles */}
+                                    {(nest.kid1 || nest.kid2 || nest.kid3 || nest.kid4 || nest.kid5) && (
+                                      <div className="bg-purple-50 rounded-lg p-2 border border-purple-200">
+                                        <p className="text-[10px] font-bold text-purple-700 mb-1">Which banded chicks confirmed independent?</p>
+                                        {[1,2,3,4,5].map(i => {
+                                          if (!nest[`kid${i}`]) return null
+                                          const kidBand = String(nest[`kid${i}`])
+                                          const isIndep = qObs[`kid${i}_indep`] || false
+                                          return (
+                                            <label key={i} className="flex items-center gap-2 py-0.5">
+                                              <input type="checkbox" checked={isIndep}
+                                                onChange={e => setQuickNestObs({ ...quickNestObs, [nest.breed_id]: { ...qObs, [`kid${i}_indep`]: e.target.checked } })}
+                                                className="w-4 h-4 rounded" />
+                                              <span className="text-xs font-mono">{kidBand}</span>
+                                              {nest[`kid${i}_combo`] && <span className="text-[10px] text-gray-500">{nest[`kid${i}_combo`]}</span>}
+                                            </label>
+                                          )
+                                        })}
+                                      </div>
+                                    )}
+                                  </>
                                 )}
 
                                 {qObs.stage === 'failed' && (
