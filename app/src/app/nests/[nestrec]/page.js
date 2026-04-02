@@ -52,15 +52,15 @@ export default function NestDetailPage({ params }) {
       let allVisits = []
       if (n.breed_id) {
         const { data } = await supabase.from('nest_visits').select('*')
-          .eq('breed_id', n.breed_id).order('visit_date', { ascending: false })
+          .eq('breed_id', n.breed_id).order('visit_date', { ascending: true })
         allVisits = data || []
       }
       if (n.nestrec) {
         const { data } = await supabase.from('nest_visits').select('*')
-          .eq('nestrec', n.nestrec).order('visit_date', { ascending: false })
+          .eq('nestrec', n.nestrec).order('visit_date', { ascending: true })
         const ids = new Set(allVisits.map(v => v.nest_visit_id))
         for (const v of (data || [])) { if (!ids.has(v.nest_visit_id)) allVisits.push(v) }
-        allVisits.sort((a, b) => new Date(b.visit_date) - new Date(a.visit_date))
+        allVisits.sort((a, b) => new Date(a.visit_date) - new Date(b.visit_date))
       }
 
       // Parents
@@ -319,10 +319,13 @@ export default function NestDetailPage({ params }) {
         if (!bandId) continue
         if (card[`kid${i}_indep`]) {
           // Upsert: mark this chick as independent
+          const today = localDateString()
+          const [ty, tm, td] = today.split('-').map(Number)
           await supabase.from('independence_sightings').upsert({
             band_id: bandId,
             breed_id: nest.breed_id,
-            sighting_date: localDateString(),
+            sighting_date: today,
+            sighting_jd: toJulianDay(ty, tm, td),
           }, { onConflict: 'band_id,breed_id', ignoreDuplicates: true })
         } else {
           // Remove sighting if toggle was turned off
@@ -1041,7 +1044,7 @@ export default function NestDetailPage({ params }) {
                 <p className="text-[11px] text-gray-400 font-bold uppercase mb-1">Banded Chicks</p>
                   {[1,2,3,4,5].map(i => {
                     const id = card[`kid${i}`]
-                    if (!id && i > 1 && !card[`kid${i-1}`]) return null // hide empty trailing slots
+                    // Show all 5 slots so crew can band multiple chicks at once
                     return (
                       <div key={i} className="grid grid-cols-[1fr_1fr_auto] gap-1.5 mb-1 items-center">
                         <input type="text" value={card[`kid${i}`]}
@@ -1328,40 +1331,71 @@ export default function NestDetailPage({ params }) {
                         </select>
                       </div>
                     </div>
-                    <div className="grid grid-cols-3 gap-2">
-                      <div>
-                        <label className="block text-[10px] text-gray-500 mb-0.5">Eggs</label>
-                        <input type="number" min="0" value={editVisitForm.egg_count ?? ''}
-                          onChange={e => setEditVisitForm({ ...editVisitForm, egg_count: e.target.value })}
-                          className="w-full border rounded px-2 py-1.5 text-sm" />
+                    {/* Stage-aware fields — only show what's relevant */}
+                    {(editVisitForm.nest_stage === 'laying' || editVisitForm.nest_stage === 'incubating') && (
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="block text-[10px] text-gray-500 mb-0.5">Egg count</label>
+                          <input type="number" min="0" value={editVisitForm.egg_count ?? ''}
+                            onChange={e => setEditVisitForm({ ...editVisitForm, egg_count: e.target.value })}
+                            className="w-full border rounded px-2 py-1.5 text-sm" />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] text-gray-500 mb-0.5">CB eggs</label>
+                          <input type="number" min="0" value={editVisitForm.cowbird_eggs ?? ''}
+                            onChange={e => setEditVisitForm({ ...editVisitForm, cowbird_eggs: e.target.value })}
+                            className="w-full border rounded px-2 py-1.5 text-sm" />
+                        </div>
                       </div>
+                    )}
+                    {editVisitForm.nest_stage === 'hatching' && (
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="block text-[10px] text-gray-500 mb-0.5">Chicks hatched</label>
+                          <input type="number" min="0" value={editVisitForm.chick_count ?? ''}
+                            onChange={e => setEditVisitForm({ ...editVisitForm, chick_count: e.target.value })}
+                            className="w-full border rounded px-2 py-1.5 text-sm" />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] text-gray-500 mb-0.5">CB chicks</label>
+                          <input type="number" min="0" value={editVisitForm.cowbird_chicks ?? ''}
+                            onChange={e => setEditVisitForm({ ...editVisitForm, cowbird_chicks: e.target.value })}
+                            className="w-full border rounded px-2 py-1.5 text-sm" />
+                        </div>
+                      </div>
+                    )}
+                    {editVisitForm.nest_stage === 'nestling' && (
+                      <div className="grid grid-cols-3 gap-2">
+                        <div>
+                          <label className="block text-[10px] text-gray-500 mb-0.5">Chick count</label>
+                          <input type="number" min="0" value={editVisitForm.chick_count ?? ''}
+                            onChange={e => setEditVisitForm({ ...editVisitForm, chick_count: e.target.value })}
+                            className="w-full border rounded px-2 py-1.5 text-sm" />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] text-gray-500 mb-0.5">Chick age (days)</label>
+                          <input type="number" min="0" value={editVisitForm.chick_age_estimate ?? ''}
+                            onChange={e => setEditVisitForm({ ...editVisitForm, chick_age_estimate: e.target.value })}
+                            className="w-full border rounded px-2 py-1.5 text-sm" />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] text-gray-500 mb-0.5">CB chicks</label>
+                          <input type="number" min="0" value={editVisitForm.cowbird_chicks ?? ''}
+                            onChange={e => setEditVisitForm({ ...editVisitForm, cowbird_chicks: e.target.value })}
+                            className="w-full border rounded px-2 py-1.5 text-sm" />
+                        </div>
+                      </div>
+                    )}
+                    {(editVisitForm.nest_stage === 'fledged' || editVisitForm.nest_stage === 'independent') && (
                       <div>
-                        <label className="block text-[10px] text-gray-500 mb-0.5">Chicks</label>
+                        <label className="block text-[10px] text-gray-500 mb-0.5">
+                          {editVisitForm.nest_stage === 'fledged' ? 'Fledge count' : 'Independent count'}
+                        </label>
                         <input type="number" min="0" value={editVisitForm.chick_count ?? ''}
                           onChange={e => setEditVisitForm({ ...editVisitForm, chick_count: e.target.value })}
                           className="w-full border rounded px-2 py-1.5 text-sm" />
                       </div>
-                      <div>
-                        <label className="block text-[10px] text-gray-500 mb-0.5">Chick age</label>
-                        <input type="number" min="0" value={editVisitForm.chick_age_estimate ?? ''}
-                          onChange={e => setEditVisitForm({ ...editVisitForm, chick_age_estimate: e.target.value })}
-                          className="w-full border rounded px-2 py-1.5 text-sm" />
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <label className="block text-[10px] text-gray-500 mb-0.5">CB eggs</label>
-                        <input type="number" min="0" value={editVisitForm.cowbird_eggs ?? ''}
-                          onChange={e => setEditVisitForm({ ...editVisitForm, cowbird_eggs: e.target.value })}
-                          className="w-full border rounded px-2 py-1.5 text-sm" />
-                      </div>
-                      <div>
-                        <label className="block text-[10px] text-gray-500 mb-0.5">CB chicks</label>
-                        <input type="number" min="0" value={editVisitForm.cowbird_chicks ?? ''}
-                          onChange={e => setEditVisitForm({ ...editVisitForm, cowbird_chicks: e.target.value })}
-                          className="w-full border rounded px-2 py-1.5 text-sm" />
-                      </div>
-                    </div>
+                    )}
                     <div>
                       <label className="block text-[10px] text-gray-500 mb-0.5">Comments</label>
                       <textarea value={editVisitForm.comments || ''}
