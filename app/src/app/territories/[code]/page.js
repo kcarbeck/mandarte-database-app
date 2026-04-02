@@ -41,6 +41,8 @@ export default function TerritoryDetailPage({ params }) {
   const [expandedNest, setExpandedNest] = useState(null) // breed_id of expanded nest card
   const [editingVisit, setEditingVisit] = useState(null) // visit_id being edited
   const [editForm, setEditForm] = useState({}) // editable fields for the visit being edited
+  const [quickNestObs, setQuickNestObs] = useState({}) // breed_id -> { stage, egg_count, ... } for inline expanded nest obs
+  const [savingNestObs, setSavingNestObs] = useState(null) // breed_id currently saving
 
   const [visitForm, setVisitForm] = useState({
     visit_date: localDateString(),
@@ -149,11 +151,11 @@ export default function TerritoryDetailPage({ params }) {
 
   async function handleSubmitVisit(e) {
     e.preventDefault()
-    if (!visitForm.observer || !visitForm.notes) {
+    if (!visitForm.observer || !visitForm.notes?.trim()) {
       alert('Observer and territory notes are required.')
       return
     }
-    if (visitForm.notes.length < 3) {
+    if (visitForm.notes.trim().length < 3) {
       alert('Please add at least a brief observation.')
       return
     }
@@ -244,6 +246,8 @@ export default function TerritoryDetailPage({ params }) {
 
   async function handleSaveVisitEdit(visitId) {
     try {
+      // Find the original visit to know old date/observer for syncing nest visits
+      const original = visits.find(v => v.visit_id === visitId)
       const updates = {
         visit_date: editForm.visit_date,
         visit_time: editForm.visit_time || null,
@@ -256,11 +260,101 @@ export default function TerritoryDetailPage({ params }) {
       }
       const { error } = await supabase.from('territory_visits').update(updates).eq('visit_id', visitId)
       if (error) throw error
+
+      // Sync nest visits that were created with this territory visit
+      // (same date + observer + nest belongs to this territory)
+      const origObserver = original?.observer || ''
+      const newObserver = editForm.observer?.trim() || ''
+      if (original && (original.visit_date !== editForm.visit_date || origObserver !== newObserver)) {
+        const breedIds = nests.map(n => n.breed_id)
+        if (breedIds.length > 0) {
+          const nestUpdates = {
+            visit_date: editForm.visit_date,
+            visit_time: editForm.visit_time || null,
+            observer: newObserver || null,
+          }
+          let query = supabase.from('nest_visits')
+            .update(nestUpdates)
+            .in('breed_id', breedIds)
+            .eq('visit_date', original.visit_date)
+          // Handle null vs non-null observer matching
+          if (original.observer) {
+            query = query.eq('observer', original.observer)
+          } else {
+            query = query.is('observer', null)
+          }
+          const { error: nvErr } = await query
+          if (nvErr) console.error('Warning: nest visit sync failed:', nvErr.message)
+        }
+      }
+
       setEditingVisit(null)
       setEditForm({})
       loadAll()
     } catch (err) {
       alert('Error updating visit: ' + err.message)
+    }
+  }
+
+  async function handleSaveQuickNestObs(breedId) {
+    const obs = quickNestObs[breedId]
+    if (!obs || !obs.stage || obs.stage === 'no_change') return
+    setSavingNestObs(breedId)
+    try {
+      const nest = nests.find(n => n.breed_id === breedId)
+      const savedObserver = typeof window !== 'undefined' ? localStorage.getItem('mandarte_observer') : null
+      // Safe parseInt that returns null instead of NaN
+      const safeInt = (v) => { const n = parseInt(v); return isNaN(n) ? null : n }
+
+      const row = {
+        breed_id: breedId,
+        nestrec: nest?.nestrec || null,
+        visit_date: obs.visit_date || localDateString(),
+        visit_time: obs.visit_time || null,
+        observer: obs.observer?.trim() || savedObserver || null,
+        nest_stage: obs.stage,
+        egg_count: safeInt(obs.egg_count),
+        chick_count: safeInt(obs.chick_count),
+        chick_age_estimate: safeInt(obs.chick_age_estimate),
+        cowbird_eggs: safeInt(obs.cowbird_eggs),
+        cowbird_chicks: safeInt(obs.cowbird_chicks),
+        comments: obs.nest_comment?.trim() || null,
+      }
+      const { error } = await supabase.from('nest_visits').insert(row)
+      if (error) throw error
+
+      // Auto-populate breed counts from this observation (only fill NULLs)
+      const breedUpdates = {}
+      if (obs.stage === 'laying' || obs.stage === 'incubating') {
+        if (safeInt(obs.egg_count) != null && nest.eggs == null) breedUpdates.eggs = safeInt(obs.egg_count)
+      }
+      if (obs.stage === 'hatching' || obs.stage === 'nestling') {
+        if (safeInt(obs.chick_count) != null && nest.hatch == null) breedUpdates.hatch = safeInt(obs.chick_count)
+      }
+      if (obs.stage === 'nestling') {
+        if (safeInt(obs.chick_count) != null && nest.band == null) breedUpdates.band = safeInt(obs.chick_count)
+      }
+      if (obs.stage === 'fledged') {
+        if (safeInt(obs.chick_count) != null && nest.fledge == null) breedUpdates.fledge = safeInt(obs.chick_count)
+      }
+      if (obs.stage === 'independent') {
+        if (safeInt(obs.chick_count) != null && nest.indep == null) breedUpdates.indep = safeInt(obs.chick_count)
+      }
+      if (Object.keys(breedUpdates).length > 0) {
+        await supabase.from('breed').update(breedUpdates).eq('breed_id', breedId)
+      }
+
+      // Clear the form and reload
+      setQuickNestObs(prev => {
+        const next = { ...prev }
+        delete next[breedId]
+        return next
+      })
+      loadAll()
+    } catch (err) {
+      alert('Error saving nest observation: ' + err.message)
+    } finally {
+      setSavingNestObs(null)
     }
   }
 
@@ -474,29 +568,29 @@ export default function TerritoryDetailPage({ params }) {
           </div>
 
           <div>
-            <label className="block text-xs text-gray-500 mb-1">Other birds seen</label>
-            <input type="text" value={visitForm.other_birds_notes}
-              onChange={e => setVisitForm({ ...visitForm, other_birds_notes: e.target.value })}
-              placeholder="Color combos or descriptions"
-              className="w-full border rounded-lg px-3 py-2 text-sm" />
+            <label className="block text-xs text-gray-500 mb-1">Territory card notes * <span className="text-gray-400 font-normal">(saved to territory card)</span></label>
+            <textarea value={visitForm.notes}
+              onChange={e => setVisitForm({ ...visitForm, notes: e.target.value })}
+              placeholder="Behavior, song, location, interactions..."
+              className="w-full border rounded-lg px-3 py-2 text-sm" rows={3} required />
+            {visitForm.notes.trim().length > 0 && visitForm.notes.trim().length < 3 && (
+              <p className="text-xs text-red-500 mt-1">Please add at least a brief observation.</p>
+            )}
           </div>
 
           <div>
-            <label className="block text-xs text-gray-500 mb-1">Territory observations * <span className="text-gray-400 font-normal">(behavior, song, location — this goes on the territory card)</span></label>
-            <textarea value={visitForm.notes}
-              onChange={e => setVisitForm({ ...visitForm, notes: e.target.value })}
-              placeholder="Describe what you observed on the territory: behavior, song, interactions, locations..."
-              className="w-full border rounded-lg px-3 py-2 text-sm" rows={3} required />
-            {visitForm.notes.length > 0 && visitForm.notes.length < 3 && (
-              <p className="text-xs text-red-500 mt-1">Please add at least a brief observation.</p>
-            )}
+            <label className="block text-xs text-gray-500 mb-1">Other sparrows seen <span className="text-gray-400 font-normal">(optional — band combos of floaters, neighbours, etc.)</span></label>
+            <input type="text" value={visitForm.other_birds_notes}
+              onChange={e => setVisitForm({ ...visitForm, other_birds_notes: e.target.value })}
+              placeholder="e.g. RW-SG on south edge"
+              className="w-full border rounded-lg px-3 py-2 text-sm" />
           </div>
 
           {/* ── Nest observations within visit form ── */}
           {hasActiveNests && (
             <div className="border-t pt-3">
-              <h4 className="text-xs font-semibold text-gray-700 mb-1">Nest Observations</h4>
-              <p className="text-[10px] text-gray-400 mb-2">These go on each nest&apos;s visit log, separate from territory notes above.</p>
+              <h4 className="text-xs font-semibold text-gray-700 mb-1">Nest Card Observations</h4>
+              <p className="text-[10px] text-gray-400 mb-2">Saved to each nest&apos;s card — separate from territory notes above.</p>
               <div className="space-y-4">
                 {activeNests.map(nest => {
                   const obs = nestObs[nest.breed_id] || {}
@@ -642,10 +736,10 @@ export default function TerritoryDetailPage({ params }) {
                           {/* Per-nest note */}
                           {obs.stage !== 'failed' && (
                             <div>
-                              <label className="block text-xs text-gray-600 mb-1">Nest note <span className="text-gray-400 font-normal">(goes on nest card, not territory card)</span></label>
+                              <label className="block text-xs text-gray-600 mb-1">Note <span className="text-gray-400 font-normal">(saved to nest card)</span></label>
                               <input type="text" value={obs.nest_comment || ''}
                                 onChange={e => setNestObs({ ...nestObs, [nest.breed_id]: { ...obs, nest_comment: e.target.value } })}
-                                placeholder="Nest-specific observation..."
+                                placeholder="e.g. female tight on nest, cowbird egg removed..."
                                 className="w-full border rounded-lg px-3 py-2 text-sm" />
                             </div>
                           )}
@@ -854,8 +948,190 @@ export default function TerritoryDetailPage({ params }) {
                         </div>
                       )}
 
+                      {/* ── Quick nest observation form ── */}
+                      {!isFailed && !isSuccess && (() => {
+                        const qObs = quickNestObs[nest.breed_id] || {}
+                        const suggested = getSuggestedStage(nest)
+                        const savedObserver = typeof window !== 'undefined' ? localStorage.getItem('mandarte_observer') : ''
+                        const isSaving = savingNestObs === nest.breed_id
+
+                        return (
+                          <div className="px-3 py-2 border-t bg-blue-50/30">
+                            <div className="text-[11px] font-semibold text-gray-600 mb-1.5">Record Observation <span className="font-normal text-gray-400">(saved to nest card)</span></div>
+
+                            {/* Context-aware suggestion banner */}
+                            {suggested && (
+                              <div className={`text-[11px] font-semibold px-2 py-1 rounded mb-2 ${suggested.color}`}>
+                                {suggested.hint}
+                              </div>
+                            )}
+
+                            {/* Stage selector */}
+                            <div className="flex flex-wrap gap-1 mb-2">
+                              {NEST_STAGES.map(stage => {
+                                const isSuggested = suggested?.stage === stage
+                                return (
+                                  <button
+                                    key={stage}
+                                    type="button"
+                                    onClick={() => setQuickNestObs({ ...quickNestObs, [nest.breed_id]: { ...qObs, stage, observer: qObs.observer || savedObserver || '' } })}
+                                    className={`text-[11px] px-2 py-1 rounded ${
+                                      qObs.stage === stage
+                                        ? 'bg-blue-600 text-white'
+                                        : isSuggested
+                                        ? 'bg-yellow-100 border-2 border-yellow-400 text-yellow-800 font-semibold'
+                                        : 'bg-white border border-gray-300 text-gray-700'
+                                    }`}
+                                  >
+                                    {stage.charAt(0).toUpperCase() + stage.slice(1)}
+                                  </button>
+                                )
+                              })}
+                            </div>
+
+                            {/* Stage-specific fields */}
+                            {qObs.stage && (
+                              <div className="space-y-2 mb-2">
+                                {/* Observer + date row */}
+                                <div className="grid grid-cols-3 gap-2">
+                                  <div>
+                                    <label className="block text-[10px] text-gray-500 mb-0.5">Observer</label>
+                                    <select value={qObs.observer || savedObserver || ''}
+                                      onChange={e => setQuickNestObs({ ...quickNestObs, [nest.breed_id]: { ...qObs, observer: e.target.value } })}
+                                      className="w-full border rounded px-1.5 py-1 text-xs bg-white">
+                                      <option value="">—</option>
+                                      {OBSERVER_LIST.map(name => <option key={name} value={name}>{name}</option>)}
+                                    </select>
+                                  </div>
+                                  <div>
+                                    <label className="block text-[10px] text-gray-500 mb-0.5">Date</label>
+                                    <input type="date" value={qObs.visit_date || localDateString()}
+                                      onChange={e => setQuickNestObs({ ...quickNestObs, [nest.breed_id]: { ...qObs, visit_date: e.target.value } })}
+                                      className="w-full border rounded px-1.5 py-1 text-xs" />
+                                  </div>
+                                  <div>
+                                    <label className="block text-[10px] text-gray-500 mb-0.5">Time</label>
+                                    <input type="time" value={qObs.visit_time || localTimeString()}
+                                      onChange={e => setQuickNestObs({ ...quickNestObs, [nest.breed_id]: { ...qObs, visit_time: e.target.value } })}
+                                      className="w-full border rounded px-1.5 py-1 text-xs" />
+                                  </div>
+                                </div>
+
+                                {(qObs.stage === 'laying' || qObs.stage === 'incubating') && (
+                                  <div className="grid grid-cols-2 gap-2">
+                                    <div>
+                                      <label className="block text-[10px] text-gray-500 mb-0.5">Egg count</label>
+                                      <input type="number" min="0" value={qObs.egg_count || ''}
+                                        onChange={e => setQuickNestObs({ ...quickNestObs, [nest.breed_id]: { ...qObs, egg_count: e.target.value } })}
+                                        placeholder="0" className="w-full border rounded px-2 py-1.5 text-sm" />
+                                    </div>
+                                    <div>
+                                      <label className="block text-[10px] text-gray-500 mb-0.5">Cowbird eggs</label>
+                                      <input type="number" min="0" value={qObs.cowbird_eggs || ''}
+                                        onChange={e => setQuickNestObs({ ...quickNestObs, [nest.breed_id]: { ...qObs, cowbird_eggs: e.target.value } })}
+                                        placeholder="0" className="w-full border rounded px-2 py-1.5 text-sm" />
+                                    </div>
+                                  </div>
+                                )}
+
+                                {qObs.stage === 'hatching' && (
+                                  <div className="grid grid-cols-2 gap-2">
+                                    <div>
+                                      <label className="block text-[10px] text-gray-500 mb-0.5">Eggs still unhatched</label>
+                                      <input type="number" min="0" value={qObs.egg_count || ''}
+                                        onChange={e => setQuickNestObs({ ...quickNestObs, [nest.breed_id]: { ...qObs, egg_count: e.target.value } })}
+                                        placeholder="0" className="w-full border rounded px-2 py-1.5 text-sm" />
+                                    </div>
+                                    <div>
+                                      <label className="block text-[10px] text-gray-500 mb-0.5">Chicks hatched so far</label>
+                                      <input type="number" min="0" value={qObs.chick_count || ''}
+                                        onChange={e => setQuickNestObs({ ...quickNestObs, [nest.breed_id]: { ...qObs, chick_count: e.target.value } })}
+                                        placeholder="0" className="w-full border rounded px-2 py-1.5 text-sm" />
+                                    </div>
+                                  </div>
+                                )}
+
+                                {qObs.stage === 'nestling' && (
+                                  <div className="grid grid-cols-3 gap-2">
+                                    <div>
+                                      <label className="block text-[10px] text-gray-500 mb-0.5">Chick count</label>
+                                      <input type="number" min="0" value={qObs.chick_count || ''}
+                                        onChange={e => setQuickNestObs({ ...quickNestObs, [nest.breed_id]: { ...qObs, chick_count: e.target.value } })}
+                                        placeholder="0" className="w-full border rounded px-2 py-1.5 text-sm" />
+                                    </div>
+                                    <div>
+                                      <label className="block text-[10px] text-gray-500 mb-0.5">Chick age (days)</label>
+                                      <input type="number" min="0" value={qObs.chick_age_estimate || ''}
+                                        onChange={e => setQuickNestObs({ ...quickNestObs, [nest.breed_id]: { ...qObs, chick_age_estimate: e.target.value } })}
+                                        placeholder="e.g. 6" className="w-full border rounded px-2 py-1.5 text-sm" />
+                                    </div>
+                                    <div>
+                                      <label className="block text-[10px] text-gray-500 mb-0.5">Cowbird chicks</label>
+                                      <input type="number" min="0" value={qObs.cowbird_chicks || ''}
+                                        onChange={e => setQuickNestObs({ ...quickNestObs, [nest.breed_id]: { ...qObs, cowbird_chicks: e.target.value } })}
+                                        placeholder="0" className="w-full border rounded px-2 py-1.5 text-sm" />
+                                    </div>
+                                  </div>
+                                )}
+
+                                {qObs.stage === 'fledged' && (
+                                  <div>
+                                    <label className="block text-[10px] text-gray-500 mb-0.5">Fledge count</label>
+                                    <input type="number" min="0" value={qObs.chick_count || ''}
+                                      onChange={e => setQuickNestObs({ ...quickNestObs, [nest.breed_id]: { ...qObs, chick_count: e.target.value } })}
+                                      placeholder="0" className="w-full border rounded px-2 py-1.5 text-sm" />
+                                  </div>
+                                )}
+
+                                {qObs.stage === 'independent' && (
+                                  <div>
+                                    <label className="block text-[10px] text-gray-500 mb-0.5">Independent count</label>
+                                    <input type="number" min="0" value={qObs.chick_count || ''}
+                                      onChange={e => setQuickNestObs({ ...quickNestObs, [nest.breed_id]: { ...qObs, chick_count: e.target.value } })}
+                                      placeholder="0" className="w-full border rounded px-2 py-1.5 text-sm" />
+                                  </div>
+                                )}
+
+                                {qObs.stage === 'failed' && (
+                                  <div>
+                                    <label className="block text-[10px] text-gray-500 mb-0.5">What happened?</label>
+                                    <input type="text" value={qObs.nest_comment || ''}
+                                      onChange={e => setQuickNestObs({ ...quickNestObs, [nest.breed_id]: { ...qObs, nest_comment: e.target.value } })}
+                                      placeholder="Empty nest, broken eggs, predator signs..."
+                                      className="w-full border rounded px-2 py-1.5 text-sm" />
+                                  </div>
+                                )}
+
+                                {qObs.stage !== 'failed' && (
+                                  <div>
+                                    <label className="block text-[10px] text-gray-500 mb-0.5">Note <span className="text-gray-400">(optional)</span></label>
+                                    <input type="text" value={qObs.nest_comment || ''}
+                                      onChange={e => setQuickNestObs({ ...quickNestObs, [nest.breed_id]: { ...qObs, nest_comment: e.target.value } })}
+                                      placeholder="e.g. female tight on nest..."
+                                      className="w-full border rounded px-2 py-1.5 text-sm" />
+                                  </div>
+                                )}
+
+                                <div className="flex gap-2">
+                                  <button type="button" onClick={() => handleSaveQuickNestObs(nest.breed_id)}
+                                    disabled={isSaving}
+                                    className="flex-1 bg-blue-600 text-white rounded py-1.5 text-xs font-semibold disabled:opacity-50">
+                                    {isSaving ? 'Saving...' : 'Save to Nest Card'}
+                                  </button>
+                                  <button type="button"
+                                    onClick={() => setQuickNestObs(prev => { const next = { ...prev }; delete next[nest.breed_id]; return next })}
+                                    className="px-3 border rounded py-1.5 text-xs text-gray-600">
+                                    Clear
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )
+                      })()}
+
                       {/* Nest visit log */}
-                      <div className="px-3 pb-3">
+                      <div className="px-3 pb-3 border-t pt-2">
                         <div className="flex justify-between items-center mb-1.5">
                           <span className="text-[11px] text-gray-400 font-bold uppercase">Nest Visit Log ({nestVisits.length})</span>
                           <Link href={`/nests/${nest.nestrec || nest.breed_id}`}
@@ -975,7 +1251,7 @@ export default function TerritoryDetailPage({ params }) {
                         className="w-full border rounded px-2 py-1.5 text-sm" />
                     </div>
                     <div>
-                      <label className="block text-[10px] text-gray-500 mb-0.5">Observations</label>
+                      <label className="block text-[10px] text-gray-500 mb-0.5">Territory card notes</label>
                       <textarea value={editForm.notes || ''}
                         onChange={e => setEditForm({ ...editForm, notes: e.target.value })}
                         className="w-full border rounded px-2 py-1.5 text-sm" rows={3} />
