@@ -12,6 +12,9 @@ const OBSERVER_LIST = ['Katherine', 'Emma', 'Anna', 'Jon', 'Jen']
 // Stage progression options for nest visit observations
 const NEST_STAGES = ['building', 'laying', 'incubating', 'hatching', 'nestling', 'fledged', 'independent', 'failed']
 
+// Safe parseInt that returns null instead of NaN (prevents corrupt DB writes)
+const safeInt = (v) => { const n = parseInt(v); return isNaN(n) ? null : n }
+
 function nestStatusBadge(nest) {
   if (nest.fail_code === '24') return { label: 'Success', color: 'bg-green-100 text-green-700' }
   if (nest.fail_code && nest.fail_code !== '24') return { label: 'Failed', color: 'bg-red-100 text-red-700' }
@@ -43,6 +46,7 @@ export default function TerritoryDetailPage({ params }) {
   const [editForm, setEditForm] = useState({}) // editable fields for the visit being edited
   const [quickNestObs, setQuickNestObs] = useState({}) // breed_id -> { stage, egg_count, ... } for inline expanded nest obs
   const [savingNestObs, setSavingNestObs] = useState(null) // breed_id currently saving
+  const [failcodes, setFailcodes] = useState([]) // lookup_failcode rows
 
   const [visitForm, setVisitForm] = useState({
     visit_date: localDateString(),
@@ -76,6 +80,12 @@ export default function TerritoryDetailPage({ params }) {
   async function loadAll() {
     setLoading(true)
     try {
+      // Load fail codes for nest failure dropdown
+      if (failcodes.length === 0) {
+        const { data: fcData } = await supabase.from('lookup_failcode').select('*')
+        if (fcData) setFailcodes(fcData)
+      }
+
       const { data: allAssign } = await supabase
         .from('territory_assignments')
         .select('*')
@@ -149,6 +159,78 @@ export default function TerritoryDetailPage({ params }) {
     return null
   }
 
+  // Shared: validate and save banding data from an observation object
+  // obs has kid1..kid5 (band numbers) and kid1_combo..kid5_combo (color combos)
+  // Returns { ok: true } or { ok: false, error: 'message' }
+  async function saveBandingData(breedId, obs, nestYear) {
+    const kids = []
+    for (let i = 1; i <= 5; i++) {
+      const bandId = obs[`kid${i}`]?.trim()
+      if (!bandId) continue
+      // Validate: must be exactly 9 digits
+      if (bandId.length !== 9 || !/^\d{9}$/.test(bandId)) {
+        return { ok: false, error: `Chick ${i} band # must be exactly 9 digits (got "${bandId}")` }
+      }
+      const combo = obs[`kid${i}_combo`]?.trim() || null
+      kids.push({ slot: i, bandId: parseInt(bandId), combo })
+    }
+    if (kids.length === 0) return { ok: true }
+
+    // Check for duplicate band numbers within this banding
+    const bandIds = kids.map(k => k.bandId)
+    const uniqueIds = new Set(bandIds)
+    if (uniqueIds.size !== bandIds.length) {
+      return { ok: false, error: 'Duplicate band numbers entered — each chick needs a unique band.' }
+    }
+
+    // Check for duplicates against existing kids already on this nest
+    const nest = nests.find(n => n.breed_id === breedId)
+    if (nest) {
+      const existingKids = [nest.kid1, nest.kid2, nest.kid3, nest.kid4, nest.kid5].filter(Boolean)
+      for (const kid of kids) {
+        if (existingKids.includes(kid.bandId)) {
+          return { ok: false, error: `Band ${String(kid.bandId)} is already recorded on this nest.` }
+        }
+      }
+    }
+
+    // Upsert bird records (create if new, don't overwrite existing)
+    for (const kid of kids) {
+      const { error: upsertErr } = await supabase.from('birds').upsert(
+        { band_id: kid.bandId, sex: 0, is_immigrant: 0, natal_year: nestYear },
+        { onConflict: 'band_id', ignoreDuplicates: true }
+      )
+      if (upsertErr) return { ok: false, error: `Failed to create bird record for ${kid.bandId}: ${upsertErr.message}` }
+
+      // Update color combo if provided (separate update so it doesn't overwrite existing combo)
+      if (kid.combo) {
+        await supabase.from('birds').update({ color_combo: kid.combo }).eq('band_id', kid.bandId)
+      }
+    }
+
+    // Update breed.kid1-kid5 — fill into FIRST EMPTY slots sequentially, not by input position
+    const breedKidUpdates = {}
+    let nextSlot = 1
+    for (const kid of kids) {
+      // Skip slots that already have a value
+      while (nextSlot <= 5 && nest && nest[`kid${nextSlot}`] != null) nextSlot++
+      if (nextSlot > 5) break // no more empty slots
+      breedKidUpdates[`kid${nextSlot}`] = kid.bandId
+      nextSlot++
+    }
+    // Update band count: existing kids + new kids
+    if (nest && nest.band == null) {
+      const existingCount = [nest.kid1, nest.kid2, nest.kid3, nest.kid4, nest.kid5].filter(Boolean).length
+      breedKidUpdates.band = existingCount + kids.length
+    }
+    if (Object.keys(breedKidUpdates).length > 0) {
+      const { error: breedErr } = await supabase.from('breed').update(breedKidUpdates).eq('breed_id', breedId)
+      if (breedErr) return { ok: false, error: `Failed to update nest card: ${breedErr.message}` }
+    }
+
+    return { ok: true }
+  }
+
   async function handleSubmitVisit(e) {
     e.preventDefault()
     if (!visitForm.observer || !visitForm.notes?.trim()) {
@@ -211,6 +293,60 @@ export default function TerritoryDetailPage({ params }) {
         if (nestVisitsToInsert.length > 0) {
           const { error: nestError } = await supabase.from('nest_visits').insert(nestVisitsToInsert)
           if (nestError) throw nestError
+        }
+
+        // Auto-populate breed fields + banding for each nest observation
+
+        for (const [breedIdStr, obs] of Object.entries(nestObs)) {
+          if (!obs.stage || obs.stage === 'no_change') continue
+          const breedId = parseInt(breedIdStr)
+          const nest = nests.find(n => n.breed_id === breedId)
+          if (!nest) continue
+
+          const breedUpdates = {}
+          if (obs.stage === 'laying') {
+            if (safeInt(obs.egg_count) != null && nest.eggs == null) breedUpdates.eggs = safeInt(obs.egg_count)
+            if (nest.dfe == null) {
+              const [y, m, d] = visitForm.visit_date.split('-').map(Number)
+              breedUpdates.dfe = toJulianDay(y, m, d)
+            }
+          }
+          if (obs.stage === 'incubating') {
+            if (safeInt(obs.egg_count) != null && nest.eggs == null) breedUpdates.eggs = safeInt(obs.egg_count)
+          }
+          if (obs.stage === 'laying' || obs.stage === 'incubating') {
+            if (safeInt(obs.cowbird_eggs) != null && nest.cow_egg == null) breedUpdates.cow_egg = safeInt(obs.cowbird_eggs)
+          }
+          if (obs.stage === 'hatching') {
+            if (safeInt(obs.chick_count) != null && nest.hatch == null) breedUpdates.hatch = safeInt(obs.chick_count)
+            if (nest.date_hatch == null) {
+              const [y, m, d] = visitForm.visit_date.split('-').map(Number)
+              breedUpdates.date_hatch = toJulianDay(y, m, d)
+            }
+          }
+          if (obs.stage === 'nestling') {
+            if (safeInt(obs.chick_count) != null && nest.hatch == null) breedUpdates.hatch = safeInt(obs.chick_count)
+            if (safeInt(obs.cowbird_chicks) != null && nest.cow_hatch == null) breedUpdates.cow_hatch = safeInt(obs.cowbird_chicks)
+          }
+          if (obs.stage === 'fledged') {
+            if (safeInt(obs.chick_count) != null && nest.fledge == null) breedUpdates.fledge = safeInt(obs.chick_count)
+          }
+          if (obs.stage === 'independent') {
+            if (safeInt(obs.chick_count) != null && nest.indep == null) breedUpdates.indep = safeInt(obs.chick_count)
+          }
+          if (obs.stage === 'failed') {
+            if (obs.fail_code && !nest.fail_code) breedUpdates.fail_code = obs.fail_code
+            if (obs.stage_fail && !nest.stage_fail) breedUpdates.stage_fail = obs.stage_fail
+          }
+          if (Object.keys(breedUpdates).length > 0) {
+            await supabase.from('breed').update(breedUpdates).eq('breed_id', breedId)
+          }
+
+          // Save banding data if nestling with kid band numbers
+          if (obs.stage === 'nestling' && (obs.kid1 || obs.kid2 || obs.kid3 || obs.kid4 || obs.kid5)) {
+            const result = await saveBandingData(breedId, obs, currentYear)
+            if (!result.ok) throw new Error(result.error)
+          }
         }
       }
 
@@ -303,8 +439,6 @@ export default function TerritoryDetailPage({ params }) {
     try {
       const nest = nests.find(n => n.breed_id === breedId)
       const savedObserver = typeof window !== 'undefined' ? localStorage.getItem('mandarte_observer') : null
-      // Safe parseInt that returns null instead of NaN
-      const safeInt = (v) => { const n = parseInt(v); return isNaN(n) ? null : n }
 
       const row = {
         breed_id: breedId,
@@ -323,16 +457,35 @@ export default function TerritoryDetailPage({ params }) {
       const { error } = await supabase.from('nest_visits').insert(row)
       if (error) throw error
 
-      // Auto-populate breed counts from this observation (only fill NULLs)
+      // Auto-populate breed fields from this observation (only fill NULLs)
+      const visitDate = obs.visit_date || localDateString()
       const breedUpdates = {}
-      if (obs.stage === 'laying' || obs.stage === 'incubating') {
+
+      if (obs.stage === 'laying') {
+        if (safeInt(obs.egg_count) != null && nest.eggs == null) breedUpdates.eggs = safeInt(obs.egg_count)
+        // DFE = date first egg (Julian day) — set from visit date if not already set
+        if (nest.dfe == null) {
+          const [y, m, d] = visitDate.split('-').map(Number)
+          breedUpdates.dfe = toJulianDay(y, m, d)
+        }
+      }
+      if (obs.stage === 'incubating') {
         if (safeInt(obs.egg_count) != null && nest.eggs == null) breedUpdates.eggs = safeInt(obs.egg_count)
       }
-      if (obs.stage === 'hatching' || obs.stage === 'nestling') {
+      if (obs.stage === 'laying' || obs.stage === 'incubating') {
+        if (safeInt(obs.cowbird_eggs) != null && nest.cow_egg == null) breedUpdates.cow_egg = safeInt(obs.cowbird_eggs)
+      }
+      if (obs.stage === 'hatching') {
         if (safeInt(obs.chick_count) != null && nest.hatch == null) breedUpdates.hatch = safeInt(obs.chick_count)
+        // date_hatch = hatch date (Julian day) — set from visit date if not already set
+        if (nest.date_hatch == null) {
+          const [y, m, d] = visitDate.split('-').map(Number)
+          breedUpdates.date_hatch = toJulianDay(y, m, d)
+        }
       }
       if (obs.stage === 'nestling') {
-        if (safeInt(obs.chick_count) != null && nest.band == null) breedUpdates.band = safeInt(obs.chick_count)
+        if (safeInt(obs.chick_count) != null && nest.hatch == null) breedUpdates.hatch = safeInt(obs.chick_count)
+        if (safeInt(obs.cowbird_chicks) != null && nest.cow_hatch == null) breedUpdates.cow_hatch = safeInt(obs.cowbird_chicks)
       }
       if (obs.stage === 'fledged') {
         if (safeInt(obs.chick_count) != null && nest.fledge == null) breedUpdates.fledge = safeInt(obs.chick_count)
@@ -340,8 +493,18 @@ export default function TerritoryDetailPage({ params }) {
       if (obs.stage === 'independent') {
         if (safeInt(obs.chick_count) != null && nest.indep == null) breedUpdates.indep = safeInt(obs.chick_count)
       }
+      if (obs.stage === 'failed') {
+        if (obs.fail_code && !nest.fail_code) breedUpdates.fail_code = obs.fail_code
+        if (obs.stage_fail && !nest.stage_fail) breedUpdates.stage_fail = obs.stage_fail
+      }
       if (Object.keys(breedUpdates).length > 0) {
         await supabase.from('breed').update(breedUpdates).eq('breed_id', breedId)
+      }
+
+      // Save banding data if nestling with kid band numbers
+      if (obs.stage === 'nestling' && (obs.kid1 || obs.kid2 || obs.kid3 || obs.kid4 || obs.kid5)) {
+        const bandResult = await saveBandingData(breedId, obs, currentYear)
+        if (!bandResult.ok) throw new Error(bandResult.error)
       }
 
       // Clear the form and reload
@@ -698,6 +861,33 @@ export default function TerritoryDetailPage({ params }) {
                                   onChange={e => setNestObs({ ...nestObs, [nest.breed_id]: { ...obs, cowbird_chicks: e.target.value } })}
                                   placeholder="0" className="w-full border rounded-lg px-3 py-2 text-sm" />
                               </div>
+
+                              {/* Banding fields */}
+                              <div className="bg-emerald-50 rounded-lg p-3 border border-emerald-200">
+                                <p className="text-xs font-bold text-emerald-700 mb-1.5">Band Chicks</p>
+                                {[1,2,3,4,5].map(i => {
+                                  const isFilled = !!obs[`kid${i}`]
+                                  const isNextEmpty = i === 1 || !!obs[`kid${i-1}`]
+                                  if (!isFilled && !isNextEmpty) return null
+                                  return (
+                                    <div key={i} className="grid grid-cols-2 gap-1.5 mb-1">
+                                      <input type="text" value={obs[`kid${i}`] || ''}
+                                        onChange={e => {
+                                          const v = e.target.value.replace(/\D/g, '').slice(0, 9)
+                                          setNestObs({ ...nestObs, [nest.breed_id]: { ...obs, [`kid${i}`]: v } })
+                                        }}
+                                        placeholder={`Chick ${i} band # (9 digits)`}
+                                        inputMode="numeric" maxLength={9}
+                                        className="border rounded-lg px-3 py-2 text-xs font-mono bg-white" />
+                                      <input type="text" value={obs[`kid${i}_combo`] || ''}
+                                        onChange={e => setNestObs({ ...nestObs, [nest.breed_id]: { ...obs, [`kid${i}_combo`]: e.target.value } })}
+                                        placeholder="color combo"
+                                        className="border rounded-lg px-3 py-2 text-xs font-mono bg-white" />
+                                    </div>
+                                  )
+                                })}
+                                <p className="text-[10px] text-emerald-600 mt-1">Band # = 9-digit metal band. Color combo = e.g. &quot;Y/G RW/M&quot;</p>
+                              </div>
                             </>
                           )}
 
@@ -724,12 +914,36 @@ export default function TerritoryDetailPage({ params }) {
                           )}
 
                           {obs.stage === 'failed' && (
-                            <div>
-                              <label className="block text-xs text-gray-600 mb-1">What happened?</label>
-                              <input type="text" value={obs.nest_comment || ''}
-                                onChange={e => setNestObs({ ...nestObs, [nest.breed_id]: { ...obs, nest_comment: e.target.value } })}
-                                placeholder="Empty nest, broken eggs, predator signs..."
-                                className="w-full border rounded-lg px-3 py-2 text-sm" />
+                            <div className="space-y-2">
+                              <div>
+                                <label className="block text-xs text-gray-600 mb-1">Fail code</label>
+                                <select value={obs.fail_code || ''}
+                                  onChange={e => setNestObs({ ...nestObs, [nest.breed_id]: { ...obs, fail_code: e.target.value } })}
+                                  className="w-full border rounded-lg px-3 py-2 text-sm bg-white">
+                                  <option value="">Select...</option>
+                                  {failcodes.filter(f => f.code !== '24').map(f => (
+                                    <option key={f.code} value={f.code}>{f.code} — {f.description}</option>
+                                  ))}
+                                </select>
+                              </div>
+                              <div>
+                                <label className="block text-xs text-gray-600 mb-1">Failed at stage</label>
+                                <select value={obs.stage_fail || ''}
+                                  onChange={e => setNestObs({ ...nestObs, [nest.breed_id]: { ...obs, stage_fail: e.target.value } })}
+                                  className="w-full border rounded-lg px-3 py-2 text-sm bg-white">
+                                  <option value="">Select...</option>
+                                  {['building', 'laying', 'incubating', 'hatching', 'nestling'].map(s => (
+                                    <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
+                                  ))}
+                                </select>
+                              </div>
+                              <div>
+                                <label className="block text-xs text-gray-600 mb-1">What happened?</label>
+                                <input type="text" value={obs.nest_comment || ''}
+                                  onChange={e => setNestObs({ ...nestObs, [nest.breed_id]: { ...obs, nest_comment: e.target.value } })}
+                                  placeholder="Empty nest, broken eggs, predator signs..."
+                                  className="w-full border rounded-lg px-3 py-2 text-sm" />
+                              </div>
                             </div>
                           )}
 
@@ -1052,26 +1266,55 @@ export default function TerritoryDetailPage({ params }) {
                                 )}
 
                                 {qObs.stage === 'nestling' && (
-                                  <div className="grid grid-cols-3 gap-2">
-                                    <div>
-                                      <label className="block text-[10px] text-gray-500 mb-0.5">Chick count</label>
-                                      <input type="number" min="0" value={qObs.chick_count || ''}
-                                        onChange={e => setQuickNestObs({ ...quickNestObs, [nest.breed_id]: { ...qObs, chick_count: e.target.value } })}
-                                        placeholder="0" className="w-full border rounded px-2 py-1.5 text-sm" />
+                                  <>
+                                    <div className="grid grid-cols-3 gap-2">
+                                      <div>
+                                        <label className="block text-[10px] text-gray-500 mb-0.5">Chick count</label>
+                                        <input type="number" min="0" value={qObs.chick_count || ''}
+                                          onChange={e => setQuickNestObs({ ...quickNestObs, [nest.breed_id]: { ...qObs, chick_count: e.target.value } })}
+                                          placeholder="0" className="w-full border rounded px-2 py-1.5 text-sm" />
+                                      </div>
+                                      <div>
+                                        <label className="block text-[10px] text-gray-500 mb-0.5">Chick age (days)</label>
+                                        <input type="number" min="0" value={qObs.chick_age_estimate || ''}
+                                          onChange={e => setQuickNestObs({ ...quickNestObs, [nest.breed_id]: { ...qObs, chick_age_estimate: e.target.value } })}
+                                          placeholder="e.g. 6" className="w-full border rounded px-2 py-1.5 text-sm" />
+                                      </div>
+                                      <div>
+                                        <label className="block text-[10px] text-gray-500 mb-0.5">Cowbird chicks</label>
+                                        <input type="number" min="0" value={qObs.cowbird_chicks || ''}
+                                          onChange={e => setQuickNestObs({ ...quickNestObs, [nest.breed_id]: { ...qObs, cowbird_chicks: e.target.value } })}
+                                          placeholder="0" className="w-full border rounded px-2 py-1.5 text-sm" />
+                                      </div>
                                     </div>
-                                    <div>
-                                      <label className="block text-[10px] text-gray-500 mb-0.5">Chick age (days)</label>
-                                      <input type="number" min="0" value={qObs.chick_age_estimate || ''}
-                                        onChange={e => setQuickNestObs({ ...quickNestObs, [nest.breed_id]: { ...qObs, chick_age_estimate: e.target.value } })}
-                                        placeholder="e.g. 6" className="w-full border rounded px-2 py-1.5 text-sm" />
+
+                                    {/* Banding fields */}
+                                    <div className="bg-emerald-50 rounded-lg p-2 border border-emerald-200">
+                                      <p className="text-[10px] font-bold text-emerald-700 mb-1.5">Band Chicks</p>
+                                      {[1,2,3,4,5].map(i => {
+                                        const isFilled = !!qObs[`kid${i}`]
+                                        const isNextEmpty = i === 1 || !!qObs[`kid${i-1}`]
+                                        if (!isFilled && !isNextEmpty) return null
+                                        return (
+                                          <div key={i} className="grid grid-cols-2 gap-1.5 mb-1">
+                                            <input type="text" value={qObs[`kid${i}`] || ''}
+                                              onChange={e => {
+                                                const v = e.target.value.replace(/\D/g, '').slice(0, 9)
+                                                setQuickNestObs({ ...quickNestObs, [nest.breed_id]: { ...qObs, [`kid${i}`]: v } })
+                                              }}
+                                              placeholder={`Chick ${i} band # (9 digits)`}
+                                              inputMode="numeric" maxLength={9}
+                                              className="border rounded px-2 py-1.5 text-xs font-mono bg-white" />
+                                            <input type="text" value={qObs[`kid${i}_combo`] || ''}
+                                              onChange={e => setQuickNestObs({ ...quickNestObs, [nest.breed_id]: { ...qObs, [`kid${i}_combo`]: e.target.value } })}
+                                              placeholder="color combo"
+                                              className="border rounded px-2 py-1.5 text-xs font-mono bg-white" />
+                                          </div>
+                                        )
+                                      })}
+                                      <p className="text-[9px] text-emerald-600 mt-1">Band # = 9-digit metal band. Color combo = e.g. &quot;Y/G RW/M&quot;</p>
                                     </div>
-                                    <div>
-                                      <label className="block text-[10px] text-gray-500 mb-0.5">Cowbird chicks</label>
-                                      <input type="number" min="0" value={qObs.cowbird_chicks || ''}
-                                        onChange={e => setQuickNestObs({ ...quickNestObs, [nest.breed_id]: { ...qObs, cowbird_chicks: e.target.value } })}
-                                        placeholder="0" className="w-full border rounded px-2 py-1.5 text-sm" />
-                                    </div>
-                                  </div>
+                                  </>
                                 )}
 
                                 {qObs.stage === 'fledged' && (
@@ -1093,12 +1336,36 @@ export default function TerritoryDetailPage({ params }) {
                                 )}
 
                                 {qObs.stage === 'failed' && (
-                                  <div>
-                                    <label className="block text-[10px] text-gray-500 mb-0.5">What happened?</label>
-                                    <input type="text" value={qObs.nest_comment || ''}
-                                      onChange={e => setQuickNestObs({ ...quickNestObs, [nest.breed_id]: { ...qObs, nest_comment: e.target.value } })}
-                                      placeholder="Empty nest, broken eggs, predator signs..."
-                                      className="w-full border rounded px-2 py-1.5 text-sm" />
+                                  <div className="space-y-2">
+                                    <div>
+                                      <label className="block text-[10px] text-gray-500 mb-0.5">Fail code</label>
+                                      <select value={qObs.fail_code || ''}
+                                        onChange={e => setQuickNestObs({ ...quickNestObs, [nest.breed_id]: { ...qObs, fail_code: e.target.value } })}
+                                        className="w-full border rounded px-2 py-1.5 text-sm bg-white">
+                                        <option value="">Select...</option>
+                                        {failcodes.filter(f => f.code !== '24').map(f => (
+                                          <option key={f.code} value={f.code}>{f.code} — {f.description}</option>
+                                        ))}
+                                      </select>
+                                    </div>
+                                    <div>
+                                      <label className="block text-[10px] text-gray-500 mb-0.5">Failed at stage</label>
+                                      <select value={qObs.stage_fail || ''}
+                                        onChange={e => setQuickNestObs({ ...quickNestObs, [nest.breed_id]: { ...qObs, stage_fail: e.target.value } })}
+                                        className="w-full border rounded px-2 py-1.5 text-sm bg-white">
+                                        <option value="">Select...</option>
+                                        {['building', 'laying', 'incubating', 'hatching', 'nestling'].map(s => (
+                                          <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
+                                        ))}
+                                      </select>
+                                    </div>
+                                    <div>
+                                      <label className="block text-[10px] text-gray-500 mb-0.5">What happened?</label>
+                                      <input type="text" value={qObs.nest_comment || ''}
+                                        onChange={e => setQuickNestObs({ ...quickNestObs, [nest.breed_id]: { ...qObs, nest_comment: e.target.value } })}
+                                        placeholder="Empty nest, broken eggs, predator signs..."
+                                        className="w-full border rounded px-2 py-1.5 text-sm" />
+                                    </div>
                                   </div>
                                 )}
 
