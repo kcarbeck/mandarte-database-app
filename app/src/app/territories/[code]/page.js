@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
@@ -37,6 +37,14 @@ export default function TerritoryDetailPage({ params }) {
   })
 
   const [nestObs, setNestObs] = useState({}) // keyed by breed_id: { stage, egg_count, chick_count, chick_age_estimate, cowbird_eggs, cowbird_chicks, comments }
+
+  // Nest sequence: earliest breed_id on this territory = #1
+  const nestSeq = useMemo(() => {
+    const sorted = [...nests].sort((a, b) => a.breed_id - b.breed_id)
+    const m = {}
+    sorted.forEach((n, i) => { m[n.breed_id] = i + 1 })
+    return m
+  }, [nests])
 
   useEffect(() => { loadAll() }, [territoryCode])
 
@@ -412,8 +420,7 @@ export default function TerritoryDetailPage({ params }) {
                   return (
                     <div key={nest.breed_id} className="bg-gray-50 rounded-lg p-3 space-y-2">
                       <div className="text-xs font-semibold text-gray-700">
-                        Nest #{nest.nestrec || `(ID ${nest.breed_id})`}
-                        {nest.territory && <span className="text-gray-500 ml-1">— Territory {nest.territory}</span>}
+                        Nest #{nestSeq[nest.breed_id] || '?'}
                       </div>
 
                       {/* Stage selector */}
@@ -545,7 +552,7 @@ export default function TerritoryDetailPage({ params }) {
               <Link key={nest.breed_id} href={`/nests/${nest.nestrec || nest.breed_id}`}
                 className="block bg-white rounded-lg border p-3 active:bg-gray-50">
                 <div className="flex justify-between items-start">
-                  <span className="font-semibold text-sm">Nest #{nest.nestrec || `(ID ${nest.breed_id})`}</span>
+                  <span className="font-semibold text-sm">Nest #{nestSeq[nest.breed_id] || '?'}</span>
                   <span className={`text-xs px-2 py-0.5 rounded ${
                     nest.fail_code === '24' ? 'bg-green-100 text-green-700' :
                     nest.fail_code && nest.fail_code !== '24' ? 'bg-red-100 text-red-700' :
@@ -638,7 +645,7 @@ export default function TerritoryDetailPage({ params }) {
                       <div className="flex justify-between items-start mb-1">
                         <Link href={`/nests/${nest.nestrec || nest.breed_id}`}
                           className="font-semibold text-sm text-blue-700 underline">
-                          Nest #{nest.nestrec || `(${nest.breed_id})`}
+                          Nest #{nestSeq[nest.breed_id] || '?'}
                         </Link>
                         <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">Awaiting data</span>
                       </div>
@@ -669,7 +676,7 @@ export default function TerritoryDetailPage({ params }) {
                     <div className="flex justify-between items-start mb-1">
                       <Link href={`/nests/${nest.nestrec || nest.breed_id}`}
                         className="font-semibold text-sm text-blue-700 underline">
-                        Nest #{nest.nestrec || `(${nest.breed_id})`}
+                        Nest #{nestSeq[nest.breed_id] || '?'}
                       </Link>
                       <div className="text-right">
                         {chickAge > 0 ? (

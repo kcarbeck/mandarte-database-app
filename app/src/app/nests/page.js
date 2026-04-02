@@ -9,6 +9,7 @@ export default function NestsPage() {
   const [nests, setNests] = useState([])
   const [parentMap, setParentMap] = useState({})
   const [birdMap, setBirdMap] = useState({})
+  const [nestSeqMap, setNestSeqMap] = useState({})
   const [loading, setLoading] = useState(true)
   const currentYear = new Date().getFullYear()
 
@@ -24,7 +25,18 @@ export default function NestsPage() {
         .eq('year', currentYear)
         .order('nestrec', { ascending: false })
 
+      // Compute nest sequence per territory (earliest breed_id = #1)
+      const sorted = [...(data || [])].sort((a, b) => a.breed_id - b.breed_id)
+      const terrCounts = {}
+      const seqMap = {}
+      for (const n of sorted) {
+        const t = n.territory || '?'
+        terrCounts[t] = (terrCounts[t] || 0) + 1
+        seqMap[n.breed_id] = terrCounts[t]
+      }
+
       setNests(data || [])
+      setNestSeqMap(seqMap)
 
       // Look up parent bird info for all nests
       if (data && data.length > 0) {
@@ -116,8 +128,7 @@ export default function NestsPage() {
               >
                 <div className="flex justify-between items-start">
                   <div className="flex items-center gap-2">
-                    <span className="font-bold text-sm">{nest.nestrec ? `Nest #${nest.nestrec}` : `Nest (draft ${nest.breed_id})`}</span>
-                    <span className="text-gray-400 text-xs">Terr {nest.territory}</span>
+                    <span className="font-bold text-sm">Terr {nest.territory || '?'}, Nest #{nestSeqMap[nest.breed_id] || '?'}</span>
                   </div>
                   <div className="flex items-center gap-1.5">
                     {nest.field_complete && (
