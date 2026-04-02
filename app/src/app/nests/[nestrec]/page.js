@@ -977,7 +977,6 @@ export default function NestDetailPage({ params }) {
                       </div>
                     )
                   })}
-                </div>
               </div>
 
               {/* Other Fields */}
