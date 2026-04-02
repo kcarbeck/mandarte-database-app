@@ -350,12 +350,6 @@ export default function TerritoryDetailPage({ params }) {
           if (obs.stage === 'independent') {
             if (safeInt(obs.chick_count) != null && nest.indep == null) breedUpdates.indep = safeInt(obs.chick_count)
             if (obs.indep_quality && !nest.indep_quality) breedUpdates.indep_quality = obs.indep_quality
-            // Kid independence toggles
-            for (let i = 1; i <= 5; i++) {
-              if (obs[`kid${i}_indep`] && nest[`kid${i}`] && !nest[`kid${i}_indep`]) {
-                breedUpdates[`kid${i}_indep`] = true
-              }
-            }
           }
           if (obs.stage === 'failed') {
             if (obs.fail_code && !nest.fail_code) breedUpdates.fail_code = obs.fail_code
@@ -363,6 +357,23 @@ export default function TerritoryDetailPage({ params }) {
           }
           if (Object.keys(breedUpdates).length > 0) {
             await supabase.from('breed').update(breedUpdates).eq('breed_id', breedId)
+          }
+
+          // Save independence sightings to normalized table
+          if (obs.stage === 'independent') {
+            const [y, m, d] = visitForm.visit_date.split('-').map(Number)
+            const jd = toJulianDay(y, m, d)
+            for (let i = 1; i <= 5; i++) {
+              if (obs[`kid${i}_indep`] && nest[`kid${i}`]) {
+                await supabase.from('independence_sightings').upsert({
+                  band_id: nest[`kid${i}`],
+                  breed_id: breedId,
+                  sighting_date: visitForm.visit_date,
+                  sighting_jd: jd,
+                  observer: visitForm.observer.trim(),
+                }, { onConflict: 'band_id,breed_id', ignoreDuplicates: true })
+              }
+            }
           }
 
           // Save banding data if nestling with kid band numbers
@@ -532,12 +543,6 @@ export default function TerritoryDetailPage({ params }) {
       if (obs.stage === 'independent') {
         if (safeInt(obs.chick_count) != null && nest.indep == null) breedUpdates.indep = safeInt(obs.chick_count)
         if (obs.indep_quality && !nest.indep_quality) breedUpdates.indep_quality = obs.indep_quality
-        // Kid independence toggles
-        for (let i = 1; i <= 5; i++) {
-          if (obs[`kid${i}_indep`] && nest[`kid${i}`] && !nest[`kid${i}_indep`]) {
-            breedUpdates[`kid${i}_indep`] = true
-          }
-        }
       }
       if (obs.stage === 'failed') {
         if (obs.fail_code && !nest.fail_code) breedUpdates.fail_code = obs.fail_code
@@ -545,6 +550,24 @@ export default function TerritoryDetailPage({ params }) {
       }
       if (Object.keys(breedUpdates).length > 0) {
         await supabase.from('breed').update(breedUpdates).eq('breed_id', breedId)
+      }
+
+      // Save independence sightings to normalized table
+      if (obs.stage === 'independent') {
+        const [y, m, d] = visitDate.split('-').map(Number)
+        const jd = toJulianDay(y, m, d)
+        const observer = obs.observer?.trim() || savedObserver || null
+        for (let i = 1; i <= 5; i++) {
+          if (obs[`kid${i}_indep`] && nest[`kid${i}`]) {
+            await supabase.from('independence_sightings').upsert({
+              band_id: nest[`kid${i}`],
+              breed_id: breedId,
+              sighting_date: visitDate,
+              sighting_jd: jd,
+              observer: observer,
+            }, { onConflict: 'band_id,breed_id', ignoreDuplicates: true })
+          }
+        }
       }
 
       // Save banding data if nestling with kid band numbers

@@ -380,6 +380,25 @@ These tables support data import workflows:
 
 See data import procedures documentation for detailed specifications.
 
+### 2.11 `independence_sightings` — Per-Bird Independence Confirmations
+
+Records individual bird independence confirmations. Each row means "this banded juvenile was seen alive at or after day 22." This is a bird-level fact, not a nest-level column — a properly normalized design that avoids adding kid1_indep through kid5_indep boolean columns to the breed table.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| sighting_id | SERIAL PK | Auto-increment identifier |
+| band_id | BIGINT NOT NULL | FK → birds(band_id) ON UPDATE CASCADE. The banded juvenile. |
+| breed_id | INTEGER NOT NULL | FK → breed(breed_id). The nest attempt this bird came from. |
+| sighting_date | DATE | Calendar date the bird was confirmed independent |
+| sighting_jd | INTEGER | Julian day of the sighting (for consistency with breed date fields) |
+| observer | TEXT | Who confirmed the sighting |
+| notes | TEXT | Optional notes |
+| created_at | TIMESTAMPTZ | Record creation timestamp |
+
+**Unique constraint:** (band_id, breed_id) — one independence confirmation per bird per nest.
+
+**Usage:** The field app upserts a row when a field crew member toggles "Independent" next to a banded chick on the territory page or nest card. The nest card page loads sightings for the breed_id and displays per-kid independence status. The breed.indep count is auto-calculated from the number of confirmed sightings.
+
 ---
 
 ## 3. Lookup Tables
