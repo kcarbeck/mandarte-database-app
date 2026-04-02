@@ -186,11 +186,11 @@ export default function NestDetailPage({ params }) {
       const eggCounts = visits.filter(v => v.egg_count != null && v.egg_count > 0).map(v => v.egg_count)
       if (eggCounts.length > 0) updates.eggs = Math.max(...eggCounts)
     }
-    // Hatch: first chick_count from nestling visits only (not fledge/indep visits)
+    // Hatch: first chick_count from hatching/nestling visits only (not fledge/indep visits)
     if (nest.hatch == null) {
       const chickVisits = visits
         .filter(v => v.chick_count != null && v.chick_count > 0
-          && (!v.nest_stage || v.nest_stage === 'nestling'))
+          && (!v.nest_stage || v.nest_stage === 'nestling' || v.nest_stage === 'hatching'))
         .sort((a, b) => new Date(a.visit_date) - new Date(b.visit_date))
       if (chickVisits.length > 0) updates.hatch = chickVisits[0].chick_count
     }
@@ -1191,13 +1191,13 @@ export default function NestDetailPage({ params }) {
             {visits.map(v => (
               <div key={v.nest_visit_id} className="bg-white rounded-lg border px-3 py-2">
                 <div className="flex justify-between text-xs">
-                  <span className="font-medium text-gray-700">
+                  <span className="text-gray-600">
                     {v.visit_date}{v.visit_time ? ` ${v.visit_time}` : ''}
                     <span className="text-gray-400 ml-1.5">{v.observer}</span>
                   </span>
                   {v.nest_stage && (
                     <span className="bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded text-[11px] font-medium">
-                      {v.nest_stage.replace('nestling_', 'Nestling D')}
+                      {v.nest_stage.charAt(0).toUpperCase() + v.nest_stage.slice(1)}
                     </span>
                   )}
                 </div>
