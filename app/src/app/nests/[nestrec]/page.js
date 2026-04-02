@@ -28,7 +28,7 @@ export default function NestDetailPage({ params }) {
   const [nestSequence, setNestSequence] = useState(null)
   const [editingVisit, setEditingVisit] = useState(null) // nest_visit_id being edited
   const [editVisitForm, setEditVisitForm] = useState({})
-  const [territoryNotes, setTerritoryNotes] = useState({}) // "date|time|observer" -> notes
+  const [territoryNotes, setTerritoryNotes] = useState({}) // territory_visit_id -> notes
 
   // ── Data loading ─────────────────────────────────────────────────────
   useEffect(() => { loadNest(); loadLookups() }, [nestId])
@@ -64,19 +64,16 @@ export default function NestDetailPage({ params }) {
         allVisits.sort((a, b) => new Date(a.visit_date) - new Date(b.visit_date))
       }
 
-      // Load territory visit notes to display alongside nest visits
-      // Match by territory + year, then index by date|time|observer for lookup
-      if (n.territory && allVisits.length > 0) {
+      // Load territory visit notes via FK join
+      // nest_visits.territory_visit_id → territory_visits.visit_id
+      const tvIds = allVisits.map(v => v.territory_visit_id).filter(Boolean)
+      if (tvIds.length > 0) {
         const { data: tvData } = await supabase.from('territory_visits')
-          .select('visit_date, visit_time, observer, notes')
-          .eq('territory', n.territory)
-          .eq('year', n.year || currentYear)
+          .select('visit_id, notes')
+          .in('visit_id', tvIds)
         if (tvData) {
           const noteMap = {}
-          for (const tv of tvData) {
-            const key = `${tv.visit_date}|${tv.visit_time || ''}|${tv.observer || ''}`
-            noteMap[key] = tv.notes
-          }
+          for (const tv of tvData) { noteMap[tv.visit_id] = tv.notes }
           setTerritoryNotes(noteMap)
         }
       }
@@ -1462,9 +1459,8 @@ export default function NestDetailPage({ params }) {
                 return `${h > 12 ? h - 12 : h || 12}:${String(m).padStart(2, '0')} ${ampm}`
               }
 
-              // Look up territory visit notes by matching date+time+observer
-              const tvKey = `${v.visit_date}|${v.visit_time || ''}|${v.observer || ''}`
-              const tvNotes = territoryNotes[tvKey] || null
+              // Look up territory visit notes via FK
+              const tvNotes = v.territory_visit_id ? territoryNotes[v.territory_visit_id] : null
               // Show territory visit notes as the primary notes; fall back to nest_visits.comments
               const displayNotes = tvNotes || v.comments || ''
 

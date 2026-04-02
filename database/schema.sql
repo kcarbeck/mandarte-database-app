@@ -285,6 +285,7 @@ CREATE TABLE nest_visits (
     nest_visit_id      BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     nestrec            INTEGER,
     breed_id           BIGINT REFERENCES breed(breed_id),
+    territory_visit_id BIGINT REFERENCES territory_visits(visit_id),
     visit_date         DATE NOT NULL,
     visit_time         TIME,
     observer           TEXT NOT NULL,
@@ -300,8 +301,10 @@ CREATE TABLE nest_visits (
     created_at         TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     CHECK (nestrec IS NOT NULL OR breed_id IS NOT NULL)
 );
+CREATE INDEX idx_nest_visits_territory_visit_id ON nest_visits(territory_visit_id) WHERE territory_visit_id IS NOT NULL;
 COMMENT ON TABLE nest_visits IS 'Nest observation log from field app. Visit-by-visit record of nest progression. Links to breed via breed_id.';
 COMMENT ON COLUMN nest_visits.nest_visit_id IS 'Unique identifier for each nest visit record.';
+COMMENT ON COLUMN nest_visits.territory_visit_id IS 'FK to territory_visits.visit_id — links nest observation to the territory visit that created it. NULL for standalone nest visits.';
 COMMENT ON COLUMN nest_visits.nestrec IS 'Nest record number (links to breed.nestrec). Optional if breed_id is used.';
 COMMENT ON COLUMN nest_visits.visit_date IS 'Date of the nest visit.';
 COMMENT ON COLUMN nest_visits.visit_time IS 'Time of day the nest was visited.';
@@ -826,6 +829,29 @@ END;
 $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER protect_territory_visits_update BEFORE UPDATE ON territory_visits FOR EACH ROW EXECUTE FUNCTION protect_territory_visits();
+
+-- Protect territory_visits from delete of previous-season records
+CREATE OR REPLACE FUNCTION protect_territory_visits_delete()
+RETURNS TRIGGER AS $$
+DECLARE
+    active_season INTEGER;
+    is_admin BOOLEAN;
+BEGIN
+    BEGIN
+        is_admin := current_setting('app.admin_override', true) = 'true';
+    EXCEPTION WHEN OTHERS THEN
+        is_admin := false;
+    END;
+    IF is_admin THEN RETURN OLD; END IF;
+    active_season := EXTRACT(YEAR FROM CURRENT_DATE)::INTEGER;
+    IF OLD.year IS NOT NULL AND OLD.year < active_season THEN
+        RAISE EXCEPTION 'BLOCKED: Cannot delete territory visit from year % (visit_id=%). Historical records cannot be deleted through the field app.', OLD.year, OLD.visit_id;
+    END IF;
+    RETURN OLD;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER protect_territory_visits_on_delete BEFORE DELETE ON territory_visits FOR EACH ROW EXECUTE FUNCTION protect_territory_visits_delete();
 
 -- Protect nest_visits: block update/delete if visit_date year < current_year (admin can override)
 CREATE OR REPLACE FUNCTION protect_nest_visits()

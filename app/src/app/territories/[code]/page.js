@@ -302,7 +302,7 @@ export default function TerritoryDetailPage({ params }) {
       const hasNestObs = Object.values(nestObs).some(obs => obs.stage && obs.stage !== 'no_change')
       const finalNestStatusFlag = hasNestObs ? 'existing_nest_checked' : visitForm.nest_status_flag
 
-      const { error } = await supabase.from('territory_visits').insert({
+      const { data: tvData, error } = await supabase.from('territory_visits').insert({
         territory: territoryCode,
         year: currentYear,
         visit_date: visitForm.visit_date,
@@ -318,9 +318,10 @@ export default function TerritoryDetailPage({ params }) {
         other_birds_notes: visitForm.other_birds_notes || null,
         nest_status_flag: finalNestStatusFlag,
         notes: visitForm.notes.trim(),
-      })
+      }).select('visit_id').single()
 
       if (error) throw error
+      const territoryVisitId = tvData?.visit_id || null
 
       // Insert nest_visits rows for each nest with observations
       if (hasNestObs) {
@@ -332,6 +333,7 @@ export default function TerritoryDetailPage({ params }) {
             return {
               breed_id: breedId,
               nestrec: nest?.nestrec || null,
+              territory_visit_id: territoryVisitId,
               visit_date: visitForm.visit_date,
               visit_time: visitForm.visit_time || null,
               observer: visitForm.observer.trim(),

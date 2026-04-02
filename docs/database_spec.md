@@ -262,6 +262,8 @@ One row per visit to a territory. Populated by the field data collection app (no
 | notes | TEXT | NOT NULL | Free-text observations. Must be substantive enough to demonstrate the student was physically present. Behavioral observations, locations within territory, other birds seen. |
 | created_at | TIMESTAMP | NOT NULL, DEFAULT CURRENT_TIMESTAMP | When this record was created. |
 
+**Protection triggers:** `protect_territory_visits_update` (BEFORE UPDATE) and `protect_territory_visits_on_delete` (BEFORE DELETE) block modification/deletion of territory visit records from previous seasons (year < current year). Admin override via `SET app.admin_override = 'true'`.
+
 ### 2.5 `nest_visits` — Nest Observation Log
 
 One row per visit to a nest. Populated by the field data collection app. Digital equivalent of the visit log rows on paper nest cards. Each nest (identified by nestrec in the breed table) may have many visit records.
@@ -271,6 +273,7 @@ One row per visit to a nest. Populated by the field data collection app. Digital
 | nest_visit_id | BIGINT | PRIMARY KEY GENERATED ALWAYS AS IDENTITY | Auto-generated unique ID. |
 | nestrec | INTEGER | FOREIGN KEY → breed.nestrec | Links to the parent nest attempt. |
 | breed_id | BIGINT | FOREIGN KEY → breed.breed_id | Links to breed record (for field-created nests where nestrec may be NULL). |
+| territory_visit_id | BIGINT | FOREIGN KEY → territory_visits.visit_id | Links to the territory visit that created this nest observation. NULL for standalone nest visits. Used to display territory visit notes on the nest card page. |
 | visit_date | TEXT | NOT NULL | Date of visit (ISO 8601: YYYY-MM-DD). |
 | visit_time | TEXT | | Time of visit (HH:MM). |
 | observer | TEXT | NOT NULL | Name or ID of the field observer. |
