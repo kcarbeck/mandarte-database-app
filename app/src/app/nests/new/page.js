@@ -19,7 +19,6 @@ function NewNestForm() {
   const prefillTerritory = searchParams.get('territory') || ''
   const currentYear = new Date().getFullYear()
 
-  const [stagfindOptions, setStagfindOptions] = useState([])
   const [submitting, setSubmitting] = useState(false)
   const [male, setMale] = useState(null)
   const [female, setFemale] = useState(null)
@@ -29,26 +28,16 @@ function NewNestForm() {
     male_attempt: '',
     female_attempt: '',
     stage_find: '',
-    eggs: '',
     nest_height: '',
     vegetation: '',
     nest_description: '',
     notes: '',
   })
 
-  useEffect(() => {
-    loadLookups()
-  }, [])
-
   // Load territory residents when territory changes
   useEffect(() => {
     if (form.territory) loadResidents(form.territory)
   }, [form.territory])
-
-  async function loadLookups() {
-    const { data: sf } = await supabase.from('lookup_stagfind').select('*')
-    setStagfindOptions(sf || [])
-  }
 
   // nestrec is NOT assigned during field data entry.
   // It's a sequential scientific ID from the 50-year historical breedfile.
@@ -90,7 +79,6 @@ function NewNestForm() {
         male_attempt: form.male_attempt || null,
         female_attempt: form.female_attempt || null,
         stage_find: form.stage_find,
-        eggs: form.eggs ? parseInt(form.eggs) : null,
         nest_height: form.nest_height || null,
         vegetation: form.vegetation || null,
         nest_description: form.nest_description || null,
@@ -165,16 +153,18 @@ function NewNestForm() {
               onChange={e => updateForm('stage_find', e.target.value)}
               className="w-full border rounded-lg px-3 py-2 text-sm bg-white" required>
               <option value="">Select stage...</option>
-              {stagfindOptions.map(s => (
-                <option key={s.code} value={s.code}>{s.code} — {s.description}</option>
-              ))}
+              <option value="NB">NB — Nest building</option>
+              <option value="EL">EL — Egg laying</option>
+              <option value="IC">IC — Incubating</option>
+              <option value="HY">HY — Hatched young (found with chicks)</option>
+              <option value="FY">FY — Fledged young</option>
+              <option value="MTD">MTD — Empty nest, signs it once had eggs</option>
+              <option value="MTUK">MTUK — Empty nest, unknown if ever used</option>
+              <option value="EAF">EAF — Found after failure (eggs/shells present)</option>
+              <option value="NFN">NFN — Never found nest (breeding confirmed by other evidence)</option>
+              <option value="UK">UK — Unknown</option>
             </select>
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-gray-600 mb-1">Eggs at find</label>
-            <input type="number" min="0" value={form.eggs}
-              onChange={e => updateForm('eggs', e.target.value)}
-              placeholder="Count" className="w-24 border rounded-lg px-3 py-2 text-sm" />
+            <p className="text-[10px] text-gray-400 mt-1">Record egg/chick counts via nest observations on the territory page</p>
           </div>
           <div>
             <label className="block text-xs font-semibold text-gray-600 mb-1">Nest height</label>
