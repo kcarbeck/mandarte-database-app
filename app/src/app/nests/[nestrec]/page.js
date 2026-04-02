@@ -28,6 +28,7 @@ export default function NestDetailPage({ params }) {
   const [nestSequence, setNestSequence] = useState(null)
   const [editingVisit, setEditingVisit] = useState(null) // nest_visit_id being edited
   const [editVisitForm, setEditVisitForm] = useState({})
+  const [territoryNotes, setTerritoryNotes] = useState({}) // "date|time|observer" -> notes
 
   // ── Data loading ─────────────────────────────────────────────────────
   useEffect(() => { loadNest(); loadLookups() }, [nestId])
@@ -61,6 +62,23 @@ export default function NestDetailPage({ params }) {
         const ids = new Set(allVisits.map(v => v.nest_visit_id))
         for (const v of (data || [])) { if (!ids.has(v.nest_visit_id)) allVisits.push(v) }
         allVisits.sort((a, b) => new Date(a.visit_date) - new Date(b.visit_date))
+      }
+
+      // Load territory visit notes to display alongside nest visits
+      // Match by territory + year, then index by date|time|observer for lookup
+      if (n.territory && allVisits.length > 0) {
+        const { data: tvData } = await supabase.from('territory_visits')
+          .select('visit_date, visit_time, observer, notes')
+          .eq('territory', n.territory)
+          .eq('year', n.year || currentYear)
+        if (tvData) {
+          const noteMap = {}
+          for (const tv of tvData) {
+            const key = `${tv.visit_date}|${tv.visit_time || ''}|${tv.observer || ''}`
+            noteMap[key] = tv.notes
+          }
+          setTerritoryNotes(noteMap)
+        }
       }
 
       // Parents
@@ -1444,6 +1462,12 @@ export default function NestDetailPage({ params }) {
                 return `${h > 12 ? h - 12 : h || 12}:${String(m).padStart(2, '0')} ${ampm}`
               }
 
+              // Look up territory visit notes by matching date+time+observer
+              const tvKey = `${v.visit_date}|${v.visit_time || ''}|${v.observer || ''}`
+              const tvNotes = territoryNotes[tvKey] || null
+              // Show territory visit notes as the primary notes; fall back to nest_visits.comments
+              const displayNotes = tvNotes || v.comments || ''
+
               return (
                 <tr key={v.nest_visit_id} className="border-t border-gray-200 align-top">
                   <td className="py-1.5 pr-1 text-[11px] text-gray-600 whitespace-nowrap">{fmtVisitDate(v.visit_date)}</td>
@@ -1454,7 +1478,7 @@ export default function NestDetailPage({ params }) {
                   </td>
                   <td className="py-1.5 text-[11px]">
                     <div className="flex items-start justify-between gap-1">
-                      <span className="text-gray-600">{v.comments || ''}</span>
+                      <span className="text-gray-600">{displayNotes}</span>
                       <button type="button"
                         onClick={() => {
                           setEditingVisit(v.nest_visit_id)

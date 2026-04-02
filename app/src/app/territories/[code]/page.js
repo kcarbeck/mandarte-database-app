@@ -341,7 +341,7 @@ export default function TerritoryDetailPage({ params }) {
               chick_age_estimate: obs.chick_age_estimate ? parseInt(obs.chick_age_estimate) : null,
               cowbird_eggs: obs.cowbird_eggs ? parseInt(obs.cowbird_eggs) : null,
               cowbird_chicks: obs.cowbird_chicks ? parseInt(obs.cowbird_chicks) : null,
-              comments: obs.nest_comment?.trim() || visitForm.notes?.trim() || null,
+              comments: obs.nest_comment?.trim() || null,
             }
           })
 
