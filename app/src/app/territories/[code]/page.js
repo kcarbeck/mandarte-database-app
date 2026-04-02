@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { getTerritoryResidents, birdLabel, localDateString, localTimeString, toJulianDay, fromJulianDay } from '@/lib/helpers'
+import { getTerritoryResidents, birdLabel, localDateString, localTimeString, toJulianDay, fromJulianDay, estimateHatchDate } from '@/lib/helpers'
 
 // 2026 field crew — update this list each season
 const OBSERVER_LIST = ['Katherine', 'Emma', 'Anna', 'Jon', 'Jen']
@@ -1169,12 +1169,30 @@ export default function TerritoryDetailPage({ params }) {
               const isFailed = nest.fail_code && nest.fail_code !== '24'
               const isSuccess = nest.fail_code === '24'
 
-              // Protocol schedule data
+              // Protocol schedule data — try three sources for hatch date:
+              // 1. date_hatch directly from breed record
+              // 2. Estimate from DFE + incubation + laying interval
+              // 3. Back-calculate from chick age observed during a nest visit
               let hatchJD = nest.date_hatch ? parseInt(nest.date_hatch) : null
               let hatchSource = 'observed'
               if (!hatchJD && nest.dfe && nest.eggs) {
                 hatchJD = parseInt(nest.dfe) + 13 + (parseInt(nest.eggs) - 1)
                 hatchSource = 'estimated'
+              }
+              if (!hatchJD && nestVisits.length > 0) {
+                // Back-calculate from best chick age observation
+                const chickObs = nestVisits
+                  .filter(v => v.chick_age_estimate >= 1 && v.visit_date)
+                  .map(v => ({ ...v, ...estimateHatchDate(v.visit_date, v.chick_age_estimate, currentYear) }))
+                  .filter(v => v.hatchJulianDay !== null)
+                  .sort((a, b) => {
+                    const order = { high: 0, medium: 1, low: 2, insufficient_data: 3 }
+                    return (order[a.reliability] || 3) - (order[b.reliability] || 3)
+                  })
+                if (chickObs.length > 0) {
+                  hatchJD = chickObs[0].hatchJulianDay
+                  hatchSource = 'from chick age'
+                }
               }
               if (hatchJD && isNaN(hatchJD)) hatchJD = null
 
@@ -1224,18 +1242,31 @@ export default function TerritoryDetailPage({ params }) {
                       </div>
                     </div>
 
-                    {/* Counts summary */}
-                    <div className="text-xs text-gray-500 mt-1 flex gap-3">
-                      {nest.eggs != null && <span>Eggs: {nest.eggs}</span>}
-                      {nest.hatch != null && <span>Hatch: {nest.hatch}</span>}
-                      {nest.band != null && <span>Band: {nest.band}</span>}
-                      {nest.fledge != null && <span>Fledge: {nest.fledge}</span>}
-                      {nest.indep != null && <span>Indep: {nest.indep}</span>}
+                    {/* Pipeline flowchart — always visible */}
+                    <div className="mt-2 flex items-center gap-0.5 text-center">
+                      {[
+                        { k: 'eggs', l: 'Eggs' }, { k: 'hatch', l: 'Hatch' },
+                        { k: 'band', l: 'Band' }, { k: 'fledge', l: 'Fledge' },
+                        { k: 'indep', l: 'Indep' },
+                      ].map((s, i) => {
+                        const val = nest[s.k]
+                        return (
+                          <div key={s.k} className="flex items-center">
+                            {i > 0 && <span className="text-gray-300 mx-0.5">&rarr;</span>}
+                            <div className={`rounded-lg px-2 py-0.5 text-xs ${
+                              val != null && val !== '' ? 'bg-blue-100 text-blue-800 font-bold' : 'bg-gray-100 text-gray-400'
+                            }`}>
+                              <div className="text-[9px] leading-tight">{s.l}</div>
+                              <div className="text-sm leading-tight">{val != null && val !== '' ? val : '—'}</div>
+                            </div>
+                          </div>
+                        )
+                      })}
                     </div>
 
-                    {/* Protocol checklist — compact, always visible for active nests */}
+                    {/* Protocol checklist — compact, visible when hatch date known */}
                     {hatchJD && !isFailed && (
-                      <div className="flex gap-1 mt-2">
+                      <div className="flex gap-1 mt-1.5">
                         {windows.map(w => {
                           const isActive = chickAge >= w.startDay && chickAge <= w.endDay
                           const isPast = chickAge > w.endDay
@@ -1259,10 +1290,10 @@ export default function TerritoryDetailPage({ params }) {
                       </div>
                     )}
 
-                    {/* No hatch data message */}
-                    {!hatchJD && !isFailed && !isSuccess && (
+                    {/* No hatch data hint — schedule needs date_hatch, not just count */}
+                    {!hatchJD && !isFailed && !isSuccess && nest.eggs != null && (
                       <p className="text-[10px] text-gray-400 mt-1">
-                        {nest.eggs != null ? 'Need hatch date to show schedule' : 'No eggs recorded yet'}
+                        Need hatch date for protocol schedule
                       </p>
                     )}
                   </button>
