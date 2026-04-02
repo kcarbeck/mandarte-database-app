@@ -64,6 +64,7 @@ export default function TerritoryDetailPage({ params }) {
 
   const [nestObs, setNestObs] = useState({}) // keyed by breed_id
   const [selectedNestForObs, setSelectedNestForObs] = useState(null) // breed_id of nest selected for observation in visit form
+  const [kidBirds, setKidBirds] = useState({}) // band_id -> { color_combo } for banded chicks
 
   // Nest sequence: earliest breed_id on this territory = #1
   const nestSeq = useMemo(() => {
@@ -134,6 +135,20 @@ export default function TerritoryDetailPage({ params }) {
         .eq('year', currentYear)
         .order('nestrec', { ascending: true })
       setNests(nestData || [])
+
+      // Load color combos for banded chicks (for independence display)
+      if (nestData) {
+        const kidIds = nestData.flatMap(n =>
+          [n.kid1, n.kid2, n.kid3, n.kid4, n.kid5].filter(Boolean)
+        )
+        if (kidIds.length > 0) {
+          const { data: birds } = await supabase.from('birds')
+            .select('band_id, color_combo').in('band_id', kidIds)
+          const birdMap = {}
+          for (const b of (birds || [])) { birdMap[b.band_id] = b }
+          setKidBirds(birdMap)
+        }
+      }
 
       // Load nest visits for all nests on this territory
       if (nestData && nestData.length > 0) {
@@ -695,10 +710,10 @@ export default function TerritoryDetailPage({ params }) {
           </div>
 
           <div>
-            <label className="block text-xs text-gray-500 mb-1">Territory card notes * <span className="text-gray-400 font-normal">(saved to territory card)</span></label>
+            <label className="block text-xs text-gray-500 mb-1">Visit notes *</label>
             <textarea value={visitForm.notes}
               onChange={e => setVisitForm({ ...visitForm, notes: e.target.value })}
-              placeholder="Behavior, song, location, interactions..."
+              placeholder="Territory + nest observations, behavior, song, location..."
               className="w-full border rounded-lg px-3 py-2 text-sm" rows={3} required />
             {visitForm.notes.trim().length > 0 && visitForm.notes.trim().length < 3 && (
               <p className="text-xs text-red-500 mt-1">Please add at least a brief observation.</p>
@@ -716,8 +731,8 @@ export default function TerritoryDetailPage({ params }) {
           {/* ── Nest observations within visit form ── */}
           {hasActiveNests && (
             <div className="border-t pt-3">
-              <h4 className="text-xs font-semibold text-gray-700 mb-1">Nest Card Observations</h4>
-              <p className="text-[10px] text-gray-400 mb-2">Saved to each nest&apos;s card — separate from territory notes above.</p>
+              <h4 className="text-xs font-semibold text-gray-700 mb-1">Nest Observations</h4>
+              <p className="text-[10px] text-gray-400 mb-2">Stage and counts saved to each nest&apos;s card.</p>
 
               {/* Nest selector — show buttons when multiple nests */}
               {activeNests.length > 1 && (
@@ -1033,21 +1048,28 @@ export default function TerritoryDetailPage({ params }) {
                               {/* Kid independence toggles — show banded chicks so crew can mark which ones seen */}
                               {(nest.kid1 || nest.kid2 || nest.kid3 || nest.kid4 || nest.kid5) && (
                                 <div className="bg-purple-50 rounded-lg p-3 border border-purple-200">
-                                  <p className="text-xs font-bold text-purple-700 mb-1.5">Which banded chicks confirmed independent?</p>
-                                  {[1,2,3,4,5].map(i => {
-                                    if (!nest[`kid${i}`]) return null
-                                    const kidBand = String(nest[`kid${i}`])
-                                    const isIndep = obs[`kid${i}_indep`] || false
-                                    return (
-                                      <label key={i} className="flex items-center gap-2 py-1">
-                                        <input type="checkbox" checked={isIndep}
-                                          onChange={e => setNestObs({ ...nestObs, [nest.breed_id]: { ...obs, [`kid${i}_indep`]: e.target.checked } })}
-                                          className="w-4 h-4 rounded" />
-                                        <span className="text-xs font-mono">{kidBand}</span>
-                                        {nest[`kid${i}_combo`] && <span className="text-xs text-gray-500">{nest[`kid${i}_combo`]}</span>}
-                                      </label>
-                                    )
-                                  })}
+                                  <p className="text-xs font-bold text-purple-700 mb-2">Which banded chicks confirmed independent?</p>
+                                  <div className="space-y-1.5">
+                                    {[1,2,3,4,5].map(i => {
+                                      if (!nest[`kid${i}`]) return null
+                                      const kidBand = String(nest[`kid${i}`])
+                                      const combo = kidBirds[nest[`kid${i}`]]?.color_combo
+                                      const isIndep = obs[`kid${i}_indep`] || false
+                                      return (
+                                        <label key={i} className={`flex items-center gap-2 rounded-lg px-2.5 py-2 cursor-pointer transition ${
+                                          isIndep ? 'bg-green-100 border border-green-300' : 'bg-white border border-gray-200'
+                                        }`}>
+                                          <input type="checkbox" checked={isIndep}
+                                            onChange={e => setNestObs({ ...nestObs, [nest.breed_id]: { ...obs, [`kid${i}_indep`]: e.target.checked } })}
+                                            className="w-4 h-4 rounded" />
+                                          <span className="text-xs text-gray-400 font-medium">#{i}</span>
+                                          <span className="text-sm font-mono font-semibold">{combo || '—'}</span>
+                                          <span className="text-xs text-gray-400">({kidBand})</span>
+                                          {isIndep && <span className="ml-auto text-green-600 text-xs font-bold">✓</span>}
+                                        </label>
+                                      )
+                                    })}
+                                  </div>
                                 </div>
                               )}
                             </>
@@ -1087,16 +1109,7 @@ export default function TerritoryDetailPage({ params }) {
                             </div>
                           )}
 
-                          {/* Per-nest note */}
-                          {obs.stage !== 'failed' && (
-                            <div>
-                              <label className="block text-xs text-gray-600 mb-1">Note <span className="text-gray-400 font-normal">(saved to nest card)</span></label>
-                              <input type="text" value={obs.nest_comment || ''}
-                                onChange={e => setNestObs({ ...nestObs, [nest.breed_id]: { ...obs, nest_comment: e.target.value } })}
-                                placeholder="e.g. female tight on nest, cowbird egg removed..."
-                                className="w-full border rounded-lg px-3 py-2 text-sm" />
-                            </div>
-                          )}
+                          {/* Note: nest-specific observations go in the territory notes field above */}
                         </div>
                       )}
                     </div>
@@ -1302,56 +1315,15 @@ export default function TerritoryDetailPage({ params }) {
                         </div>
                       )}
 
-                      {/* Link to record observation through territory visit form */}
-                      {!isFailed && !isSuccess && (
-                        <div className="px-3 py-2 border-t">
-                          <p className="text-[10px] text-gray-400">Record nest observations through the territory visit form above.</p>
-                        </div>
-                      )}
-                      {/* Nest visit log */}
-                      <div className="px-3 pb-3 border-t pt-2">
-                        <div className="flex justify-between items-center mb-1.5">
-                          <span className="text-[11px] text-gray-400 font-bold uppercase">Nest Visit Log ({nestVisits.length})</span>
-                          <Link href={`/nests/${nest.nestrec || nest.breed_id}`}
-                            className="text-[11px] text-blue-600 underline">
-                            Full nest card →
-                          </Link>
-                        </div>
-                        {nestVisits.length === 0 ? (
-                          <p className="text-[11px] text-gray-400">No nest visits recorded yet.</p>
-                        ) : (
-                          <div className="space-y-1">
-                            {nestVisits.slice(0, 5).map(v => (
-                              <div key={v.nest_visit_id} className="bg-gray-50 rounded px-2 py-1.5">
-                                <div className="flex justify-between text-[11px]">
-                                  <span className="text-gray-600">
-                                    {v.visit_date}
-                                    <span className="text-gray-400 ml-1">{v.observer}</span>
-                                  </span>
-                                  {v.nest_stage && (
-                                    <span className="bg-blue-50 text-blue-700 px-1 py-0.5 rounded text-[10px] font-medium">
-                                      {v.nest_stage.charAt(0).toUpperCase() + v.nest_stage.slice(1)}
-                                    </span>
-                                  )}
-                                </div>
-                                <div className="text-[11px] text-gray-500 flex gap-2 flex-wrap">
-                                  {v.egg_count != null && <span>Eggs: {v.egg_count}</span>}
-                                  {v.chick_count != null && <span>Chicks: {v.chick_count}</span>}
-                                  {v.chick_age_estimate != null && <span>Age: D{v.chick_age_estimate}</span>}
-                                  {v.cowbird_eggs > 0 && <span>CB eggs: {v.cowbird_eggs}</span>}
-                                  {v.cowbird_chicks > 0 && <span>CB chicks: {v.cowbird_chicks}</span>}
-                                </div>
-                                {v.comments && <p className="text-[11px] text-gray-600 mt-0.5">{v.comments}</p>}
-                              </div>
-                            ))}
-                            {nestVisits.length > 5 && (
-                              <Link href={`/nests/${nest.nestrec || nest.breed_id}`}
-                                className="block text-[11px] text-blue-600 text-center py-1">
-                                +{nestVisits.length - 5} more visits →
-                              </Link>
-                            )}
-                          </div>
+                      {/* Actions */}
+                      <div className="px-3 py-2 border-t flex justify-between items-center">
+                        {!isFailed && !isSuccess && (
+                          <p className="text-[10px] text-gray-400">Log observations via territory visit form above</p>
                         )}
+                        <Link href={`/nests/${nest.nestrec || nest.breed_id}`}
+                          className="text-[11px] text-blue-600 font-medium">
+                          Full nest card &rarr;
+                        </Link>
                       </div>
                     </div>
                   )}
