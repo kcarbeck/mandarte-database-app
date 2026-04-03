@@ -39,12 +39,12 @@ input, select, textarea, button {
 
 /* ─── Component layers ──────────────────────────────── */
 @layer components {
-  /* Card base */
+  /* Card base — no shadow on cream bg (avoids oval halo), rely on border */
   .card {
-    @apply bg-white rounded-card shadow-card border border-cream-300;
+    @apply bg-white rounded-card border border-cream-300;
   }
   .card-interactive {
-    @apply card transition-all duration-150 active:shadow-card-hover active:scale-[0.995];
+    @apply card transition-all duration-150 active:bg-cream-50 active:scale-[0.995];
   }
 
   /* Badges — bold, readable, punchy */

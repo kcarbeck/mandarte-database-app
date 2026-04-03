@@ -524,7 +524,7 @@ export default function Home() {
           { n: stats.visitsToday, label: 'Today', accent: 'text-bark-600', bg: 'bg-bark-50' },
         ].map(s => (
           <div key={s.label} className={`card p-2.5 text-center`}>
-            <div className={`text-xl font-bold font-display ${s.accent}`}>{s.n}</div>
+            <div className={`text-xl font-bold ${s.accent}`}>{s.n}</div>
             <div className="text-2xs text-bark-500 uppercase tracking-wider font-medium">{s.label}</div>
           </div>
         ))}
