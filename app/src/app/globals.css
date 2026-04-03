@@ -37,31 +37,53 @@ input, select, textarea, button {
   border-radius: 4px;
 }
 
+/* ─── Cards & stage boxes (plain CSS — @apply unreliable with custom theme) ── */
+.card {
+  background-color: #fff;
+  border-radius: 0.75rem;
+  border: 1.5px solid #b8a68d;
+}
+.card-interactive {
+  background-color: #fff;
+  border-radius: 0.75rem;
+  border: 1.5px solid #b8a68d;
+  transition: all 150ms;
+}
+.card-interactive:active {
+  background-color: #fefcf8;
+  transform: scale(0.995);
+}
+
+/* Stage pipeline — fixed width, uniform sizing */
+.stage-box {
+  border-radius: 0.5rem;
+  min-width: 3rem;
+  width: 3.5rem;
+  padding: 2px 0;
+  text-align: center;
+}
+.stage-box-filled {
+  border-radius: 0.5rem;
+  min-width: 3rem;
+  width: 3.5rem;
+  padding: 2px 0;
+  text-align: center;
+  background-color: #d1e7d5;
+  color: #0f3d1a;
+  font-weight: 700;
+}
+.stage-box-empty {
+  border-radius: 0.5rem;
+  min-width: 3rem;
+  width: 3.5rem;
+  padding: 2px 0;
+  text-align: center;
+  background-color: #faf5ec;
+  color: #9a8468;
+}
+
 /* ─── Component layers ──────────────────────────────── */
 @layer components {
-  /* Card base — visible border for tappable affordance */
-  .card {
-    @apply bg-white rounded-card border border-bark-200;
-  }
-  /* IMPORTANT: inline card styles here — @apply with sibling classes
-     in the same @layer can silently fail in Tailwind */
-  .card-interactive {
-    @apply bg-white rounded-card border border-bark-200
-           transition-all duration-150 active:bg-cream-50 active:scale-[0.995];
-  }
-
-  /* Stage pipeline boxes — uniform sizing (inlined, not chained) */
-  .stage-box {
-    @apply rounded-lg min-w-[3rem] w-14 py-0.5 text-center;
-  }
-  .stage-box-filled {
-    @apply rounded-lg min-w-[3rem] w-14 py-0.5 text-center
-           bg-forest-100 text-forest-800 font-bold;
-  }
-  .stage-box-empty {
-    @apply rounded-lg min-w-[3rem] w-14 py-0.5 text-center
-           bg-cream-100 text-bark-400;
-  }
 
   /* Badges — bold, readable, punchy */
   .badge {

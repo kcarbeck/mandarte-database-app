@@ -516,24 +516,17 @@ export default function Home() {
   return (
     <div className="space-y-5">
       {/* ── Quick stats ───────────────────────────────────── */}
-      <div className="grid grid-cols-4 gap-2">
+      <div className="grid grid-cols-3 gap-2">
         {[
-          { n: stats.territories, label: 'Territories', accent: 'text-forest-600', bg: 'bg-forest-50' },
           { n: stats.birds, label: 'Birds', accent: 'text-sage-600', bg: 'bg-sage-50' },
+          { n: stats.territories, label: 'Territories', accent: 'text-forest-600', bg: 'bg-forest-50' },
           { n: stats.nests, label: 'Nests', accent: 'text-rust-500', bg: 'bg-rust-50' },
-          { n: stats.visitsToday, label: 'Today', accent: 'text-bark-600', bg: 'bg-bark-50' },
         ].map(s => (
           <div key={s.label} className={`card p-2.5 text-center`}>
             <div className={`text-xl font-bold ${s.accent}`}>{s.n}</div>
             <div className="text-2xs text-bark-500 uppercase tracking-wider font-medium">{s.label}</div>
           </div>
         ))}
-      </div>
-
-      {/* ── Quick actions ─────────────────────────────────── */}
-      <div className="grid grid-cols-2 gap-2">
-        <Link href="/territories" className="btn-secondary btn-md text-center">View Territories</Link>
-        <Link href="/nests/new" className="btn-accent btn-md text-center">+ New Nest</Link>
       </div>
 
       {/* ═══════════════════════════════════════════════════ */}

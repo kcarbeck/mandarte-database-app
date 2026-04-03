@@ -1004,7 +1004,7 @@ export default function TerritoryDetailPage({ params }) {
                                     </div>
                                   )
                                 })}
-                                <p className="text-2xs text-sage-700 mt-1">Band # = 9-digit metal band. Color combo = e.g. "Y/G RW/M"</p>
+                                <p className="text-2xs text-sage-700 mt-1">Band # = 9-digit metal band. Color combo = e.g. &quot;rm.pg&quot;</p>
                               </div>
                             </>
                           )}
