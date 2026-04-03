@@ -481,14 +481,32 @@ export default function NestDetailPage({ params }) {
     // Eggs: first visit with eggs observed
     const eggVisit = sorted.find(v => v.egg_count > 0 || v.nest_stage === 'laying' || v.nest_stage === 'incubating')
     if (eggVisit) result.eggs = { ...fmtDate(eggVisit.visit_date), comments: eggVisit.comments }
-    // Hatch: from breed record date_hatch, or first nestling visit
+    // Hatch: from breed record date_hatch, or estimated from chick age visit
+    // IMPORTANT: use the actual/estimated hatch DATE, not the visit date.
+    // Visit date is when crew saw chicks — hatch date is when they hatched.
     if (nest.date_hatch) {
       const hd = parseInt(nest.date_hatch)
       const hatchVisit = sorted.find(v => v.chick_count > 0 || v.nest_stage === 'nestling')
       result.hatch = { jd: hd, label: formatJD(yr, hd), comments: hatchVisit?.comments }
     } else {
-      const hatchVisit = sorted.find(v => v.chick_count > 0 || v.nest_stage === 'nestling')
-      if (hatchVisit) result.hatch = { ...fmtDate(hatchVisit.visit_date), comments: hatchVisit.comments }
+      // Try to estimate hatch date from chick age observations
+      const chickObs = sorted
+        .filter(v => v.chick_age_estimate >= 1 && v.visit_date)
+        .map(v => ({ ...v, ...estimateHatchDate(v.visit_date, v.chick_age_estimate, yr) }))
+        .filter(v => v.hatchJulianDay != null)
+        .sort((a, b) => {
+          const order = { high: 0, medium: 1, low: 2, insufficient_data: 3 }
+          return (order[a.reliability] || 3) - (order[b.reliability] || 3)
+        })
+      if (chickObs.length > 0) {
+        // Use the most reliable chick age estimate
+        const hd = chickObs[0].hatchJulianDay
+        result.hatch = { jd: hd, label: formatJD(yr, hd), estimated: true, comments: chickObs[0].comments }
+      } else {
+        // No chick age data — fall back to first nestling visit date
+        const hatchVisit = sorted.find(v => v.chick_count > 0 || v.nest_stage === 'nestling')
+        if (hatchVisit) result.hatch = { ...fmtDate(hatchVisit.visit_date), estimated: true, comments: hatchVisit.comments }
+      }
     }
     // Band: nestling visit with age 4-7
     const bandVisit = sorted.find(v => v.nest_stage === 'nestling' && v.chick_age_estimate >= 4 && v.chick_age_estimate <= 7)

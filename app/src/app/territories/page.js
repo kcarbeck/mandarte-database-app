@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
-import { sortTerritories, birdLabel } from '@/lib/helpers'
+import { sortTerritories, birdLabel, toJulianDay } from '@/lib/helpers'
+import { classifyTerritory, TERRITORY_STATUS } from '@/lib/protocol'
 
 export default function TerritoriesPage() {
   const [territories, setTerritories] = useState([])
@@ -29,10 +30,10 @@ export default function TerritoriesPage() {
         .eq('year', currentYear)
         .order('visit_date', { ascending: false })
 
-      // Get nests
+      // Get nests (include fields needed for classifyTerritory)
       const { data: nests } = await supabase
         .from('breed')
-        .select('territory, nestrec, fail_code, stage_find')
+        .select('territory, nestrec, fail_code, stage_find, date_hatch, dfe, eggs, hatch, band, fledge, indep')
         .eq('year', currentYear)
 
       // Build territory map from assignments
@@ -69,6 +70,19 @@ export default function TerritoriesPage() {
             terrMap[n.territory].nests.push(n)
           }
         }
+      }
+
+      // Compute territory status for visit frequency
+      const now = new Date()
+      const todayJD = toJulianDay(now.getFullYear(), now.getMonth() + 1, now.getDate())
+      for (const t of Object.values(terrMap)) {
+        t.terrStatus = classifyTerritory({
+          hasFemale: !!t.female,
+          hasMale: !!t.male,
+          nests: t.nests,
+          todayJD,
+          year: currentYear,
+        })
       }
 
       const sorted = sortTerritories(Object.keys(terrMap)).map(k => terrMap[k])
@@ -115,6 +129,12 @@ export default function TerritoriesPage() {
         <div className="space-y-2">
           {territories.map(terr => {
             const days = daysSince(terr.lastVisited)
+            const interval = terr.terrStatus?.visitInterval ?? 5
+            const isOverdue = days !== null && days >= interval
+            const isSingleMale = terr.terrStatus?.status === TERRITORY_STATUS.SINGLE_MALE
+            const isRenestWatch = terr.terrStatus?.status === TERRITORY_STATUS.RENEST_WATCH
+              || terr.terrStatus?.status === TERRITORY_STATUS.RENEST_URGENT
+            const isUrgent = terr.terrStatus?.status === TERRITORY_STATUS.RENEST_URGENT
             return (
               <Link key={terr.code}
                 href={`/territories/${encodeURIComponent(terr.code)}`}
@@ -127,11 +147,19 @@ export default function TerritoriesPage() {
                         {terr.nests.length} nest{terr.nests.length > 1 ? 's' : ''}
                       </span>
                     )}
+                    {isSingleMale && (
+                      <span className="ml-1 text-xs bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded">♂ only</span>
+                    )}
+                    {isRenestWatch && (
+                      <span className={`ml-1 text-xs px-1.5 py-0.5 rounded ${
+                        isUrgent ? 'bg-red-100 text-red-700 font-semibold' : 'bg-orange-100 text-orange-700'
+                      }`}>{isUrgent ? 'Renest URGENT' : 'Renest watch'}</span>
+                    )}
                   </div>
                   <span className={`text-xs px-2 py-0.5 rounded-full ${
                     days === null ? 'bg-gray-100 text-gray-400' :
-                    days <= 4 ? 'bg-green-100 text-green-700' :
-                    days <= 7 ? 'bg-yellow-100 text-yellow-700' :
+                    !isOverdue ? 'bg-green-100 text-green-700' :
+                    days <= interval + 2 ? 'bg-yellow-100 text-yellow-700' :
                     'bg-red-100 text-red-700'
                   }`}>
                     {days === null ? 'No visits' : days === 0 ? 'Today' : `${days}d ago`}
@@ -143,6 +171,7 @@ export default function TerritoriesPage() {
                 </div>
                 <div className="text-xs text-gray-400 mt-0.5">
                   {terr.visitCount} visit{terr.visitCount !== 1 ? 's' : ''}
+                  <span className="ml-2">· every {interval}d</span>
                 </div>
               </Link>
             )

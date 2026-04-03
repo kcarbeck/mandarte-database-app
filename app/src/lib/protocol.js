@@ -108,10 +108,207 @@ export const RENEST_WINDOW = {
 //   - Single male, no female: every 6 days
 //   - After failure: every 4 days; every 2 if 20+ days no renest
 export const VISIT_RULES = {
-  OVERDUE_DAYS: 5,          // Flag territory if not visited in this many days
+  OVERDUE_DAYS: 5,          // Default overdue threshold (active nest / female present)
   NEST_CHECK_DAYS: 3,       // Pre-hatch nests need visits every 3 days
   INCUBATION_DAYS: 13,      // Standard incubation period
   EGGS_PER_DAY: 1,          // Laying rate
+  // Territory-status-aware visit intervals
+  PAIR_DAYS: 5,             // Active nest or female present: overdue after 5 days
+  SINGLE_MALE_SUSPECTED_DAYS: 5, // Single male, female suspected: every 5 days
+  SINGLE_MALE_DAYS: 6,      // Single male, no female: every 6 days
+  POST_FAILURE_DAYS: 4,     // After failure: every 4 days watching for renest
+  POST_FAILURE_URGENT_DAYS: 2,   // If 20+ days since failure with no renest: every 2 days
+  POST_FAILURE_URGENT_THRESHOLD: 20, // Days since failure before escalating to urgent
+}
+
+// ─── Territory status classification ────────────────────────
+// Territory types determine visit frequency per protocol.
+export const TERRITORY_STATUS = {
+  ACTIVE_NEST: 'active_nest',       // Has active (non-failed) nest
+  RENEST_WATCH: 'renest_watch',     // Most recent nest failed, watching for renest
+  RENEST_URGENT: 'renest_urgent',   // 20+ days since failure, no renest — urgent
+  PAIR_NO_NEST: 'pair_no_nest',     // Pair present, no active nest (early season)
+  SINGLE_MALE: 'single_male',      // Male only, no female
+  UNKNOWN: 'unknown',
+}
+
+/**
+ * Classify a territory's status for visit scheduling.
+ *
+ * @param {Object} opts
+ * @param {boolean} opts.hasFemale - Is a female assigned to this territory?
+ * @param {boolean} opts.hasMale - Is a male assigned to this territory?
+ * @param {Array} opts.nests - Breed records for this territory this year
+ * @param {number} opts.todayJD - Today's Julian day
+ * @param {number} [opts.year] - Calendar year (for JD calculations)
+ * @returns {{ status: string, visitInterval: number, label: string, failedNestInfo: Object|null }}
+ */
+export function classifyTerritory({ hasFemale, hasMale, nests = [], todayJD, year }) {
+  // Active nests: no fail_code AND not yet completed (indep not set)
+  // A nest with indep set but no fail_code is effectively complete, not active.
+  const activeNests = nests.filter(n => !n.fail_code && (n.indep == null || n.indep === ''))
+  const failedNests = nests.filter(n => n.fail_code && n.fail_code !== '24')
+  const successNests = nests.filter(n =>
+    n.fail_code === '24' || (!n.fail_code && n.indep != null && n.indep !== '')
+  )
+
+  // 1. Has an active (non-failed, non-complete) nest → visit every 5 days (3 for nest checks)
+  if (activeNests.length > 0) {
+    return {
+      status: TERRITORY_STATUS.ACTIVE_NEST,
+      visitInterval: VISIT_RULES.PAIR_DAYS,
+      label: 'Active nest',
+      failedNestInfo: null,
+    }
+  }
+
+  // 2. Most recent nest failed → renest watch
+  //    Calculate days since most recent failure to determine urgency
+  if (failedNests.length > 0) {
+    const latestFailure = _estimateFailureJD(failedNests, year)
+
+    // Check if a successful nest started after the failure
+    // Check both DFE and date_hatch — some success nests have one but not the other
+    const hasNewerSuccess = latestFailure && successNests.some(n => {
+      const dfe = n.dfe ? parseInt(n.dfe) : null
+      if (dfe && dfe > latestFailure.failureJD) return true
+      const hatch = n.date_hatch ? parseInt(n.date_hatch) : null
+      if (hatch && hatch > latestFailure.failureJD) return true
+      return false
+    })
+
+    if (!hasNewerSuccess) {
+      if (latestFailure) {
+        const daysSinceFailure = todayJD - latestFailure.failureJD
+        if (daysSinceFailure >= VISIT_RULES.POST_FAILURE_URGENT_THRESHOLD) {
+          return {
+            status: TERRITORY_STATUS.RENEST_URGENT,
+            visitInterval: VISIT_RULES.POST_FAILURE_URGENT_DAYS,
+            label: `Renest watch URGENT (${daysSinceFailure}d since failure)`,
+            failedNestInfo: { ...latestFailure, daysSinceFailure },
+          }
+        }
+        return {
+          status: TERRITORY_STATUS.RENEST_WATCH,
+          visitInterval: VISIT_RULES.POST_FAILURE_DAYS,
+          label: `Renest watch (${daysSinceFailure}d since failure)`,
+          failedNestInfo: { ...latestFailure, daysSinceFailure },
+        }
+      }
+      // Failure date unknown (no DFE or hatch date) — still enter renest watch
+      // Use standard post-failure interval; can't determine urgency without dates
+      return {
+        status: TERRITORY_STATUS.RENEST_WATCH,
+        visitInterval: VISIT_RULES.POST_FAILURE_DAYS,
+        label: 'Renest watch (failure date unknown)',
+        failedNestInfo: null,
+      }
+    }
+  }
+
+  // 3. All nests succeeded (independence reached) → check for next nesting attempt
+  //    Female Song Sparrows typically renest after independence of previous brood
+  if (successNests.length > 0 && hasFemale) {
+    // Find most recent success — use hatchJD + ~24 days as independence estimate
+    const latestSuccess = successNests.reduce((latest, n) => {
+      let hJD = n.date_hatch ? parseInt(n.date_hatch) : null
+      // Fallback: estimate hatch from DFE + eggs
+      if ((!hJD || isNaN(hJD)) && n.dfe && n.eggs) {
+        hJD = parseInt(n.dfe) + VISIT_RULES.INCUBATION_DAYS + (parseInt(n.eggs) - 1)
+      }
+      if (!hJD || isNaN(hJD)) return latest
+      const indepJD = hJD + 24  // Day 24 = typical independence
+      if (!latest || indepJD > latest.indepJD) return { nest: n, indepJD }
+      return latest
+    }, null)
+
+    if (latestSuccess) {
+      const daysSinceIndep = todayJD - latestSuccess.indepJD
+      if (daysSinceIndep >= 5 && daysSinceIndep <= 38) {
+        return {
+          status: TERRITORY_STATUS.RENEST_WATCH,
+          visitInterval: VISIT_RULES.POST_FAILURE_DAYS, // Same 4-day interval for renest checks
+          label: `Renest watch (${daysSinceIndep}d since independence)`,
+          failedNestInfo: null,
+        }
+      }
+    }
+  }
+
+  // 4. Pair present but no nest yet (early season or between attempts)
+  if (hasFemale) {
+    return {
+      status: TERRITORY_STATUS.PAIR_NO_NEST,
+      visitInterval: VISIT_RULES.PAIR_DAYS,
+      label: 'Pair — no active nest',
+      failedNestInfo: null,
+    }
+  }
+
+  // 5. Single male
+  if (hasMale && !hasFemale) {
+    return {
+      status: TERRITORY_STATUS.SINGLE_MALE,
+      visitInterval: VISIT_RULES.SINGLE_MALE_DAYS,
+      label: 'Single male',
+      failedNestInfo: null,
+    }
+  }
+
+  return {
+    status: TERRITORY_STATUS.UNKNOWN,
+    visitInterval: VISIT_RULES.OVERDUE_DAYS,
+    label: 'Unknown',
+    failedNestInfo: null,
+  }
+}
+
+/**
+ * Estimate when a nest failed, using the best available date info.
+ * Returns the most recently failed nest with an estimated failure JD.
+ * @private
+ */
+function _estimateFailureJD(failedNests, year) {
+  let latest = null
+
+  for (const n of failedNests) {
+    let failureJD = null
+
+    // Best: use hatch date + some chick age (if it failed post-hatch)
+    if (n.date_hatch) {
+      const hJD = parseInt(n.date_hatch)
+      if (!isNaN(hJD)) {
+        // If we have hatch and band counts, nest survived to at least banding
+        if (n.band != null) failureJD = hJD + 7
+        else if (n.hatch != null) failureJD = hJD + 2
+        else failureJD = hJD
+      }
+    }
+
+    // Second: DFE + incubation estimate (failed during incubation)
+    if (!failureJD && n.dfe) {
+      const dfeJD = parseInt(n.dfe)
+      if (!isNaN(dfeJD)) {
+        const cs = n.eggs ? parseInt(n.eggs) : 3  // assume 3 if unknown
+        // Estimate failure somewhere mid-incubation
+        failureJD = dfeJD + (cs - 1) + Math.floor(VISIT_RULES.INCUBATION_DAYS / 2)
+      }
+    }
+
+    // Third: eggs but no DFE (found already incubating, then failed)
+    // Use a rough estimate — failure likely happened within a few weeks of find
+    if (!failureJD && n.eggs != null) {
+      // Can't determine date without DFE or hatch — skip this nest
+      // (better to not estimate than to produce a wildly wrong date)
+      continue
+    }
+
+    if (failureJD && (!latest || failureJD > latest.failureJD)) {
+      latest = { nest: n, failureJD }
+    }
+  }
+
+  return latest
 }
 
 // ─── Date formatting ─────────────────────────────────────────

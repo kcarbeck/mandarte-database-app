@@ -5,8 +5,9 @@ import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { localDateString, toJulianDay, fromJulianDay } from '@/lib/helpers'
 import {
-  PROTOCOL_WINDOWS, RENEST_WINDOW, VISIT_RULES, MONTH_NAMES,
+  PROTOCOL_WINDOWS, RENEST_WINDOW, VISIT_RULES, TERRITORY_STATUS, MONTH_NAMES,
   getNestEvent, EVENT_PRIORITY, formatJD, jdToDateStr, dateStrToJD,
+  classifyTerritory,
 } from '@/lib/protocol'
 
 // ─── Layout constants ────────────────────────────────────────
@@ -195,6 +196,21 @@ export default function Home() {
     return cols
   }, [todayJD, currentYear])
 
+  // ─── Computed: territory status (visit frequency per protocol) ──
+  const territoryStatuses = useMemo(() => {
+    const statuses = {}
+    for (const territory of territories) {
+      const tNests = nestsByTerritory[territory] || []
+      const tBirds = birdsByTerritory[territory] || []
+      const hasFemale = tBirds.some(b => b.sex === 1)
+      const hasMale = tBirds.some(b => b.sex === 2)
+      statuses[territory] = classifyTerritory({
+        hasFemale, hasMale, nests: tNests, todayJD, year: currentYear,
+      })
+    }
+    return statuses
+  }, [territories, nestsByTerritory, birdsByTerritory, todayJD, currentYear])
+
   // ─── Computed: cell data for each territory × date ───────
   const cellData = useMemo(() => {
     const data = {}
@@ -204,6 +220,8 @@ export default function Home() {
       const tPlanned = plannedActions.filter(p => p.territory === territory)
       const visitDatesSorted = [...tVisits].sort()
       const latestNestHatchJD = Math.max(...tNests.filter(n => n.hatchJD).map(n => n.hatchJD), 0)
+      const terrStatus = territoryStatuses[territory]
+      const visitInterval = terrStatus?.visitInterval ?? VISIT_RULES.OVERDUE_DAYS
 
       for (const col of dateColumns) {
         const key = `${territory}:${col.dateStr}`
@@ -220,26 +238,31 @@ export default function Home() {
         const events = []
         let preHatchStage = null // Track if any nest is in pre-hatch on this date
         for (const nest of tNests) {
-          if (nest.fail_code && nest.fail_code !== '24') continue // skip failed
+          // Include failed nests for renest window checking (don't skip them)
+          const isFailed = nest.fail_code && nest.fail_code !== '24'
 
           if (nest.hatchJD) {
             const chickDay = col.jd - nest.hatchJD + 1
             if (chickDay >= 1) {
-              const event = getNestEvent(chickDay, nest)
-              if (event) {
-                if (event.key === 'renest' && nest.hatchJD < latestNestHatchJD) continue
-                events.push({ ...event, nestLabel: nest.nestrec ? `#${nest.nestrec}` : `${nest.breed_id}`, breedId: nest.breed_id })
+              // For failed nests, only show renest window (getNestEvent handles this)
+              // For active/success nests, show all protocol windows
+              if (!isFailed || chickDay >= RENEST_WINDOW.startDay) {
+                const event = getNestEvent(chickDay, nest)
+                if (event) {
+                  if (event.key === 'renest' && nest.hatchJD < latestNestHatchJD) continue
+                  events.push({ ...event, nestLabel: nest.nestrec ? `#${nest.nestrec}` : `${nest.breed_id}`, breedId: nest.breed_id })
+                }
               }
-            } else if (chickDay < 1 && chickDay >= -30) {
-              // Pre-hatch: show incubating/laying period on grid
+            } else if (!isFailed && chickDay < 1 && chickDay >= -30) {
+              // Pre-hatch: show incubating/laying period on grid (active nests only)
               if (nest.layingEndJD && col.jd <= nest.layingEndJD) {
                 preHatchStage = 'laying'
               } else {
                 preHatchStage = 'incubating'
               }
             }
-          } else if (nest.dfeJD && !nest.hatchJD) {
-            // No hatch date but has DFE — show laying/incubating
+          } else if (!isFailed && nest.dfeJD && !nest.hatchJD) {
+            // No hatch date but has DFE — show laying/incubating (active nests only)
             if (col.jd >= nest.dfeJD && col.jd <= nest.dfeJD + 30) {
               if (nest.layingEndJD && col.jd <= nest.layingEndJD) {
                 preHatchStage = 'laying'
@@ -250,12 +273,13 @@ export default function Home() {
           }
         }
         events.sort((a, b) => (EVENT_PRIORITY[a.key] ?? 99) - (EVENT_PRIORITY[b.key] ?? 99))
-        const needsVisit = !visited && daysSinceVisit !== null && daysSinceVisit >= VISIT_RULES.OVERDUE_DAYS && col.jd >= todayJD
+        // Use territory-specific visit interval instead of flat OVERDUE_DAYS
+        const needsVisit = !visited && daysSinceVisit !== null && daysSinceVisit >= visitInterval && col.jd >= todayJD
         data[key] = { events, visited, isPlanned, plannedInfo, needsVisit, daysSinceVisit, preHatchStage }
       }
     }
     return data
-  }, [territories, nestsByTerritory, visitDates, plannedActions, dateColumns, todayJD])
+  }, [territories, nestsByTerritory, visitDates, plannedActions, dateColumns, todayJD, territoryStatuses])
 
   // ─── Computed: today + upcoming tasks ────────────────────
   const { todayTasks, upcomingTasks } = useMemo(() => {
@@ -269,6 +293,8 @@ export default function Home() {
       const visitDatesSorted = [...tVisits].sort()
       const lastVisitJD = visitDatesSorted.length > 0 ? dateStrToJD(visitDatesSorted[visitDatesSorted.length - 1]) : null
       const daysSinceVisit = lastVisitJD != null ? todayJD - lastVisitJD : null
+      const terrStatus = territoryStatuses[territory]
+      const visitInterval = terrStatus?.visitInterval ?? VISIT_RULES.OVERDUE_DAYS
 
       // Active pre-hatch nests: schedule check visits every NEST_CHECK_DAYS
       // Enhanced: shows estimated hatch date and current stage
@@ -311,16 +337,26 @@ export default function Home() {
         })
       }
 
+      // Post-hatch protocol events (band/fledge/indep/renest windows)
+      // Include failed nests for renest window checking
+      // Track whether a renest task was already generated from the nest loop
+      // to prevent duplication with the classifyTerritory block below
+      let hasNestLoopRenest = false
       for (const nest of tNests) {
         if (!nest.hatchJD) continue
-        if (nest.fail_code && nest.fail_code !== '24') continue
+        const isFailed = nest.fail_code && nest.fail_code !== '24'
 
         for (let jd = todayJD; jd <= upcomingEndJD; jd++) {
           const chickDay = jd - nest.hatchJD + 1
           if (chickDay < 1) continue
+          // For failed nests, only generate renest tasks (not band/fledge/indep)
+          if (isFailed && chickDay < RENEST_WINDOW.startDay) continue
           const event = getNestEvent(chickDay, nest)
           if (!event || event.completed) continue
           if (event.isDanger) continue
+
+          // Track renest tasks from this loop to prevent duplication
+          if (event.key === 'renest' && jd === todayJD) hasNestLoopRenest = true
 
           const nestLabel = nest.nestrec ? `Nest #${nest.nestrec}` : `Nest (${nest.breed_id})`
           const task = {
@@ -341,17 +377,48 @@ export default function Home() {
         }
       }
 
-      // Territory visit overdue
-      if (daysSinceVisit != null && daysSinceVisit >= VISIT_RULES.OVERDUE_DAYS) {
+      // Renest watch from classifyTerritory (for failed nests without hatch dates,
+      // or when nest-loop renest didn't fire). Skip if nest loop already generated one.
+      const isRenestStatus = terrStatus?.status === TERRITORY_STATUS.RENEST_WATCH
+        || terrStatus?.status === TERRITORY_STATUS.RENEST_URGENT
+      if (isRenestStatus && !hasNestLoopRenest) {
+        const isUrgent = terrStatus.status === TERRITORY_STATUS.RENEST_URGENT
+        if (daysSinceVisit === null || daysSinceVisit >= visitInterval) {
+          today.push({
+            id: `renest-watch-${territory}`, type: 'renest',
+            label: isUrgent
+              ? `URGENT: Check for renest (${terrStatus.failedNestInfo?.daysSinceFailure}d since failure)`
+              : `Check for renest (${terrStatus.failedNestInfo?.daysSinceFailure ?? '?'}d since failure)`,
+            territory, nestLabel: null,
+            nestLink: `/territories/${encodeURIComponent(territory)}`,
+            dateLabel: daysSinceVisit != null ? `${daysSinceVisit}d since visit` : 'Never visited',
+            jd: todayJD, chickDay: null,
+            color: isUrgent ? '#fca5a5' : RENEST_WINDOW.colorHex,
+            idealColor: isUrgent ? '#dc2626' : RENEST_WINDOW.idealColorHex,
+          })
+        }
+      }
+
+      // Determine if this territory already has a task that implies visiting
+      // (nestcheck, renest, or protocol event) — skip generic visit to avoid duplication
+      const hasRenestTask = isRenestStatus || hasNestLoopRenest
+      const hasNestcheckTask = activePreHatchNests.length > 0
+        && (daysSinceVisit === null || daysSinceVisit >= VISIT_RULES.NEST_CHECK_DAYS)
+      const hasAnyVisitTask = hasRenestTask || hasNestcheckTask
+
+      // Territory visit overdue (using territory-specific interval)
+      if (!hasAnyVisitTask && daysSinceVisit != null && daysSinceVisit >= visitInterval) {
+        const statusHint = terrStatus?.status === TERRITORY_STATUS.SINGLE_MALE
+          ? ' (single ♂)' : ''
         today.push({
           id: `visit-${territory}`, type: 'visit',
-          label: `Visit territory (${daysSinceVisit}d since last)`,
+          label: `Visit territory${statusHint} (${daysSinceVisit}d since last)`,
           territory, nestLabel: null,
           nestLink: `/territories/${encodeURIComponent(territory)}`,
           dateLabel: 'Today', jd: todayJD, chickDay: null,
           color: '#fef9c3', idealColor: '#ca8a04',
         })
-      } else if (daysSinceVisit === null) {
+      } else if (!hasAnyVisitTask && daysSinceVisit === null) {
         // Territory has never been visited this season — flag it
         today.push({
           id: `visit-${territory}`, type: 'visit',
@@ -385,7 +452,7 @@ export default function Home() {
     today.sort((a, b) => sortKey(a) - sortKey(b))
     upcoming.sort((a, b) => a.jd - b.jd || sortKey(a) - sortKey(b))
     return { todayTasks: today, upcomingTasks: upcoming }
-  }, [territories, nestsByTerritory, visitDates, plannedActions, todayJD, currentYear])
+  }, [territories, nestsByTerritory, visitDates, plannedActions, todayJD, currentYear, territoryStatuses])
 
   // ─── Handlers ────────────────────────────────────────────
   async function togglePlanned(territory, dateStr) {

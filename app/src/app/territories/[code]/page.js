@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { getTerritoryResidents, birdLabel, localDateString, localTimeString, toJulianDay, fromJulianDay } from '@/lib/helpers'
-import { NEST_STAGES, MONTH_NAMES, deriveNestLifecycle, getProtocolWindows, formatWindowDates, formatJD, getSuggestedAction, nestStatusBadge } from '@/lib/protocol'
+import { NEST_STAGES, MONTH_NAMES, TERRITORY_STATUS, deriveNestLifecycle, getProtocolWindows, formatWindowDates, formatJD, getSuggestedAction, nestStatusBadge, classifyTerritory } from '@/lib/protocol'
 
 // 2026 field crew — update this list each season
 const OBSERVER_LIST = ['Katherine', 'Emma', 'Anna', 'Jon', 'Jen']
@@ -518,6 +518,15 @@ export default function TerritoryDetailPage({ params }) {
   const activeNests = nests.filter(n => !n.fail_code)
   const hasActiveNests = activeNests.length > 0
 
+  // Territory status classification (visit frequency per protocol)
+  // allAssignments includes current + ended; filter to current (no end_date)
+  const currentAssignments = allAssignments.filter(a => !a.end_date)
+  const hasFemale = currentAssignments.some(a => a.sex === 1)
+  const hasMale = currentAssignments.some(a => a.sex === 2)
+  const terrStatus = classifyTerritory({ hasFemale, hasMale, nests, todayJD, year: currentYear })
+  const visitInterval = terrStatus.visitInterval
+  const isOverdue = daysSince !== null && daysSince >= visitInterval
+
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2 mb-2">
@@ -530,11 +539,27 @@ export default function TerritoryDetailPage({ params }) {
           <h2 className="text-xl font-bold">Territory {territoryCode}</h2>
           {daysSince !== null && (
             <span className={`text-xs px-2 py-0.5 rounded-full ${
-              daysSince <= 4 ? 'bg-green-100 text-green-700' :
-              daysSince <= 7 ? 'bg-yellow-100 text-yellow-700' :
+              !isOverdue ? 'bg-green-100 text-green-700' :
+              daysSince <= visitInterval + 2 ? 'bg-yellow-100 text-yellow-700' :
               'bg-red-100 text-red-700'
             }`}>
               {daysSince === 0 ? 'Visited today' : `${daysSince}d ago`}
+            </span>
+          )}
+        </div>
+
+        {/* Territory status + visit schedule */}
+        <div className="mt-2 flex items-center gap-2 flex-wrap">
+          <span className="text-xs text-gray-500">Visit every {visitInterval}d</span>
+          {terrStatus.status === TERRITORY_STATUS.SINGLE_MALE && (
+            <span className="text-xs bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded">♂ only</span>
+          )}
+          {(terrStatus.status === TERRITORY_STATUS.RENEST_WATCH || terrStatus.status === TERRITORY_STATUS.RENEST_URGENT) && (
+            <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${
+              terrStatus.status === TERRITORY_STATUS.RENEST_URGENT
+                ? 'bg-red-100 text-red-700' : 'bg-orange-100 text-orange-700'
+            }`}>
+              {terrStatus.label}
             </span>
           )}
         </div>
