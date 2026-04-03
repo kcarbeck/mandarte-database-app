@@ -23,6 +23,11 @@ input, select, textarea, button {
   min-height: 44px;
   font-size: 16px; /* Prevents iOS zoom on focus */
 }
+/* Override for small inline buttons (checkboxes, close icons, etc.) */
+button.btn-icon {
+  min-height: unset;
+  font-size: inherit;
+}
 
 /* ─── Scrollbar styling ─────────────────────────────── */
 ::-webkit-scrollbar {
