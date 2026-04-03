@@ -740,7 +740,11 @@ export default function BirdsPage() {
   }
 
 
-  if (loading) return <div className="text-center py-8 text-gray-500">Loading roster...</div>
+  if (loading) return (
+    <div className="flex justify-center items-center py-12">
+      <div className="animate-spin rounded-full h-8 w-8 border-2 border-forest-300 border-t-forest-600"></div>
+    </div>
+  )
 
   const roster = filteredRoster()
   const territories = sortTerritories([...new Set(assignments.filter(a => !a.end_date && a.role === 'territory_holder').map(a => a.territory))])
@@ -748,31 +752,31 @@ export default function BirdsPage() {
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h2 className="text-lg font-bold text-gray-900">Birds — {currentYear}</h2>
+        <h2 className="section-title">Birds — {currentYear}</h2>
         <button onClick={() => setShowAddForm(!showAddForm)}
-          className="bg-blue-600 text-white rounded-lg px-3 py-2 text-sm font-semibold">
+          className="btn-primary btn-md">
           + Add Bird
         </button>
       </div>
 
       {/* Color reference */}
-      <button onClick={() => setShowColorRef(!showColorRef)} className="text-xs text-blue-600 underline">
+      <button onClick={() => setShowColorRef(!showColorRef)} className="text-xs text-forest-600 font-medium hover:underline">
         {showColorRef ? 'Hide' : 'Show'} color band reference
       </button>
       {showColorRef && (
-        <div className="bg-gray-50 rounded-lg p-3 text-xs grid grid-cols-3 gap-1">
+        <div className="card p-3 text-xs grid grid-cols-3 gap-1">
           {BAND_COLORS.map(c => (
             <div key={c.abbr} className="flex items-center gap-1">
-              <span className="w-3 h-3 rounded-full inline-block border" style={{ backgroundColor: c.hex }} />
-              <span className="font-mono font-bold">{c.abbr}</span> = {c.color}
+              <span className="w-3 h-3 rounded-full inline-block border border-bark-200" style={{ backgroundColor: c.hex }} />
+              <span className="font-mono font-bold text-forest-800">{c.abbr}</span> = {c.color}
             </div>
           ))}
-          <div className="col-span-3 mt-1 text-gray-500">Read: left top, left bottom . right top, right bottom</div>
+          <div className="col-span-3 mt-1 text-bark-500">Read: left top, left bottom . right top, right bottom</div>
         </div>
       )}
 
       {/* Filter tabs */}
-      <div className="flex gap-1 text-xs overflow-x-auto">
+      <div className="flex gap-1 text-xs overflow-x-auto scrollbar-hide">
         {[
           { key: 'all', label: `All (${getRoster().length})` },
           { key: 'males', label: 'Males' },
@@ -782,8 +786,8 @@ export default function BirdsPage() {
           { key: 'juveniles', label: `Juveniles${fledglings.length > 0 ? ` (${fledglings.length})` : ''}` },
         ].map(f => (
           <button key={f.key} onClick={() => setFilter(f.key)}
-            className={`px-3 py-1.5 rounded-full whitespace-nowrap ${
-              filter === f.key ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'
+            className={`px-3 py-1.5 rounded-full whitespace-nowrap font-bold ${
+              filter === f.key ? 'bg-forest-600 text-white' : 'bg-bark-100 text-bark-600'
             }`}>
             {f.label}
           </button>
@@ -792,8 +796,8 @@ export default function BirdsPage() {
 
       {/* Add bird form — three modes */}
       {showAddForm && (
-        <form onSubmit={handleAddBird} className="bg-white rounded-lg border p-4 space-y-3">
-          <h3 className="font-semibold text-sm text-gray-700">Add Bird to Roster</h3>
+        <form onSubmit={handleAddBird} className="card p-4 space-y-3">
+          <h3 className="font-bold text-sm text-forest-800">Add Bird to Roster</h3>
 
           {/* Mode tabs */}
           <div className="flex gap-1 text-xs">
@@ -808,8 +812,8 @@ export default function BirdsPage() {
                   setSelectedReturning(null)
                   setComboSearchResults([])
                 }}
-                className={`px-3 py-1.5 rounded-full ${
-                  addMode === m.key ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'
+                className={`px-3 py-1.5 rounded-full font-bold ${
+                  addMode === m.key ? 'bg-forest-600 text-white' : 'bg-bark-100 text-bark-600'
                 }`}>
                 {m.label}
               </button>
@@ -817,7 +821,7 @@ export default function BirdsPage() {
           </div>
 
           {/* Mode descriptions */}
-          <p className="text-xs text-gray-400">
+          <p className="text-xs text-bark-500">
             {addMode === 'returning' && 'Search by color combo to find a bird already in the database (e.g., survived from last year).'}
             {addMode === 'unbanded' && 'New bird not yet in the database (immigrant, missed chick, etc). Gets a temporary ID. Band later using the "Band this bird" button on their roster card.'}
           </p>
@@ -826,26 +830,26 @@ export default function BirdsPage() {
           {addMode === 'returning' && (
             <div className="space-y-2">
               <div className="relative">
-                <label className="block text-xs text-gray-500 mb-1">Color combo (search)</label>
+                <label className="label">Color combo (search)</label>
                 <input type="text" value={addForm.color_combo}
                   onChange={e => handleComboSearch(e.target.value)}
                   placeholder="Type combo, e.g., dbm.gr"
-                  className="w-full border rounded-lg px-3 py-2 text-sm font-mono"
+                  className="input font-mono"
                   autoComplete="off" />
-                {comboSearching && <p className="text-xs text-gray-400 mt-1">Searching...</p>}
+                {comboSearching && <p className="text-xs text-bark-500 mt-1">Searching...</p>}
 
                 {/* Search results dropdown */}
                 {comboSearchResults.length > 0 && !selectedReturning && (
-                  <div className="absolute z-10 mt-1 w-full bg-white border rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                  <div className="absolute z-10 mt-1 w-full bg-white border border-bark-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
                     {comboSearchResults.map(b => (
                       <button key={b.band_id} type="button"
                         onClick={() => selectReturningBird(b)}
-                        className="w-full text-left px-3 py-2 hover:bg-blue-50 border-b last:border-b-0">
+                        className="w-full text-left px-3 py-2 hover:bg-cream-50 border-b border-cream-200 last:border-b-0">
                         <div className="flex justify-between items-center">
-                          <span className="font-mono text-sm font-semibold">{b.color_combo}</span>
-                          <span className="text-xs text-gray-400">#{b.band_id}</span>
+                          <span className="band-id text-sm">{b.color_combo}</span>
+                          <span className="text-xs text-bark-500">#{b.band_id}</span>
                         </div>
-                        <div className="text-xs text-gray-500">
+                        <div className="text-xs text-bark-600">
                           {b.sex === 2 ? '♂' : b.sex === 1 ? '♀' : '?'}
                           {b.lastTerritory ? ` — Last on Terr ${b.lastTerritory}` : ''}
                           {b.lastSeenYear ? ` (${b.lastSeenYear})` : ''}
@@ -853,12 +857,12 @@ export default function BirdsPage() {
                           {b.is_immigrant ? ' — immigrant' : ''}
                         </div>
                         {b.confirmedDead && (
-                          <div className="text-xs text-red-500 mt-0.5">
+                          <div className="text-xs text-red-600 font-medium mt-0.5">
                             Confirmed dead — combo may have been reused. Verify carefully!
                           </div>
                         )}
                         {!b.hasHistory && (
-                          <div className="text-xs text-orange-500 mt-0.5">
+                          <div className="text-xs text-rust-600 mt-0.5">
                             No assignment/survival records found — verify identity carefully
                           </div>
                         )}
@@ -869,20 +873,20 @@ export default function BirdsPage() {
 
                 {addForm.color_combo.length >= 2 && comboSearchResults.length === 0 && !comboSearching && !selectedReturning && (
                   <div className="mt-2 space-y-2">
-                    <p className="text-xs text-orange-600">
+                    <p className="text-xs text-rust-600 font-medium">
                       No matching birds in database. If you know this bird&apos;s identity, enter their band # below to add them manually.
                     </p>
-                    <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 space-y-2">
-                      <p className="text-xs font-semibold text-orange-800">Manual entry — known returning bird</p>
-                      <p className="text-[11px] text-orange-700">
+                    <div className="bg-rust-50 border border-rust-200 rounded-lg p-3 space-y-2">
+                      <p className="text-xs font-bold text-rust-700">Manual entry — known returning bird</p>
+                      <p className="text-2xs text-rust-600">
                         Use this when last year&apos;s data hasn&apos;t been imported yet but you know the bird.
                       </p>
                       <div>
-                        <label className="block text-[11px] text-gray-600 mb-0.5">Metal band # *</label>
+                        <label className="label">Metal band # *</label>
                         <input type="text" value={addForm.band_id}
                           onChange={e => setAddForm(f => ({ ...f, band_id: e.target.value }))}
                           placeholder="e.g., 281178423"
-                          className="w-full border rounded px-2 py-1.5 text-sm font-mono bg-white" />
+                          className="input font-mono" />
                       </div>
                       <button type="button" onClick={() => {
                         if (!addForm.band_id || !addForm.color_combo) {
@@ -902,7 +906,7 @@ export default function BirdsPage() {
                         })
                         setAddForm(f => ({ ...f, band_id: String(bandId) }))
                       }}
-                        className="w-full bg-orange-600 text-white rounded px-3 py-1.5 text-xs font-semibold">
+                        className="btn-accent btn-sm w-full">
                         Use this bird
                       </button>
                     </div>
@@ -912,21 +916,21 @@ export default function BirdsPage() {
 
               {/* Selected bird confirmation */}
               {selectedReturning && (
-                <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                <div className="bg-sage-50 border border-sage-200 rounded-lg p-3">
                   <div className="flex justify-between items-center">
                     <div>
-                      <span className="font-mono font-semibold">{selectedReturning.color_combo}</span>
-                      <span className="text-xs text-gray-500 ml-2">#{selectedReturning.band_id}</span>
-                      <span className={`ml-2 text-xs ${selectedReturning.sex === 2 ? 'text-blue-600' : 'text-pink-600'}`}>
+                      <span className="band-id text-sm">{selectedReturning.color_combo}</span>
+                      <span className="text-xs text-bark-500 ml-2">#{selectedReturning.band_id}</span>
+                      <span className={`ml-2 text-xs font-bold ${selectedReturning.sex === 2 ? 'text-forest-600' : 'text-rust-500'}`}>
                         {selectedReturning.sex === 2 ? '♂' : '♀'}
                       </span>
                     </div>
                     <button type="button" onClick={() => {
                       setSelectedReturning(null)
                       setAddForm(f => ({ ...f, band_id: '', sex: '' }))
-                    }} className="text-xs text-gray-400 underline">Change</button>
+                    }} className="text-xs text-bark-500 underline">Change</button>
                   </div>
-                  <p className="text-xs text-green-700 mt-1">
+                  <p className="text-xs text-forest-700 mt-1">
                     {selectedReturning.manualEntry
                       ? 'Manual entry — bird will be created in database when you save.'
                       : 'Identity confirmed — band # and combo are locked from previous year data.'}
@@ -939,10 +943,10 @@ export default function BirdsPage() {
           {/* Sex + Role (all modes, but sex auto-filled for returning) */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Sex *</label>
+              <label className="label">Sex *</label>
               <select value={addForm.sex}
                 onChange={e => setAddForm({ ...addForm, sex: e.target.value })}
-                className="w-full border rounded-lg px-3 py-2 text-sm bg-white"
+                className="input"
                 disabled={addMode === 'returning' && !!selectedReturning && !selectedReturning.manualEntry}
                 required>
                 <option value="">Select...</option>
@@ -952,10 +956,10 @@ export default function BirdsPage() {
               </select>
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Role</label>
+              <label className="label">Role</label>
               <select value={addForm.role}
                 onChange={e => setAddForm({ ...addForm, role: e.target.value })}
-                className="w-full border rounded-lg px-3 py-2 text-sm bg-white">
+                className="input">
                 <option value="territory_holder">Territory holder</option>
                 <option value="floater">Floater</option>
               </select>
@@ -964,28 +968,28 @@ export default function BirdsPage() {
 
           {addForm.role === 'territory_holder' && (
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Territory *</label>
+              <label className="label">Territory *</label>
               <input type="text" value={addForm.territory}
                 onChange={e => setAddForm({ ...addForm, territory: e.target.value })}
                 placeholder="e.g., 12"
-                className="w-32 border rounded-lg px-3 py-2 text-sm" />
+                className="input w-32" />
             </div>
           )}
 
           <div>
-            <label className="block text-xs text-gray-500 mb-1">Notes</label>
+            <label className="label">Notes</label>
             <input type="text" value={addForm.notes}
               onChange={e => setAddForm({ ...addForm, notes: e.target.value })}
               placeholder="Optional notes"
-              className="w-full border rounded-lg px-3 py-2 text-sm" />
+              className="input" />
           </div>
 
           <div className="flex gap-2">
-            <button type="submit" className="bg-blue-600 text-white rounded-lg px-4 py-2 text-sm font-semibold">
+            <button type="submit" className="btn-primary btn-md">
               {addMode === 'returning' ? 'Assign to Territory' : 'Add Bird'}
             </button>
             <button type="button" onClick={() => { setShowAddForm(false); setSelectedReturning(null); setComboSearchResults([]) }}
-              className="text-gray-500 text-sm">
+              className="btn-ghost btn-md">
               Cancel
             </button>
           </div>
@@ -996,26 +1000,26 @@ export default function BirdsPage() {
       {filter === 'juveniles' && (
         <div>
           {fledglings.length === 0 ? (
-            <div className="bg-white rounded-lg border p-6 text-center text-gray-400">
-              <p className="text-sm">No juveniles banded yet this season.</p>
-              <p className="text-xs mt-1">Juveniles appear here once chicks are banded on a nest card.</p>
+            <div className="card p-6 text-center">
+              <p className="text-sm text-bark-600">No juveniles banded yet this season.</p>
+              <p className="text-xs text-bark-500 mt-1">Juveniles appear here once chicks are banded on a nest card.</p>
             </div>
           ) : (
             <div className="space-y-1.5">
               {fledglings.map((f, i) => (
                 <a key={`juv-${f.band_id}-${i}`}
                   href={`/nests/${f.nestrec || f.breed_id}`}
-                  className="block bg-white rounded-lg border p-3 active:bg-gray-50">
+                  className="card-interactive block p-3">
                   <div className="flex justify-between items-center">
                     <div className="flex items-center gap-2">
-                      <span className="font-mono font-semibold text-sm">{f.color_combo || '—'}</span>
-                      <span className="text-xs text-gray-400">{f.band_id}</span>
-                      <span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full">juvenile</span>
+                      <span className="band-id text-sm">{f.color_combo || '—'}</span>
+                      <span className="text-xs text-bark-500">{f.band_id}</span>
+                      <span className="badge badge-warning text-2xs">juvenile</span>
                       {f.isIndependent && (
-                        <span className="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full font-medium">✓ independent</span>
+                        <span className="badge badge-success text-2xs">✓ independent</span>
                       )}
                     </div>
-                    <span className="text-xs text-gray-400">{f.nestLabel}, Terr {f.territory}</span>
+                    <span className="text-xs text-bark-500">{f.nestLabel}, Terr {f.territory}</span>
                   </div>
                 </a>
               ))}
@@ -1026,49 +1030,49 @@ export default function BirdsPage() {
 
       {/* Bird roster */}
       {filter !== 'juveniles' && (roster.length === 0 ? (
-        <div className="bg-white rounded-lg border p-6 text-center text-gray-400">
-          <p className="text-sm">No birds in roster yet.</p>
-          <p className="text-xs mt-1">Tap &quot;+ Add Bird&quot; to start building this season&apos;s roster.</p>
+        <div className="card p-6 text-center">
+          <p className="text-sm text-bark-600">No birds in roster yet.</p>
+          <p className="text-xs text-bark-500 mt-1">Tap &quot;+ Add Bird&quot; to start building this season&apos;s roster.</p>
         </div>
       ) : (
         <div className="space-y-2">
           {roster.map((r, i) => (
-            <div key={r.assignment_id || i} className="bg-white rounded-lg border p-3">
+            <div key={r.assignment_id || i} className="card p-3">
               <div className="flex justify-between items-start">
                 <div>
-                  <span className="font-mono font-semibold text-sm">
+                  <span className="band-id text-sm">
                     {r.color_combo || (r.bird?.color_combo) || (r.bird?.is_unbanded || r.band_id < 0 ? 'Unbanded' : '—')}
                   </span>
                   {r.band_id > 0 && (
-                    <span className="text-xs text-gray-400 ml-2">{r.band_id}</span>
+                    <span className="text-xs text-bark-500 ml-2">{r.band_id}</span>
                   )}
-                  <span className={`ml-2 text-xs ${r.sex === 2 ? 'text-blue-600' : r.sex === 1 ? 'text-pink-600' : 'text-gray-400'}`}>
+                  <span className={`ml-2 text-xs font-bold ${r.sex === 2 ? 'text-forest-600' : r.sex === 1 ? 'text-rust-500' : 'text-bark-400'}`}>
                     {r.sex === 2 ? '♂' : r.sex === 1 ? '♀' : '?'}
                   </span>
                 </div>
                 <div className="flex items-center gap-1">
-                  <span className={`text-xs px-2 py-0.5 rounded-full ${
-                    r.statusType === 'territory_holder' ? 'bg-green-100 text-green-700' :
-                    r.statusType === 'floater' ? 'bg-yellow-100 text-yellow-700' :
-                    r.departure_reason === 'confirmed_dead' ? 'bg-red-100 text-red-600' :
-                    'bg-gray-100 text-gray-500'
+                  <span className={`badge text-2xs ${
+                    r.statusType === 'territory_holder' ? 'badge-success' :
+                    r.statusType === 'floater' ? 'badge-warning' :
+                    r.departure_reason === 'confirmed_dead' ? 'badge-danger' :
+                    'badge-neutral'
                   }`}>
                     {r.status}
                   </span>
-                  {r.confirmed && <span className="text-xs text-green-500" title="Confirmed">✓</span>}
+                  {r.confirmed && <span className="text-xs text-forest-500 font-bold" title="Confirmed">✓</span>}
                 </div>
               </div>
 
-              {r.notes && <p className="text-xs text-gray-400 mt-1">{r.notes}</p>}
+              {r.notes && <p className="text-xs text-bark-500 mt-1">{r.notes}</p>}
 
               {/* Actions for currently assigned birds */}
               {!r.end_date && (
-                <div className="flex gap-3 mt-2 text-xs">
+                <div className="flex gap-3 mt-2 text-xs font-medium">
                   {(r.bird?.is_unbanded || r.band_id < 0) && (
                     <button onClick={() => {
                       setModal({ type: 'band', data: r })
                       setModalForm({ newBandId: '', colorCombo: '' })
-                    }} className="text-orange-600 underline">Band this bird</button>
+                    }} className="text-rust-600 hover:underline">Band this bird</button>
                   )}
                   {r.band_id > 0 && !r.bird?.is_unbanded && (
                     <button onClick={() => {
@@ -1078,12 +1082,12 @@ export default function BirdsPage() {
                         newBandId: '',
                         correctionNote: '',
                       })
-                    }} className="text-blue-600 underline">Correct bands</button>
+                    }} className="text-forest-600 hover:underline">Correct bands</button>
                   )}
                   <button onClick={() => {
                     setModal({ type: 'end', data: r })
                     setModalForm({ reason: '', notes: '', endDate: localDateString(), moveToNew: false, newTerritory: '' })
-                  }} className="text-red-500 underline">End / Move</button>
+                  }} className="text-red-600 hover:underline">End / Move</button>
                 </div>
               )}
 
@@ -1098,31 +1102,31 @@ export default function BirdsPage() {
 
       {/* BAND BIRD modal */}
       {modal?.type === 'band' && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl p-5 w-full max-w-sm space-y-4 shadow-xl">
-            <h3 className="font-semibold">Band this bird</h3>
-            <p className="text-xs text-gray-500">Enter the metal band number and color combo after banding.</p>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-5 w-full max-w-sm space-y-4">
+            <h3 className="font-bold text-forest-800">Band this bird</h3>
+            <p className="text-xs text-bark-600">Enter the metal band number and color combo after banding.</p>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs text-gray-500 mb-1">Color combo *</label>
+                <label className="label">Color combo *</label>
                 <input type="text" value={modalForm.colorCombo || ''}
                   onChange={e => setModalForm({ ...modalForm, colorCombo: e.target.value })}
                   placeholder="e.g., dbm.gr"
-                  className="w-full border rounded-lg px-3 py-2.5 text-base font-mono" />
+                  className="input font-mono text-base" />
               </div>
               <div>
-                <label className="block text-xs text-gray-500 mb-1">Metal band # *</label>
+                <label className="label">Metal band # *</label>
                 <input type="text" value={modalForm.newBandId || ''}
                   onChange={e => setModalForm({ ...modalForm, newBandId: e.target.value })}
                   placeholder="9-digit"
-                  className="w-full border rounded-lg px-3 py-2.5 text-base font-mono" />
+                  className="input font-mono text-base" />
               </div>
             </div>
             <div className="flex gap-2">
               <button onClick={handleBandBird}
-                className="flex-1 bg-orange-600 text-white rounded-lg px-4 py-2.5 text-sm font-semibold">Save</button>
+                className="btn-accent btn-md flex-1">Save</button>
               <button onClick={() => setModal(null)}
-                className="flex-1 bg-gray-100 text-gray-600 rounded-lg px-4 py-2.5 text-sm font-semibold">Cancel</button>
+                className="btn-ghost btn-md flex-1">Cancel</button>
             </div>
           </div>
         </div>
@@ -1130,21 +1134,21 @@ export default function BirdsPage() {
 
       {/* END / MOVE ASSIGNMENT modal */}
       {modal?.type === 'end' && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl p-5 w-full max-w-sm space-y-4 shadow-xl">
-            <h3 className="font-semibold">End / Move Assignment</h3>
-            <p className="text-xs text-gray-500">
-              <span className="font-mono font-semibold">{modal.data.color_combo || modal.data.bird?.color_combo || 'Bird'}</span> on Terr {modal.data.territory}
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-5 w-full max-w-sm space-y-4">
+            <h3 className="font-bold text-forest-800">End / Move Assignment</h3>
+            <p className="text-xs text-bark-600">
+              <span className="band-id">{modal.data.color_combo || modal.data.bird?.color_combo || 'Bird'}</span> on Terr {modal.data.territory}
             </p>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs text-gray-500 mb-1">Why is this bird leaving? *</label>
+                <label className="label">Why is this bird leaving? *</label>
                 <select value={modalForm.reason || ''}
                   onChange={e => {
                     const r = e.target.value
                     setModalForm({ ...modalForm, reason: r, moveToNew: r === 'moved' })
                   }}
-                  className="w-full border rounded-lg px-3 py-2.5 text-sm bg-white">
+                  className="input">
                   <option value="">Select reason...</option>
                   <option value="moved">Moved to another territory</option>
                   <option value="replaced">Replaced by another bird</option>
@@ -1154,10 +1158,10 @@ export default function BirdsPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-xs text-gray-500 mb-1">Date *</label>
+                <label className="label">Date *</label>
                 <input type="date" value={modalForm.endDate || ''}
                   onChange={e => setModalForm({ ...modalForm, endDate: e.target.value })}
-                  className="w-full border rounded-lg px-3 py-2.5 text-sm" />
+                  className="input" />
               </div>
             </div>
 
@@ -1166,52 +1170,52 @@ export default function BirdsPage() {
               <label className="flex items-center gap-2 cursor-pointer">
                 <input type="checkbox" checked={modalForm.moveToNew || false}
                   onChange={e => setModalForm({ ...modalForm, moveToNew: e.target.checked })}
-                  className="rounded" />
-                <span className="text-sm text-gray-700 font-medium">Assign to a new territory</span>
+                  className="rounded border-bark-300" />
+                <span className="text-sm text-forest-800 font-medium">Assign to a new territory</span>
               </label>
             </div>
 
             {modalForm.moveToNew && (
-              <div className="bg-green-50 border border-green-200 rounded-lg p-3 space-y-2">
-                <p className="text-xs text-green-800 font-medium">New assignment</p>
-                <p className="text-[11px] text-green-700">
+              <div className="bg-sage-50 border border-sage-200 rounded-lg p-3 space-y-2">
+                <p className="text-xs text-forest-700 font-bold">New assignment</p>
+                <p className="text-2xs text-forest-600">
                   This will end the current assignment on Terr {modal.data.territory} and create a new one.
                   Nest records from the old territory are not changed.
                 </p>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="block text-[11px] text-gray-600 mb-0.5">New territory *</label>
+                    <label className="label">New territory *</label>
                     <input type="text" value={modalForm.newTerritory || ''}
                       onChange={e => setModalForm({ ...modalForm, newTerritory: e.target.value })}
                       placeholder="e.g. 5"
-                      className="w-full border rounded px-2 py-1.5 text-sm bg-white" />
+                      className="input" />
                   </div>
                   <div>
-                    <label className="block text-[11px] text-gray-600 mb-0.5">Start date</label>
+                    <label className="label">Start date</label>
                     <input type="date" value={modalForm.newStartDate || modalForm.endDate || ''}
                       onChange={e => setModalForm({ ...modalForm, newStartDate: e.target.value })}
-                      className="w-full border rounded px-2 py-1.5 text-sm bg-white" />
+                      className="input" />
                   </div>
                 </div>
               </div>
             )}
 
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Notes (optional)</label>
+              <label className="label">Notes (optional)</label>
               <input type="text" value={modalForm.notes || ''}
                 onChange={e => setModalForm({ ...modalForm, notes: e.target.value })}
                 placeholder="Any details"
-                className="w-full border rounded-lg px-3 py-2.5 text-sm" />
+                className="input" />
             </div>
             <div className="flex gap-2">
               <button onClick={handleEndAssignment}
-                className={`flex-1 text-white rounded-lg px-4 py-2.5 text-sm font-semibold ${
-                  modalForm.moveToNew ? 'bg-green-600' : 'bg-red-600'
+                className={`flex-1 btn btn-md text-white ${
+                  modalForm.moveToNew ? 'bg-forest-600 hover:bg-forest-700 focus:ring-forest-400' : 'bg-red-600 hover:bg-red-700 focus:ring-red-400'
                 }`}>
                 {modalForm.moveToNew ? 'Move Bird' : 'End Assignment'}
               </button>
               <button onClick={() => setModal(null)}
-                className="flex-1 bg-gray-100 text-gray-600 rounded-lg px-4 py-2.5 text-sm font-semibold">Cancel</button>
+                className="btn-ghost btn-md flex-1">Cancel</button>
             </div>
           </div>
         </div>
@@ -1219,49 +1223,49 @@ export default function BirdsPage() {
 
       {/* REASSIGN modal */}
       {modal?.type === 'reassign' && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl p-5 w-full max-w-sm space-y-4 shadow-xl">
-            <h3 className="font-semibold">Reassign bird</h3>
-            <p className="text-xs text-gray-500">
-              <span className="font-mono">{modal.data.color_combo || modal.data.bird?.color_combo || 'Bird'}</span>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-5 w-full max-w-sm space-y-4">
+            <h3 className="font-bold text-forest-800">Reassign bird</h3>
+            <p className="text-xs text-bark-600">
+              <span className="band-id">{modal.data.color_combo || modal.data.bird?.color_combo || 'Bird'}</span>
               {' '}— previously on Terr {modal.data.territory} ({modal.data.departure_reason})
             </p>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs text-gray-500 mb-1">New territory *</label>
+                <label className="label">New territory *</label>
                 <input type="text" value={modalForm.newTerritory || ''}
                   onChange={e => setModalForm({ ...modalForm, newTerritory: e.target.value })}
                   placeholder="e.g., 5"
-                  className="w-full border rounded-lg px-3 py-2.5 text-sm" />
+                  className="input" />
               </div>
               <div>
-                <label className="block text-xs text-gray-500 mb-1">Role</label>
+                <label className="label">Role</label>
                 <select value={modalForm.newRole || 'territory_holder'}
                   onChange={e => setModalForm({ ...modalForm, newRole: e.target.value })}
-                  className="w-full border rounded-lg px-3 py-2.5 text-sm bg-white">
+                  className="input">
                   <option value="territory_holder">Territory holder</option>
                   <option value="floater">Floater</option>
                 </select>
               </div>
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Start date *</label>
+              <label className="label">Start date *</label>
               <input type="date" value={modalForm.startDate || ''}
                 onChange={e => setModalForm({ ...modalForm, startDate: e.target.value })}
-                className="w-full border rounded-lg px-3 py-2.5 text-sm" />
+                className="input" />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Notes (optional)</label>
+              <label className="label">Notes (optional)</label>
               <input type="text" value={modalForm.notes || ''}
                 onChange={e => setModalForm({ ...modalForm, notes: e.target.value })}
                 placeholder="e.g., Moved from Terr 1 after being replaced"
-                className="w-full border rounded-lg px-3 py-2.5 text-sm" />
+                className="input" />
             </div>
             <div className="flex gap-2">
               <button onClick={handleReassign}
-                className="flex-1 bg-green-600 text-white rounded-lg px-4 py-2.5 text-sm font-semibold">Reassign</button>
+                className="btn-primary btn-md flex-1">Reassign</button>
               <button onClick={() => setModal(null)}
-                className="flex-1 bg-gray-100 text-gray-600 rounded-lg px-4 py-2.5 text-sm font-semibold">Cancel</button>
+                className="btn-ghost btn-md flex-1">Cancel</button>
             </div>
           </div>
         </div>
@@ -1269,42 +1273,42 @@ export default function BirdsPage() {
 
       {/* CORRECT BANDS modal — same bird, misread color combo */}
       {modal?.type === 'correct' && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl p-5 w-full max-w-sm space-y-4 shadow-xl">
-            <h3 className="font-semibold">Correct bands</h3>
-            <p className="text-xs text-gray-500">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-5 w-full max-w-sm space-y-4">
+            <h3 className="font-bold text-forest-800">Correct bands</h3>
+            <p className="text-xs text-bark-600">
               You misread the color bands on <strong>this same bird</strong>. Fix the combo here.
             </p>
-            <p className="text-xs text-gray-400">
-              Current: <span className="font-mono">{modal.data.color_combo || modal.data.bird?.color_combo || '—'}</span>
+            <p className="text-xs text-bark-500">
+              Current: <span className="band-id">{modal.data.color_combo || modal.data.bird?.color_combo || '—'}</span>
               {modal.data.band_id > 0 && ` (${modal.data.band_id})`}
             </p>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Correct color combo *</label>
+              <label className="label">Correct color combo *</label>
               <input type="text" value={modalForm.newCombo || ''}
                 onChange={e => setModalForm({ ...modalForm, newCombo: e.target.value })}
                 placeholder="e.g., dbm.gr"
-                className="w-full border rounded-lg px-3 py-2.5 text-base font-mono" />
+                className="input font-mono text-base" />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Correct metal band # (only if band # was also wrong)</label>
+              <label className="label">Correct metal band # (only if band # was also wrong)</label>
               <input type="text" value={modalForm.newBandId || ''}
                 onChange={e => setModalForm({ ...modalForm, newBandId: e.target.value })}
                 placeholder="Leave blank if only combo was wrong"
-                className="w-full border rounded-lg px-3 py-2.5 text-sm font-mono" />
+                className="input font-mono" />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">What happened?</label>
+              <label className="label">What happened?</label>
               <input type="text" value={modalForm.correctionNote || ''}
                 onChange={e => setModalForm({ ...modalForm, correctionNote: e.target.value })}
                 placeholder="e.g., Misread green as blue on right leg"
-                className="w-full border rounded-lg px-3 py-2.5 text-sm" />
+                className="input" />
             </div>
             <div className="flex gap-2">
               <button onClick={handleCorrectIdentity}
-                className="flex-1 bg-blue-600 text-white rounded-lg px-4 py-2.5 text-sm font-semibold">Save Correction</button>
+                className="btn-primary btn-md flex-1">Save Correction</button>
               <button onClick={() => setModal(null)}
-                className="flex-1 bg-gray-100 text-gray-600 rounded-lg px-4 py-2.5 text-sm font-semibold">Cancel</button>
+                className="btn-ghost btn-md flex-1">Cancel</button>
             </div>
           </div>
         </div>
