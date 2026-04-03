@@ -776,7 +776,7 @@ export default function BirdsPage() {
       )}
 
       {/* Filter tabs */}
-      <div className="flex gap-1 text-2xs flex-wrap">
+      <div className="flex gap-1 text-xs flex-wrap">
         {(() => {
           const r = getRoster()
           return [
