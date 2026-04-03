@@ -1014,9 +1014,9 @@ export default function BirdsPage() {
                     <div className="flex items-center gap-2">
                       <span className="band-id text-sm">{f.color_combo || '—'}</span>
                       <span className="text-xs text-bark-500">{f.band_id}</span>
-                      <span className="badge badge-warning text-2xs">juvenile</span>
+                      <span className="badge badge-warning">juvenile</span>
                       {f.isIndependent && (
-                        <span className="badge badge-success text-2xs">✓ independent</span>
+                        <span className="badge badge-success">✓ independent</span>
                       )}
                     </div>
                     <span className="text-xs text-bark-500">{f.nestLabel}, Terr {f.territory}</span>
@@ -1051,7 +1051,7 @@ export default function BirdsPage() {
                   </span>
                 </div>
                 <div className="flex items-center gap-1">
-                  <span className={`badge text-2xs ${
+                  <span className={`badge ${
                     r.statusType === 'territory_holder' ? 'badge-success' :
                     r.statusType === 'floater' ? 'badge-warning' :
                     r.departure_reason === 'confirmed_dead' ? 'badge-danger' :

@@ -147,20 +147,20 @@ export default function TerritoriesPage() {
                   <div>
                     <span className="font-bold text-base text-forest-800">Terr {terr.code}</span>
                     {terr.nests.length > 0 && (
-                      <span className="ml-2 badge badge-success text-2xs">
+                      <span className="ml-2 badge badge-success">
                         {terr.nests.length} nest{terr.nests.length > 1 ? 's' : ''}
                       </span>
                     )}
                     {isSingleMale && (
-                      <span className="ml-1 badge badge-info text-2xs">♂ Single male</span>
+                      <span className="ml-1 badge badge-info">♂ Single male</span>
                     )}
                     {isRenestWatch && (
                       <span className={`ml-1 ${
                         isUrgent ? 'badge badge-danger' : 'badge badge-warning'
-                      } text-2xs`}>{isUrgent ? 'Renest URGENT' : 'Renest watch'}</span>
+                      }`}>{isUrgent ? 'Renest URGENT' : 'Renest watch'}</span>
                     )}
                   </div>
-                  <span className={`text-2xs px-2 py-0.5 rounded-full font-medium ${
+                  <span className={`${
                     days === null ? 'badge badge-neutral' :
                     !isOverdue ? 'badge badge-success' :
                     days <= interval + 2 ? 'badge badge-warning' :

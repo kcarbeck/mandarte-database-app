@@ -556,7 +556,7 @@ export default function TerritoryDetailPage({ params }) {
         <div className="mt-2 flex items-center gap-2 flex-wrap">
           <span className="text-2xs text-bark-600">Visit every {visitInterval}d</span>
           {terrStatus.status === TERRITORY_STATUS.SINGLE_MALE && (
-            <span className="badge badge-info text-2xs">♂ Single male</span>
+            <span className="badge badge-info">♂ Single male</span>
           )}
           {(terrStatus.status === TERRITORY_STATUS.RENEST_WATCH || terrStatus.status === TERRITORY_STATUS.RENEST_URGENT) && (
             <span className={`${
@@ -1213,7 +1213,7 @@ export default function TerritoryDetailPage({ params }) {
                       </div>
                       <div className="flex items-center gap-1.5">
                         {nest.field_complete && (
-                          <span className="badge badge-success text-2xs">Done</span>
+                          <span className="badge badge-success">Done</span>
                         )}
                         <span className={`text-xs px-2 py-0.5 rounded ${status.color}`}>{status.label}</span>
                         <span className="text-bark-500 text-sm">{isExpanded ? '▾' : '▸'}</span>
@@ -1525,7 +1525,7 @@ export default function TerritoryDetailPage({ params }) {
                           ].filter(Boolean).join(', ')
                           return (
                             <div key={nv.nest_visit_id} className="flex items-baseline gap-1.5 text-2xs">
-                              <span className="badge badge-info text-2xs shrink-0">{nv.nestLabel}</span>
+                              <span className="badge badge-info shrink-0">{nv.nestLabel}</span>
                               <span className="text-forest-700">{nestContent || '—'}</span>
                               {nv.comments && <span className="text-bark-600">— {nv.comments}</span>}
                             </div>
@@ -1551,7 +1551,7 @@ export default function TerritoryDetailPage({ params }) {
                   <div className="flex items-baseline gap-2 text-2xs">
                     <span className="text-forest-700 font-semibold whitespace-nowrap">{fmtVisitDate(v.visit_date)}</span>
                     <span className="text-bark-600 whitespace-nowrap">{fmtVisitTime(v.visit_time)}</span>
-                    <span className="badge badge-info text-2xs">{v.nestLabel}</span>
+                    <span className="badge badge-info">{v.nestLabel}</span>
                   </div>
                   <p className="text-2xs text-forest-700 mt-1">{nestContent || '—'}</p>
                   {v.comments && <p className="text-2xs text-bark-600 mt-1">{v.comments}</p>}

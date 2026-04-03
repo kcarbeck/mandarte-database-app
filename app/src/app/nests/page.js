@@ -135,13 +135,13 @@ export default function NestsPage() {
               >
                 <div className="flex justify-between items-start">
                   <div className="flex items-center gap-2">
-                    <span className="font-bold text-sm text-bark-900">Terr {nest.territory || '?'}, Nest #{nestSeqMap[nest.breed_id] || '?'}</span>
+                    <span className="font-bold text-base text-forest-800">Terr {nest.territory || '?'}, Nest #{nestSeqMap[nest.breed_id] || '?'}</span>
                   </div>
                   <div className="flex items-center gap-1.5">
                     {nest.field_complete && (
-                      <span className="badge badge-success text-2xs">Done</span>
+                      <span className="badge badge-success">Done</span>
                     )}
-                    <span className={`badge ${statusBadgeClass} text-2xs`}>
+                    <span className={`badge ${statusBadgeClass}`}>
                       {status.label}
                     </span>
                   </div>

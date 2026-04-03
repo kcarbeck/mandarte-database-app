@@ -44,7 +44,6 @@ button.btn-icon {
 
 /* ─── Cards & stage boxes (plain CSS — @apply unreliable with custom theme) ── */
 .card {
-  display: block;
   background-color: #fff;
   border-radius: 0.75rem;
   border: 1.5px solid #b8a68d;
@@ -88,7 +87,7 @@ button.btn-icon {
 
   /* Badges — bold, readable, punchy */
   .badge {
-    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold tracking-tight;
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-2xs font-bold tracking-tight;
   }
   .badge-success { @apply badge bg-forest-100 text-forest-700; }
   .badge-warning { @apply badge bg-amber-100 text-amber-700; }

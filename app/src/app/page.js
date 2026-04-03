@@ -211,6 +211,17 @@ export default function Home() {
     return statuses
   }, [territories, nestsByTerritory, birdsByTerritory, todayJD, currentYear])
 
+  // ─── Computed: nest sequence numbers (breed_id → #1, #2, …) per territory ──
+  const nestSeqMap = useMemo(() => {
+    const m = {}
+    for (const territory of territories) {
+      const tNests = nestsByTerritory[territory] || []
+      const sorted = [...tNests].sort((a, b) => a.breed_id - b.breed_id)
+      sorted.forEach((n, i) => { m[n.breed_id] = i + 1 })
+    }
+    return m
+  }, [territories, nestsByTerritory])
+
   // ─── Computed: cell data for each territory × date ───────
   const cellData = useMemo(() => {
     const data = {}
@@ -250,7 +261,7 @@ export default function Home() {
                 const event = getNestEvent(chickDay, nest)
                 if (event) {
                   if (event.key === 'renest' && nest.hatchJD < latestNestHatchJD) continue
-                  events.push({ ...event, nestLabel: nest.nestrec ? `#${nest.nestrec}` : `${nest.breed_id}`, breedId: nest.breed_id })
+                  events.push({ ...event, nestLabel: `#${nestSeqMap[nest.breed_id] || '?'}`, breedId: nest.breed_id })
                 }
               }
             } else if (!isFailed && chickDay < 1 && chickDay >= -30) {
@@ -302,7 +313,7 @@ export default function Home() {
         !n.hatchJD && (!n.fail_code || n.fail_code === '24') && n.stage_find !== 'NFN'
       )
       if (activePreHatchNests.length > 0 && (daysSinceVisit === null || daysSinceVisit >= VISIT_RULES.NEST_CHECK_DAYS)) {
-        const nestLabels = activePreHatchNests.map(n => n.nestrec ? `#${n.nestrec}` : `(${n.breed_id})`).join(', ')
+        const nestLabels = activePreHatchNests.map(n => `#${nestSeqMap[n.breed_id] || '?'}`).join(', ')
         // Derive stage hint with estimated hatch date when possible
         let stageHint = 'check nest progress'
         const incubatingNest = activePreHatchNests.find(n => n.eggs > 0 || n.stage_find === 'IC')
@@ -358,7 +369,7 @@ export default function Home() {
           // Track renest tasks from this loop to prevent duplication
           if (event.key === 'renest' && jd === todayJD) hasNestLoopRenest = true
 
-          const nestLabel = nest.nestrec ? `Nest #${nest.nestrec}` : `Nest (${nest.breed_id})`
+          const nestLabel = `Nest #${nestSeqMap[nest.breed_id] || '?'}`
           const task = {
             id: `${event.key}-${nest.breed_id}-${jd}`,
             type: event.key,
@@ -666,7 +677,7 @@ export default function Home() {
         <div className="flex items-center gap-2 mb-2">
           <h2 className="section-title">Today</h2>
           {todayTasks.length > 0 && (
-            <span className="badge badge-rust text-2xs">{todayTasks.length}</span>
+            <span className="badge badge-rust">{todayTasks.length}</span>
           )}
         </div>
         {todayTasks.length === 0 ? (
@@ -730,7 +741,7 @@ export default function Home() {
           <div className="flex items-center gap-2">
             <h2 className="section-title">Inbox</h2>
             {incompleteTasks.length > 0 && (
-              <span className="badge badge-neutral text-2xs">{incompleteTasks.length}</span>
+              <span className="badge badge-neutral">{incompleteTasks.length}</span>
             )}
           </div>
           <button onClick={() => setShowAddTask(!showAddTask)}
