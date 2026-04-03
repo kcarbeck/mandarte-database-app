@@ -142,7 +142,7 @@ export default function TerritoriesPage() {
             return (
               <Link key={terr.code}
                 href={`/territories/${encodeURIComponent(terr.code)}`}
-                className="card-interactive p-3">
+                className="card-interactive block p-3">
                 <div className="flex justify-between items-start">
                   <div>
                     <span className="font-bold text-base text-forest-800">Terr {terr.code}</span>

@@ -127,7 +127,7 @@ export default function NestsPage() {
               <Link
                 key={nest.breed_id}
                 href={`/nests/${nest.breed_id}`}
-                className={`card-interactive p-3 ${
+                className={`card-interactive block p-3 ${
                   nest.field_complete
                     ? 'bg-sage-50 border-sage-300'
                     : ''
