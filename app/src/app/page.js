@@ -604,7 +604,7 @@ export default function Home() {
                           {(birdsByTerritory[territory] || []).map((b, bi) => {
                             const sexIcon = b.sex === 2 ? '♂' : b.sex === 1 ? '♀' : ''
                             const combo = b.color_combo || (b.is_unbanded ? 'UB' : '?')
-                            return <span key={bi}>{bi > 0 ? ' ' : ''}<span className={b.sex === 2 ? 'text-blue-600' : b.sex === 1 ? 'text-pink-600' : ''}>{sexIcon}</span>{combo}</span>
+                            return <span key={bi}>{bi > 0 ? ' ' : ''}<span className={b.sex === 2 ? 'text-forest-600' : b.sex === 1 ? 'text-rust-500' : ''}>{sexIcon}</span>{combo}</span>
                           })}
                         </div>
                       )}

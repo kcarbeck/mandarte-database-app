@@ -11,7 +11,7 @@ export default function NewVisitPage() {
     router.replace('/territories')
   }, [router])
   return (
-    <div className="text-center py-8 text-gray-500">
+    <div className="text-center py-8 text-bark-500">
       Redirecting to territories...
     </div>
   )

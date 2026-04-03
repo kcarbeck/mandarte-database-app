@@ -77,9 +77,9 @@ export const PROTOCOL_WINDOWS = [
   {
     key: 'fledge', label: 'Fledge check', fullLabel: 'Fledge check',
     startDay: 12, endDay: 14, idealDay: null,
-    bg: 'bg-blue-100', bgActive: 'bg-blue-200',
-    badgeActive: 'bg-blue-100 text-blue-700',
-    colorHex: '#93c5fd', idealColorHex: '#2563eb', textOnIdeal: 'F',
+    bg: 'bg-sage-100', bgActive: 'bg-sage-200',
+    badgeActive: 'bg-sage-100 text-sage-700',
+    colorHex: '#b3c9a8', idealColorHex: '#5a7a4a', textOnIdeal: 'F',
     field: 'fledge',
   },
   {
@@ -580,7 +580,7 @@ export function getSuggestedAction(nest, todayJD) {
   if (chickAge >= 9 && chickAge <= 11)
     return { stage: null, hint: `DANGER Day ${chickAge} — DO NOT APPROACH`, color: 'bg-red-200 text-red-800' }
   if (chickAge >= 12 && chickAge <= 14 && (nest.fledge == null || nest.fledge === ''))
-    return { stage: 'fledged', hint: `Fledge check! Day ${chickAge}`, color: 'bg-blue-200 text-blue-800' }
+    return { stage: 'fledged', hint: `Fledge check! Day ${chickAge}`, color: 'bg-sage-200 text-sage-800' }
   if (chickAge >= 22 && chickAge <= 26 && (nest.indep == null || nest.indep === ''))
     return { stage: 'independent', hint: `Independence check! Day ${chickAge}`, color: 'bg-purple-200 text-purple-800' }
   if (chickAge >= 1 && chickAge <= 3)
@@ -598,14 +598,14 @@ export function getSuggestedAction(nest, todayJD) {
  * @returns {{ label: string, color: string }}
  */
 export function nestStatusBadge(nest) {
-  if (nest.fail_code === '24') return { label: 'Success', color: 'bg-green-100 text-green-700' }
+  if (nest.fail_code === '24') return { label: 'Success', color: 'bg-forest-100 text-forest-700' }
   if (nest.fail_code && nest.fail_code !== '24') return { label: 'Failed', color: 'bg-red-100 text-red-700' }
-  if (nest.indep != null) return { label: 'Independent', color: 'bg-green-100 text-green-700' }
-  if (nest.fledge != null) return { label: 'Fledged', color: 'bg-blue-100 text-blue-700' }
-  if (nest.band != null) return { label: 'Banded', color: 'bg-blue-100 text-blue-700' }
-  if (nest.hatch != null) return { label: 'Hatched', color: 'bg-yellow-100 text-yellow-700' }
-  if (nest.eggs != null) return { label: 'Eggs', color: 'bg-yellow-100 text-yellow-700' }
-  return { label: nest.stage_find || 'Active', color: 'bg-gray-100 text-gray-700' }
+  if (nest.indep != null) return { label: 'Independent', color: 'bg-forest-100 text-forest-700' }
+  if (nest.fledge != null) return { label: 'Fledged', color: 'bg-sage-100 text-sage-700' }
+  if (nest.band != null) return { label: 'Banded', color: 'bg-sage-100 text-sage-700' }
+  if (nest.hatch != null) return { label: 'Hatched', color: 'bg-amber-100 text-amber-700' }
+  if (nest.eggs != null) return { label: 'Eggs', color: 'bg-amber-100 text-amber-700' }
+  return { label: nest.stage_find || 'Active', color: 'bg-bark-100 text-bark-700' }
 }
 
 // ─── Event priority (for sorting: lower = more urgent) ───────

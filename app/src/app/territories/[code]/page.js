@@ -571,7 +571,7 @@ export default function TerritoryDetailPage({ params }) {
         {/* Resident birds */}
         <div className="mt-4 space-y-3">
           <div>
-            <div className="text-2xs font-semibold text-blue-600 mb-2">♂ Males</div>
+            <div className="text-2xs font-bold text-forest-600 mb-2">♂ Males</div>
             {allAssignments.filter(a => a.sex === 2).length === 0 ? (
               <div className="flex items-center gap-2 text-sm text-bark-600">
                 <span>— No male assigned</span>
@@ -581,14 +581,14 @@ export default function TerritoryDetailPage({ params }) {
               <div className="space-y-1">
                 {allAssignments.filter(a => a.sex === 2).map(a => (
                   <div key={a.assignment_id} className={`flex items-center justify-between text-sm rounded px-2 py-1 ${
-                    !a.end_date ? 'bg-blue-50 border border-blue-200' : 'bg-cream-100 border border-cream-200'
+                    !a.end_date ? 'bg-forest-50 border border-forest-200' : 'bg-cream-100 border border-cream-200'
                   }`}>
                     <div className="flex items-center gap-2">
-                      <span className={`band-id ${a.end_date ? 'text-bark-500' : 'text-blue-600'}`}>
+                      <span className={`band-id ${a.end_date ? 'text-bark-500' : 'text-forest-700'}`}>
                         {birdLabel(a)}
                       </span>
                       {a.confirmed && <span className="text-2xs text-sage-400">✓</span>}
-                      {!a.end_date && <span className="text-2xs bg-blue-600 text-white px-1.5 py-0.5 rounded">current</span>}
+                      {!a.end_date && <span className="text-2xs bg-forest-600 text-white px-1.5 py-0.5 rounded">current</span>}
                     </div>
                     <span className="text-2xs text-bark-600">
                       {a.start_date}{a.end_date ? ` → ${a.end_date}` : ' → present'}
@@ -599,7 +599,7 @@ export default function TerritoryDetailPage({ params }) {
             )}
           </div>
           <div>
-            <div className="text-2xs font-semibold text-pink-600 mb-2">♀ Females</div>
+            <div className="text-2xs font-bold text-rust-500 mb-2">♀ Females</div>
             {allAssignments.filter(a => a.sex === 1).length === 0 ? (
               <div className="flex items-center gap-2 text-sm text-bark-600">
                 <span>— No female assigned</span>
@@ -609,14 +609,14 @@ export default function TerritoryDetailPage({ params }) {
               <div className="space-y-1">
                 {allAssignments.filter(a => a.sex === 1).map(a => (
                   <div key={a.assignment_id} className={`flex items-center justify-between text-sm rounded px-2 py-1 ${
-                    !a.end_date ? 'bg-pink-50 border border-pink-200' : 'bg-cream-100 border border-cream-200'
+                    !a.end_date ? 'bg-rust-50 border border-rust-200' : 'bg-cream-100 border border-cream-200'
                   }`}>
                     <div className="flex items-center gap-2">
-                      <span className={`band-id ${a.end_date ? 'text-bark-500' : 'text-pink-600'}`}>
+                      <span className={`band-id ${a.end_date ? 'text-bark-500' : 'text-rust-600'}`}>
                         {birdLabel(a)}
                       </span>
                       {a.confirmed && <span className="text-2xs text-sage-400">✓</span>}
-                      {!a.end_date && <span className="text-2xs bg-pink-600 text-white px-1.5 py-0.5 rounded">current</span>}
+                      {!a.end_date && <span className="text-2xs bg-rust-500 text-white px-1.5 py-0.5 rounded">current</span>}
                     </div>
                     <span className="text-2xs text-bark-600">
                       {a.start_date}{a.end_date ? ` → ${a.end_date}` : ' → present'}
@@ -1404,7 +1404,7 @@ export default function TerritoryDetailPage({ params }) {
                       {/* Fail/success display */}
                       {nest.fail_code && (
                         <div className={`mx-3 mb-2 text-xs px-2 py-1 rounded ${
-                          isSuccess ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
+                          isSuccess ? 'bg-forest-50 text-forest-700' : 'bg-red-50 text-red-700'
                         }`}>
                           {isSuccess ? 'Success' : `Failed: code ${nest.fail_code}`}
                         </div>
@@ -1416,7 +1416,7 @@ export default function TerritoryDetailPage({ params }) {
                           <p className="text-[10px] text-bark-500">Log observations via territory visit form above</p>
                         )}
                         <Link href={`/nests/${nest.nestrec || nest.breed_id}`}
-                          className="text-[11px] text-blue-600 font-medium">
+                          className="text-[11px] text-forest-600 font-medium">
                           Full nest card &rarr;
                         </Link>
                       </div>
