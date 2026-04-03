@@ -605,9 +605,9 @@ export default function NestDetailPage({ params }) {
               const md = milestoneDates[s.k]
               return (
                 <div key={s.k} className="flex items-center">
-                  {i > 0 && <span className="text-bark-500 mx-0.5">&rarr;</span>}
-                  <div className={`rounded-lg px-2.5 py-1 text-xs ${
-                    val !== '' && val != null ? 'bg-forest-100 text-forest-800 font-bold' : 'bg-cream-100 text-bark-500'
+                  {i > 0 && <span className="text-bark-300 mx-0.5">&rarr;</span>}
+                  <div className={`stage-box py-1 ${
+                    val !== '' && val != null ? 'stage-box-filled' : 'stage-box-empty'
                   }`}>
                     <div className="text-[10px]">{s.l}</div>
                     <div className="text-sm">{val !== '' ? val : '—'}</div>

@@ -127,10 +127,10 @@ export default function NestsPage() {
               <Link
                 key={nest.breed_id}
                 href={`/nests/${nest.breed_id}`}
-                className={`card-interactive ${
+                className={`card-interactive p-3 ${
                   nest.field_complete
-                    ? 'bg-sage-50 border-sage-200'
-                    : 'bg-cream-50 border-cream-200'
+                    ? 'bg-sage-50 border-sage-300'
+                    : ''
                 }`}
               >
                 <div className="flex justify-between items-start">
@@ -164,10 +164,8 @@ export default function NestsPage() {
                     const dateLabel = s.jd ? formatJD(nest.year || currentYear, parseInt(s.jd)) : null
                     return (
                       <div key={s.k} className="flex items-center">
-                        {i > 0 && <span className="text-bark-500 text-[10px] mx-0.5">→</span>}
-                        <div className={`rounded px-1.5 py-0.5 text-center ${
-                          filled ? 'bg-forest-100 text-forest-800' : 'bg-cream-200 text-bark-500 border border-cream-300'
-                        }`}>
+                        {i > 0 && <span className="text-bark-300 text-[10px] mx-0.5">→</span>}
+                        <div className={`stage-box ${filled ? 'stage-box-filled' : 'stage-box-empty'}`}>
                           <div className="text-[9px] leading-tight">{s.l}</div>
                           <div className="text-xs font-bold font-mono leading-tight">{filled ? val : '—'}</div>
                           {dateLabel && dateLabel !== '?' && <div className="text-[8px] leading-tight opacity-70">{dateLabel}</div>}

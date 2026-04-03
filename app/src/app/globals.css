@@ -39,12 +39,23 @@ input, select, textarea, button {
 
 /* ─── Component layers ──────────────────────────────── */
 @layer components {
-  /* Card base — no shadow on cream bg (avoids oval halo), rely on border */
+  /* Card base — visible border for tappable affordance */
   .card {
-    @apply bg-white rounded-card border border-cream-300;
+    @apply bg-white rounded-card border border-bark-200;
   }
   .card-interactive {
     @apply card transition-all duration-150 active:bg-cream-50 active:scale-[0.995];
+  }
+
+  /* Stage pipeline boxes — uniform sizing */
+  .stage-box {
+    @apply rounded-lg w-12 py-0.5 text-center;
+  }
+  .stage-box-filled {
+    @apply stage-box bg-forest-100 text-forest-800 font-bold;
+  }
+  .stage-box-empty {
+    @apply stage-box bg-cream-100 text-bark-500 border border-cream-300;
   }
 
   /* Badges — bold, readable, punchy */

@@ -1257,8 +1257,8 @@ export default function TerritoryDetailPage({ params }) {
                         return (
                           <div key={s.k} className="flex items-center">
                             {i > 0 && <span className="text-bark-300 mx-0.5">&rarr;</span>}
-                            <div className={`rounded-lg px-2 py-0.5 text-xs ${
-                              val != null && val !== '' ? 'bg-forest-100 text-forest-800 font-bold' : 'bg-cream-200 text-bark-500'
+                            <div className={`stage-box ${
+                              val != null && val !== '' ? 'stage-box-filled' : 'stage-box-empty'
                             }`}>
                               <div className="text-[9px] leading-tight">{s.l}</div>
                               <div className="text-sm leading-tight">{val != null && val !== '' ? val : '—'}</div>
@@ -1390,8 +1390,8 @@ export default function TerritoryDetailPage({ params }) {
                           return (
                             <div key={s.k} className="flex items-center">
                               {i > 0 && <span className="text-bark-300 mx-0.5">&rarr;</span>}
-                              <div className={`rounded-lg px-2 py-1 text-xs ${
-                                val != null && val !== '' ? 'bg-forest-100 text-forest-800 font-bold' : 'bg-cream-200 text-bark-500'
+                              <div className={`stage-box py-1 ${
+                                val != null && val !== '' ? 'stage-box-filled' : 'stage-box-empty'
                               }`}>
                                 <div className="text-[10px]">{s.l}</div>
                                 <div className="text-sm">{val != null && val !== '' ? val : '—'}</div>
