@@ -43,19 +43,24 @@ input, select, textarea, button {
   .card {
     @apply bg-white rounded-card border border-bark-200;
   }
+  /* IMPORTANT: inline card styles here — @apply with sibling classes
+     in the same @layer can silently fail in Tailwind */
   .card-interactive {
-    @apply card transition-all duration-150 active:bg-cream-50 active:scale-[0.995];
+    @apply bg-white rounded-card border border-bark-200
+           transition-all duration-150 active:bg-cream-50 active:scale-[0.995];
   }
 
-  /* Stage pipeline boxes — uniform sizing */
+  /* Stage pipeline boxes — uniform sizing (inlined, not chained) */
   .stage-box {
-    @apply rounded-lg w-12 py-0.5 text-center;
+    @apply rounded-lg min-w-[3rem] w-14 py-0.5 text-center;
   }
   .stage-box-filled {
-    @apply stage-box bg-forest-100 text-forest-800 font-bold;
+    @apply rounded-lg min-w-[3rem] w-14 py-0.5 text-center
+           bg-forest-100 text-forest-800 font-bold;
   }
   .stage-box-empty {
-    @apply stage-box bg-cream-100 text-bark-500 border border-cream-300;
+    @apply rounded-lg min-w-[3rem] w-14 py-0.5 text-center
+           bg-cream-100 text-bark-400;
   }
 
   /* Badges — bold, readable, punchy */
