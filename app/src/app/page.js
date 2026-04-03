@@ -4,59 +4,16 @@ import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { localDateString, toJulianDay, fromJulianDay } from '@/lib/helpers'
+import {
+  PROTOCOL_WINDOWS, RENEST_WINDOW, VISIT_RULES, MONTH_NAMES,
+  getNestEvent, EVENT_PRIORITY, formatJD, jdToDateStr, dateStrToJD,
+} from '@/lib/protocol'
 
-// ─── Protocol constants ──────────────────────────────────────
-const PROTOCOL = [
-  { key: 'band',   label: 'Band chicks',      startDay: 4,  endDay: 7,  idealDay: 6,  color: '#6ee7b7', idealColor: '#059669', textOnIdeal: 'B' },
-  { key: 'danger', label: 'DO NOT APPROACH',   startDay: 9,  endDay: 11, idealDay: null, color: '#fca5a5', idealColor: '#dc2626', isDanger: true, textOnIdeal: '!' },
-  { key: 'fledge', label: 'Fledge check',      startDay: 12, endDay: 14, idealDay: null, color: '#93c5fd', idealColor: '#2563eb', textOnIdeal: 'F' },
-  { key: 'indep',  label: 'Independence check', startDay: 22, endDay: 26, idealDay: 24, color: '#c4b5fd', idealColor: '#7c3aed', textOnIdeal: 'I' },
-]
-// Renest check: ~5-14 days after typical independence (Day 24)
-const RENEST_START = 29
-const RENEST_END = 38
-const RENEST_COLOR = '#fed7aa' // orange-200
-const RENEST_IDEAL_COLOR = '#f97316' // orange-500
-
-const VISIT_OVERDUE_DAYS = 5
-const NEST_CHECK_DAYS = 3  // Territories with active pre-hatch nests need visits every 3 days
+// ─── Layout constants ────────────────────────────────────────
 const COL_W = 28
 const LABEL_W = 80
 const CELL_H = 38
-
-const MONTH_NAMES = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 const DAY_LETTERS = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
-
-// ─── Helpers ─────────────────────────────────────────────────
-function jdToDateStr(year, jd) {
-  const { month, day } = fromJulianDay(year, jd)
-  return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-}
-
-function dateStrToJD(dateStr) {
-  const [y, m, d] = dateStr.split('-').map(Number)
-  return toJulianDay(y, m, d)
-}
-
-// Get the highest-priority protocol event for a nest on a given chick-day
-function getNestEvent(chickDay, nest) {
-  for (const w of PROTOCOL) {
-    if (chickDay >= w.startDay && chickDay <= w.endDay) {
-      const field = w.key === 'band' ? 'band' : w.key === 'fledge' ? 'fledge' : w.key === 'indep' ? 'indep' : null
-      const completed = field && nest[field] != null && nest[field] !== ''
-      return { ...w, completed, chickDay }
-    }
-  }
-  // Renest check window (after a completed/failed nest)
-  const nestDone = (nest.indep != null && nest.indep !== '') || (nest.fail_code && nest.fail_code !== '24') || nest.fail_code === '24'
-  if (nestDone && chickDay >= RENEST_START && chickDay <= RENEST_END) {
-    return { key: 'renest', label: 'Check for renesting', color: RENEST_COLOR, idealColor: RENEST_IDEAL_COLOR, idealDay: null, textOnIdeal: 'R', completed: false, chickDay }
-  }
-  return null
-}
-
-// Event priority (lower = more important)
-const EVENT_PRIORITY = { danger: 0, band: 1, fledge: 2, indep: 3, renest: 4, nestcheck: 5, visit: 6 }
 
 export default function Home() {
   const [territories, setTerritories] = useState([])
@@ -111,10 +68,18 @@ export default function Home() {
           if (!nestMap[n.territory]) nestMap[n.territory] = []
           let hatchJD = n.date_hatch ? parseInt(n.date_hatch) : null
           if ((!hatchJD || isNaN(hatchJD)) && n.dfe && n.eggs) {
-            hatchJD = parseInt(n.dfe) + 13 + (parseInt(n.eggs) - 1)
+            hatchJD = parseInt(n.dfe) + VISIT_RULES.INCUBATION_DAYS + (parseInt(n.eggs) - 1)
           }
           if (hatchJD && isNaN(hatchJD)) hatchJD = null
-          nestMap[n.territory].push({ ...n, hatchJD })
+          // Derive DFE for pre-hatch schedule display
+          let dfeJD = n.dfe ? parseInt(n.dfe) : null
+          if ((!dfeJD || isNaN(dfeJD)) && hatchJD && n.eggs) {
+            const cs = parseInt(n.eggs)
+            if (cs >= 1) dfeJD = hatchJD - VISIT_RULES.INCUBATION_DAYS - (cs - 1)
+          }
+          if (dfeJD && isNaN(dfeJD)) dfeJD = null
+          const layingEndJD = dfeJD && n.eggs ? dfeJD + (parseInt(n.eggs) - 1) : null
+          nestMap[n.territory].push({ ...n, hatchJD, dfeJD, layingEndJD })
         }
       }
       for (const t of Object.keys(nestMap)) {
@@ -253,19 +218,40 @@ export default function Home() {
         }
 
         const events = []
+        let preHatchStage = null // Track if any nest is in pre-hatch on this date
         for (const nest of tNests) {
-          if (!nest.hatchJD) continue
-          const chickDay = col.jd - nest.hatchJD + 1
-          if (chickDay < 1) continue
-          const event = getNestEvent(chickDay, nest)
-          if (event) {
-            if (event.key === 'renest' && nest.hatchJD < latestNestHatchJD) continue
-            events.push({ ...event, nestLabel: nest.nestrec ? `#${nest.nestrec}` : `${nest.breed_id}`, breedId: nest.breed_id })
+          if (nest.fail_code && nest.fail_code !== '24') continue // skip failed
+
+          if (nest.hatchJD) {
+            const chickDay = col.jd - nest.hatchJD + 1
+            if (chickDay >= 1) {
+              const event = getNestEvent(chickDay, nest)
+              if (event) {
+                if (event.key === 'renest' && nest.hatchJD < latestNestHatchJD) continue
+                events.push({ ...event, nestLabel: nest.nestrec ? `#${nest.nestrec}` : `${nest.breed_id}`, breedId: nest.breed_id })
+              }
+            } else if (chickDay < 1 && chickDay >= -30) {
+              // Pre-hatch: show incubating/laying period on grid
+              if (nest.layingEndJD && col.jd <= nest.layingEndJD) {
+                preHatchStage = 'laying'
+              } else {
+                preHatchStage = 'incubating'
+              }
+            }
+          } else if (nest.dfeJD && !nest.hatchJD) {
+            // No hatch date but has DFE — show laying/incubating
+            if (col.jd >= nest.dfeJD && col.jd <= nest.dfeJD + 30) {
+              if (nest.layingEndJD && col.jd <= nest.layingEndJD) {
+                preHatchStage = 'laying'
+              } else {
+                preHatchStage = 'incubating'
+              }
+            }
           }
         }
         events.sort((a, b) => (EVENT_PRIORITY[a.key] ?? 99) - (EVENT_PRIORITY[b.key] ?? 99))
-        const needsVisit = !visited && daysSinceVisit !== null && daysSinceVisit >= VISIT_OVERDUE_DAYS && col.jd >= todayJD
-        data[key] = { events, visited, isPlanned, plannedInfo, needsVisit, daysSinceVisit }
+        const needsVisit = !visited && daysSinceVisit !== null && daysSinceVisit >= VISIT_RULES.OVERDUE_DAYS && col.jd >= todayJD
+        data[key] = { events, visited, isPlanned, plannedInfo, needsVisit, daysSinceVisit, preHatchStage }
       }
     }
     return data
@@ -285,12 +271,33 @@ export default function Home() {
       const daysSinceVisit = lastVisitJD != null ? todayJD - lastVisitJD : null
 
       // Active pre-hatch nests: schedule check visits every NEST_CHECK_DAYS
+      // Enhanced: shows estimated hatch date and current stage
       const activePreHatchNests = tNests.filter(n =>
         !n.hatchJD && (!n.fail_code || n.fail_code === '24') && n.stage_find !== 'NFN'
       )
-      if (activePreHatchNests.length > 0 && (daysSinceVisit === null || daysSinceVisit >= NEST_CHECK_DAYS)) {
+      if (activePreHatchNests.length > 0 && (daysSinceVisit === null || daysSinceVisit >= VISIT_RULES.NEST_CHECK_DAYS)) {
         const nestLabels = activePreHatchNests.map(n => n.nestrec ? `#${n.nestrec}` : `(${n.breed_id})`).join(', ')
-        const stageHint = activePreHatchNests.some(n => n.eggs > 0 || n.stage_find === 'IC') ? 'check for hatch' : 'check nest progress'
+        // Derive stage hint with estimated hatch date when possible
+        let stageHint = 'check nest progress'
+        const incubatingNest = activePreHatchNests.find(n => n.eggs > 0 || n.stage_find === 'IC')
+        if (incubatingNest) {
+          // Try to estimate hatch date from DFE
+          if (incubatingNest.dfe && incubatingNest.eggs) {
+            const estHatchJD = parseInt(incubatingNest.dfe) + VISIT_RULES.INCUBATION_DAYS + (parseInt(incubatingNest.eggs) - 1)
+            if (!isNaN(estHatchJD)) {
+              const daysUntilHatch = estHatchJD - todayJD
+              if (daysUntilHatch > 0) {
+                stageHint = `incubating — est. hatch ${formatJD(currentYear, estHatchJD)} (${daysUntilHatch}d)`
+              } else if (daysUntilHatch <= 0) {
+                stageHint = `check for hatch (est. ${formatJD(currentYear, estHatchJD)})`
+              }
+            } else {
+              stageHint = 'check for hatch'
+            }
+          } else {
+            stageHint = 'check for hatch'
+          }
+        }
         today.push({
           id: `nestcheck-${territory}`, type: 'nestcheck',
           label: `Nest ${nestLabels}: ${stageHint}`,
@@ -316,19 +323,18 @@ export default function Home() {
           if (event.isDanger) continue
 
           const nestLabel = nest.nestrec ? `Nest #${nest.nestrec}` : `Nest (${nest.breed_id})`
-          const { month, day } = fromJulianDay(currentYear, jd)
           const task = {
             id: `${event.key}-${nest.breed_id}-${jd}`,
             type: event.key,
-            label: event.label,
+            label: event.fullLabel || event.label,
             territory,
             nestLabel,
             nestLink: `/nests/${nest.nestrec || nest.breed_id}`,
-            dateLabel: `${MONTH_NAMES[month]} ${day}`,
+            dateLabel: formatJD(currentYear, jd),
             jd, chickDay,
             isIdeal: event.idealDay === chickDay,
-            color: event.color,
-            idealColor: event.idealColor,
+            color: event.colorHex,
+            idealColor: event.idealColorHex,
           }
           if (jd === todayJD) today.push(task)
           else upcoming.push(task)
@@ -336,7 +342,7 @@ export default function Home() {
       }
 
       // Territory visit overdue
-      if (daysSinceVisit != null && daysSinceVisit >= VISIT_OVERDUE_DAYS) {
+      if (daysSinceVisit != null && daysSinceVisit >= VISIT_RULES.OVERDUE_DAYS) {
         today.push({
           id: `visit-${territory}`, type: 'visit',
           label: `Visit territory (${daysSinceVisit}d since last)`,
@@ -362,13 +368,12 @@ export default function Home() {
     for (const pa of plannedActions) {
       const paJD = dateStrToJD(pa.planned_date)
       if (paJD >= todayJD && paJD <= upcomingEndJD) {
-        const { month, day } = fromJulianDay(currentYear, paJD)
         const task = {
           id: `planned-${pa.action_id}`, type: 'planned',
           label: pa.notes || `Planned ${pa.action_type}`,
           territory: pa.territory, nestLabel: null,
           nestLink: `/territories/${encodeURIComponent(pa.territory)}`,
-          dateLabel: `${MONTH_NAMES[month]} ${day}`, jd: paJD,
+          dateLabel: formatJD(currentYear, paJD), jd: paJD,
           color: '#bfdbfe', idealColor: '#2563eb',
         }
         if (paJD === todayJD) today.push(task)
@@ -376,7 +381,7 @@ export default function Home() {
       }
     }
 
-    const sortKey = (t) => ({ band: 0, fledge: 1, indep: 2, renest: 3, visit: 4, planned: 5 }[t.type] ?? 99)
+    const sortKey = (t) => (EVENT_PRIORITY[t.type] ?? 99)
     today.sort((a, b) => sortKey(a) - sortKey(b))
     upcoming.sort((a, b) => a.jd - b.jd || sortKey(a) - sortKey(b))
     return { todayTasks: today, upcomingTasks: upcoming }
@@ -467,11 +472,18 @@ export default function Home() {
         <div className="flex items-center justify-between mb-1.5">
           <h2 className="text-sm font-semibold text-gray-700">Schedule</h2>
           <div className="flex flex-wrap gap-1.5 text-[10px] text-gray-500">
-            <span className="flex items-center gap-0.5"><span className="inline-block w-2 h-2 rounded" style={{ background: '#6ee7b7' }} />Band</span>
-            <span className="flex items-center gap-0.5"><span className="inline-block w-2 h-2 rounded" style={{ background: '#fca5a5' }} />Danger</span>
-            <span className="flex items-center gap-0.5"><span className="inline-block w-2 h-2 rounded" style={{ background: '#93c5fd' }} />Fledge</span>
-            <span className="flex items-center gap-0.5"><span className="inline-block w-2 h-2 rounded" style={{ background: '#c4b5fd' }} />Indep</span>
-            <span className="flex items-center gap-0.5"><span className="inline-block w-2 h-2 rounded" style={{ background: '#fed7aa' }} />Renest</span>
+            <span className="flex items-center gap-0.5"><span className="inline-block w-2 h-2 rounded" style={{ background: '#ffedd5' }} />Laying</span>
+            <span className="flex items-center gap-0.5"><span className="inline-block w-2 h-2 rounded" style={{ background: '#fef9c3' }} />Incubating</span>
+            {PROTOCOL_WINDOWS.map(w => (
+              <span key={w.key} className="flex items-center gap-0.5">
+                <span className="inline-block w-2 h-2 rounded" style={{ background: w.colorHex }} />
+                {w.label}
+              </span>
+            ))}
+            <span className="flex items-center gap-0.5">
+              <span className="inline-block w-2 h-2 rounded" style={{ background: RENEST_WINDOW.colorHex }} />
+              Renest
+            </span>
           </div>
         </div>
 
@@ -529,7 +541,7 @@ export default function Home() {
                   {/* Date cells */}
                   {dateColumns.map((dc, ci) => {
                     const key = `${territory}:${dc.dateStr}`
-                    const cell = cellData[key] || { events: [], visited: false, isPlanned: false, needsVisit: false }
+                    const cell = cellData[key] || { events: [], visited: false, isPlanned: false, needsVisit: false, preHatchStage: null }
                     const topEvent = cell.events[0]
 
                     let bg = 'transparent'
@@ -538,7 +550,7 @@ export default function Home() {
 
                     if (topEvent && !topEvent.completed) {
                       const isIdeal = topEvent.idealDay && topEvent.chickDay === topEvent.idealDay
-                      bg = isIdeal ? topEvent.idealColor : topEvent.color
+                      bg = isIdeal ? topEvent.idealColorHex : topEvent.colorHex
                       if (isIdeal || topEvent.isDanger) {
                         textContent = topEvent.textOnIdeal || ''
                         textColor = '#fff'
@@ -547,6 +559,9 @@ export default function Home() {
                       bg = '#e5e7eb'
                       textContent = '✓'
                       textColor = '#6b7280'
+                    } else if (cell.preHatchStage && !topEvent) {
+                      // Pre-hatch coloring: laying = light orange, incubating = light yellow
+                      bg = cell.preHatchStage === 'laying' ? '#ffedd5' : '#fef9c3'
                     } else if (cell.needsVisit) {
                       bg = '#fefce8'
                     }

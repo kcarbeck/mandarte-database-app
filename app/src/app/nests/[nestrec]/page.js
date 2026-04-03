@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { getTerritoryResidents, birdLabel, calculateDFE, estimateHatchDate, toJulianDay, fromJulianDay, localDateString, localTimeString } from '@/lib/helpers'
+import { NEST_STAGES, VISIT_RULES, formatJD } from '@/lib/protocol'
 
 // 2026 field crew — update this list each season
 const OBSERVER_LIST = ['Katherine', 'Emma', 'Anna', 'Jon', 'Jen']
@@ -422,10 +423,10 @@ export default function NestDetailPage({ params }) {
     }
 
     let hd = parseInt(nest.date_hatch)
-    if (!hd && nest.dfe && nest.eggs) hd = nest.dfe + 13 + (nest.eggs - 1)
+    if (!hd && nest.dfe && nest.eggs) hd = nest.dfe + VISIT_RULES.INCUBATION_DAYS + (nest.eggs - 1)
 
     if (hd && !isFailed) {
-      const age = jToday - hd
+      const age = jToday - hd + 1  // Day 1 = hatch day, per protocol
       // Active warnings — current protocol windows
       if (age >= 9 && age <= 11) w.push({ t: 'danger', m: `DO NOT APPROACH — chicks are Day ${age}, will jump prematurely!` })
       if (age === 7) w.push({ t: 'warn', m: 'Day 7 — handle with extreme care, chicks may jump.' })
@@ -434,9 +435,10 @@ export default function NestDetailPage({ params }) {
       if (age >= 12 && age <= 14) w.push({ t: 'info', m: `Fledge check due — chicks ~Day ${age}.` })
       if (age >= 22 && age <= 26) w.push({ t: 'info', m: `Independence check due — chicks ~Day ${age}.` })
       // Overdue warnings — missed protocol steps
-      if (age >= 8 && !nest.band && nest.hatch > 0) w.push({ t: 'warn', m: `Banding may be overdue — chicks are Day ${age}. Record # banded.` })
-      if (age >= 15 && !nest.fledge && nest.hatch > 0) w.push({ t: 'warn', m: `Fledge check overdue — chicks are Day ${age}. Record # fledged.` })
-      if (age >= 27 && !nest.indep && nest.fledge > 0) w.push({ t: 'warn', m: `Independence check overdue — chicks are Day ${age}. Record # independent.` })
+      // Use == null so 0 ("observed zero") is correctly treated as "step completed"
+      if (age >= 8 && nest.band == null && nest.hatch > 0) w.push({ t: 'warn', m: `Banding may be overdue — chicks are Day ${age}. Record # banded.` })
+      if (age >= 15 && nest.fledge == null && nest.hatch > 0) w.push({ t: 'warn', m: `Fledge check overdue — chicks are Day ${age}. Record # fledged.` })
+      if (age >= 27 && nest.indep == null && nest.fledge > 0) w.push({ t: 'warn', m: `Independence check overdue — chicks are Day ${age}. Record # independent.` })
     } else if (!hd && !isFailed && nest.eggs_laid === 'Y' && nest.hatch > 0) {
       // Nest has hatched chicks but no hatch date — protocol warnings can't fire
       w.push({ t: 'warn', m: 'No hatch date estimated yet — enter a chick age visit to enable protocol scheduling.' })
@@ -470,9 +472,7 @@ export default function NestDetailPage({ params }) {
     }
     const fmtDate = (dateStr) => {
       const jd = dateToJD(dateStr)
-      const { month, day } = fromJulianDay(yr, jd)
-      const mNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
-      return { jd, label: `${mNames[month - 1]} ${day}`, dateStr }
+      return { jd, label: formatJD(yr, jd), dateStr }
     }
     // Discovery: first visit
     if (sorted.length > 0) {
@@ -484,10 +484,8 @@ export default function NestDetailPage({ params }) {
     // Hatch: from breed record date_hatch, or first nestling visit
     if (nest.date_hatch) {
       const hd = parseInt(nest.date_hatch)
-      const { month, day } = fromJulianDay(yr, hd)
-      const mNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
       const hatchVisit = sorted.find(v => v.chick_count > 0 || v.nest_stage === 'nestling')
-      result.hatch = { jd: hd, label: `${mNames[month - 1]} ${day}`, comments: hatchVisit?.comments }
+      result.hatch = { jd: hd, label: formatJD(yr, hd), comments: hatchVisit?.comments }
     } else {
       const hatchVisit = sorted.find(v => v.chick_count > 0 || v.nest_stage === 'nestling')
       if (hatchVisit) result.hatch = { ...fmtDate(hatchVisit.visit_date), comments: hatchVisit.comments }

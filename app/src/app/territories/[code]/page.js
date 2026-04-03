@@ -4,13 +4,11 @@ import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { getTerritoryResidents, birdLabel, localDateString, localTimeString, toJulianDay, fromJulianDay, estimateHatchDate } from '@/lib/helpers'
+import { getTerritoryResidents, birdLabel, localDateString, localTimeString, toJulianDay, fromJulianDay } from '@/lib/helpers'
+import { NEST_STAGES, MONTH_NAMES, deriveNestLifecycle, getProtocolWindows, formatWindowDates, formatJD, getSuggestedAction, nestStatusBadge } from '@/lib/protocol'
 
 // 2026 field crew — update this list each season
 const OBSERVER_LIST = ['Katherine', 'Emma', 'Anna', 'Jon', 'Jen']
-
-// Stage progression options for nest visit observations
-const NEST_STAGES = ['building', 'laying', 'incubating', 'hatching', 'nestling', 'fledged', 'independent', 'failed']
 
 // Safe parseInt that returns null instead of NaN (prevents corrupt DB writes)
 const safeInt = (v) => { const n = parseInt(v); return isNaN(n) ? null : n }
@@ -18,17 +16,6 @@ const safeInt = (v) => { const n = parseInt(v); return isNaN(n) ? null : n }
 // Visit log date/time formatters
 const fmtVisitDate = (d) => { if (!d) return ''; const [y, m, day] = d.split('-'); return `${parseInt(m)}/${parseInt(day)}` }
 const fmtVisitTime = (t) => { if (!t) return ''; const [h, m] = t.split(':').map(Number); return `${h > 12 ? h - 12 : h || 12}:${String(m).padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}` }
-
-function nestStatusBadge(nest) {
-  if (nest.fail_code === '24') return { label: 'Success', color: 'bg-green-100 text-green-700' }
-  if (nest.fail_code && nest.fail_code !== '24') return { label: 'Failed', color: 'bg-red-100 text-red-700' }
-  if (nest.indep != null) return { label: 'Independent', color: 'bg-green-100 text-green-700' }
-  if (nest.fledge != null) return { label: 'Fledged', color: 'bg-blue-100 text-blue-700' }
-  if (nest.band != null) return { label: 'Banded', color: 'bg-blue-100 text-blue-700' }
-  if (nest.hatch != null) return { label: 'Hatched', color: 'bg-yellow-100 text-yellow-700' }
-  if (nest.eggs != null) return { label: 'Eggs', color: 'bg-yellow-100 text-yellow-700' }
-  return { label: nest.stage_find || 'Active', color: 'bg-gray-100 text-gray-700' }
-}
 
 export default function TerritoryDetailPage({ params }) {
   const { code } = params
@@ -196,22 +183,9 @@ export default function TerritoryDetailPage({ params }) {
   }
 
   // ── Determine suggested stage for each nest based on protocol ──
+  // Uses shared protocol module for consistent logic
   function getSuggestedStage(nest) {
-    const now = new Date()
-    const todayJD = toJulianDay(now.getFullYear(), now.getMonth() + 1, now.getDate())
-    let hatchJD = nest.date_hatch ? parseInt(nest.date_hatch) : null
-    if (!hatchJD && nest.dfe && nest.eggs) {
-      hatchJD = parseInt(nest.dfe) + 13 + (parseInt(nest.eggs) - 1)
-    }
-    if (!hatchJD || isNaN(hatchJD)) return null
-
-    const chickAge = todayJD - hatchJD + 1
-    if (chickAge >= 4 && chickAge <= 7 && (!nest.band || nest.band === '')) return { stage: 'nestling', hint: `Band window! Day ${chickAge}`, color: 'bg-emerald-200 text-emerald-800' }
-    if (chickAge >= 9 && chickAge <= 11) return { stage: null, hint: `DANGER Day ${chickAge} — DO NOT APPROACH`, color: 'bg-red-200 text-red-800' }
-    if (chickAge >= 12 && chickAge <= 14 && (!nest.fledge || nest.fledge === '')) return { stage: 'fledged', hint: `Fledge check! Day ${chickAge}`, color: 'bg-blue-200 text-blue-800' }
-    if (chickAge >= 22 && chickAge <= 26 && (!nest.indep || nest.indep === '')) return { stage: 'independent', hint: `Independence check! Day ${chickAge}`, color: 'bg-purple-200 text-purple-800' }
-    if (chickAge >= 1 && chickAge <= 3) return { stage: 'nestling', hint: `Nestling Day ${chickAge}`, color: 'bg-yellow-100 text-yellow-800' }
-    return null
+    return getSuggestedAction(nest, todayJD)
   }
 
   // Shared: validate and save banding data from an observation object
@@ -536,15 +510,10 @@ export default function TerritoryDetailPage({ params }) {
       })()
     : null
 
-  // Protocol schedule helpers
+  // Protocol schedule helpers (using shared protocol module)
   const now = new Date()
   const todayJD = toJulianDay(now.getFullYear(), now.getMonth() + 1, now.getDate())
-  const monthNames = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-  const fmtDate = (jd) => {
-    if (jd < 1) return '?'
-    const { month, day } = fromJulianDay(currentYear, jd)
-    return `${monthNames[month]} ${day}`
-  }
+  const fmtDate = (jd) => formatJD(currentYear, jd)
 
   const activeNests = nests.filter(n => !n.fail_code)
   const hasActiveNests = activeNests.length > 0
@@ -1169,47 +1138,19 @@ export default function TerritoryDetailPage({ params }) {
               const isFailed = nest.fail_code && nest.fail_code !== '24'
               const isSuccess = nest.fail_code === '24'
 
-              // Protocol schedule data — try three sources for hatch date:
-              // 1. date_hatch directly from breed record
-              // 2. Estimate from DFE + incubation + laying interval
-              // 3. Back-calculate from chick age observed during a nest visit
-              let hatchJD = nest.date_hatch ? parseInt(nest.date_hatch) : null
-              let hatchSource = 'observed'
-              if (!hatchJD && nest.dfe && nest.eggs) {
-                hatchJD = parseInt(nest.dfe) + 13 + (parseInt(nest.eggs) - 1)
-                hatchSource = 'estimated'
-              }
-              if (!hatchJD && nestVisits.length > 0) {
-                // Back-calculate from best chick age observation
-                const chickObs = nestVisits
-                  .filter(v => v.chick_age_estimate >= 1 && v.visit_date)
-                  .map(v => ({ ...v, ...estimateHatchDate(v.visit_date, v.chick_age_estimate, currentYear) }))
-                  .filter(v => v.hatchJulianDay !== null)
-                  .sort((a, b) => {
-                    const order = { high: 0, medium: 1, low: 2, insufficient_data: 3 }
-                    return (order[a.reliability] || 3) - (order[b.reliability] || 3)
-                  })
-                if (chickObs.length > 0) {
-                  hatchJD = chickObs[0].hatchJulianDay
-                  hatchSource = 'from chick age'
-                }
-              }
-              if (hatchJD && isNaN(hatchJD)) hatchJD = null
+              // ── Derive full nest lifecycle from shared protocol module ──
+              const lifecycle = deriveNestLifecycle(nest, todayJD, currentYear, nestVisits)
+              const { hatchJD, hatchSource, dfeJD, layingEndJD, incubationStartJD, chickAge, currentStage } = lifecycle
+              const windows = getProtocolWindows(nest)
 
-              const chickAge = hatchJD ? todayJD - hatchJD + 1 : null
-
-              const windows = [
-                { key: 'band', label: 'Band', startDay: 4, endDay: 7, idealDay: 6,
-                  bg: 'bg-emerald-100', bgActive: 'bg-emerald-200', bgIdeal: 'bg-emerald-400',
-                  completed: nest.band != null && nest.band !== '' },
-                { key: 'danger', label: 'DANGER — do not approach', startDay: 9, endDay: 11,
-                  bg: 'bg-red-100', bgActive: 'bg-red-300', isDanger: true, completed: false },
-                { key: 'fledge', label: 'Fledge check', startDay: 12, endDay: 14,
-                  bg: 'bg-blue-100', bgActive: 'bg-blue-200',
-                  completed: nest.fledge != null && nest.fledge !== '' },
-                { key: 'indep', label: 'Independence', startDay: 22, endDay: 26, idealDay: 24,
-                  bg: 'bg-purple-100', bgActive: 'bg-purple-200',
-                  completed: nest.indep != null && nest.indep !== '' },
+              // Pre-hatch stage for display: which stage is active right now?
+              const preHatchStages = [
+                { key: 'building', label: 'Building', active: currentStage === 'building',
+                  date: null, color: 'bg-amber-100 text-amber-700' },
+                { key: 'laying', label: 'Laying', active: currentStage === 'laying',
+                  date: dfeJD ? fmtDate(dfeJD) : null, color: 'bg-orange-100 text-orange-700' },
+                { key: 'incubating', label: 'Incubating', active: currentStage === 'incubating',
+                  date: hatchJD ? `est. hatch ${fmtDate(hatchJD)}` : null, color: 'bg-yellow-100 text-yellow-700' },
               ]
 
               return (
@@ -1221,16 +1162,24 @@ export default function TerritoryDetailPage({ params }) {
                     className="w-full text-left p-3 active:bg-gray-50"
                   >
                     <div className="flex justify-between items-start">
-                      <div>
+                      <div className="flex items-center gap-1.5">
                         <span className="font-semibold text-sm">Nest #{nestSeq[nest.breed_id] || '?'}</span>
-                        {chickAge && chickAge > 0 && !isFailed && (
-                          <span className={`ml-2 text-xs font-bold px-1.5 py-0.5 rounded ${
+                        {chickAge != null && chickAge > 0 && !isFailed && (
+                          <span className={`text-xs font-bold px-1.5 py-0.5 rounded ${
                             chickAge >= 9 && chickAge <= 11 ? 'bg-red-100 text-red-700' :
                             chickAge >= 4 && chickAge <= 7 ? 'bg-emerald-100 text-emerald-700' :
                             chickAge >= 12 && chickAge <= 14 ? 'bg-blue-100 text-blue-700' :
                             chickAge >= 22 && chickAge <= 26 ? 'bg-purple-100 text-purple-700' :
                             'bg-gray-100 text-gray-600'
                           }`}>Day {chickAge}</span>
+                        )}
+                        {/* Pre-hatch stage badge (when no chick age yet) */}
+                        {(chickAge == null || chickAge < 1) && !isFailed && !isSuccess && (
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${
+                            preHatchStages.find(s => s.active)?.color || 'bg-gray-100 text-gray-500'
+                          }`}>
+                            {preHatchStages.find(s => s.active)?.label || currentStage}
+                          </span>
                         )}
                       </div>
                       <div className="flex items-center gap-1.5">
@@ -1242,8 +1191,34 @@ export default function TerritoryDetailPage({ params }) {
                       </div>
                     </div>
 
-                    {/* Pipeline flowchart — always visible */}
-                    <div className="mt-2 flex items-center gap-0.5 text-center">
+                    {/* Full lifecycle pipeline — always visible */}
+                    {/* Pre-hatch stages (Building → Laying → Incubating) shown when no hatch yet */}
+                    {/* Post-hatch counts (Eggs → Hatch → Band → Fledge → Indep) always shown */}
+                    <div className="mt-2 flex items-center gap-0.5 text-center flex-wrap">
+                      {/* Pre-hatch stage indicators (compact, only when pre-hatch) */}
+                      {(chickAge == null || chickAge < 1) && !isFailed && !isSuccess && preHatchStages.map((s, i) => {
+                        const isPast = (s.key === 'building' && (currentStage !== 'building'))
+                          || (s.key === 'laying' && ['incubating', 'nestling', 'banded', 'fledged', 'independent'].includes(currentStage))
+                        const isCurrent = s.active
+                        return (
+                          <div key={s.key} className="flex items-center">
+                            {i > 0 && <span className="text-gray-300 mx-0.5">&rarr;</span>}
+                            <div className={`rounded-lg px-1.5 py-0.5 text-[9px] ${
+                              isCurrent ? s.color + ' font-bold' :
+                              isPast ? 'bg-gray-200 text-gray-500' :
+                              'bg-gray-100 text-gray-400'
+                            }`}>
+                              {s.label}
+                              {isCurrent && s.date && <div className="text-[8px] font-normal opacity-70">{s.date}</div>}
+                            </div>
+                          </div>
+                        )
+                      })}
+                      {/* Arrow between pre-hatch and post-hatch sections */}
+                      {(chickAge == null || chickAge < 1) && !isFailed && !isSuccess && (
+                        <span className="text-gray-300 mx-0.5">&rarr;</span>
+                      )}
+                      {/* Post-hatch count stages */}
                       {[
                         { k: 'eggs', l: 'Eggs' }, { k: 'hatch', l: 'Hatch' },
                         { k: 'band', l: 'Band' }, { k: 'fledge', l: 'Fledge' },
@@ -1264,13 +1239,14 @@ export default function TerritoryDetailPage({ params }) {
                       })}
                     </div>
 
-                    {/* Protocol checklist — compact, visible when hatch date known */}
+                    {/* Protocol schedule — date-informed badges */}
                     {hatchJD && !isFailed && (
-                      <div className="flex gap-1 mt-1.5">
+                      <div className="flex gap-1 mt-1.5 flex-wrap">
                         {windows.map(w => {
                           const isActive = chickAge >= w.startDay && chickAge <= w.endDay
                           const isPast = chickAge > w.endDay
                           const isOverdue = isPast && !w.completed && !w.isDanger
+                          const dateRange = formatWindowDates(w, hatchJD, currentYear)
                           return (
                             <span key={w.key} className={`text-[10px] px-1.5 py-0.5 rounded ${
                               w.completed ? 'bg-gray-200 text-gray-500 line-through' :
@@ -1279,10 +1255,8 @@ export default function TerritoryDetailPage({ params }) {
                               isOverdue ? 'bg-orange-100 text-orange-700 font-semibold' :
                               'bg-gray-100 text-gray-400'
                             }`}>
-                              {w.key === 'danger' ? '⚠️ D9-11' : `${w.label} D${w.startDay}-${w.endDay}`}
-                              {w.completed && w.key === 'band' && nest.band != null ? ` ✓${nest.band}` : ''}
-                              {w.completed && w.key === 'fledge' && nest.fledge != null ? ` ✓${nest.fledge}` : ''}
-                              {w.completed && w.key === 'indep' && nest.indep != null ? ` ✓${nest.indep}` : ''}
+                              {w.isDanger ? `⚠️ ${dateRange}` : `${w.label} ${dateRange}`}
+                              {w.completed && w.field && nest[w.field] != null ? ` ✓${nest[w.field]}` : ''}
                               {isOverdue ? ' ⏰' : ''}
                             </span>
                           )
@@ -1290,10 +1264,15 @@ export default function TerritoryDetailPage({ params }) {
                       </div>
                     )}
 
-                    {/* No hatch data hint — schedule needs date_hatch, not just count */}
+                    {/* Pre-hatch: show estimated hatch date if available */}
                     {!hatchJD && !isFailed && !isSuccess && nest.eggs != null && (
                       <p className="text-[10px] text-gray-400 mt-1">
                         Need hatch date for protocol schedule
+                      </p>
+                    )}
+                    {hatchJD && !isFailed && (chickAge == null || chickAge < 1) && (
+                      <p className="text-[10px] text-yellow-600 mt-1 font-medium">
+                        Est. hatch {fmtDate(hatchJD)}{hatchSource && hatchSource !== 'observed' ? ` (${hatchSource})` : ''}
                       </p>
                     )}
                   </button>
@@ -1301,44 +1280,77 @@ export default function TerritoryDetailPage({ params }) {
                   {/* Expanded nest card content */}
                   {isExpanded && (
                     <div className="border-t">
-                      {/* Protocol schedule detail */}
-                      {hatchJD && !isFailed && (
-                        <div className="px-3 pt-3 pb-2">
-                          <div className="text-[11px] text-gray-400 mb-1.5">
-                            Hatch: {fmtDate(hatchJD)}{hatchSource === 'estimated' ? ' (est.)' : ''}
-                            {chickAge > 0 && ` · Day ${chickAge}`}
-                          </div>
-                          {/* Visual day strip */}
-                          <div className="flex gap-px mb-1 overflow-x-auto">
-                            {Array.from({ length: Math.min(Math.max(28, (chickAge || 0) + 3), 30) }, (_, i) => {
-                              const day = i + 1
-                              const isToday = day === chickAge
-                              let cellBg = 'bg-gray-50'
-                              for (const w of windows) {
-                                if (day >= w.startDay && day <= w.endDay) {
-                                  if (w.completed) { cellBg = 'bg-gray-200' }
-                                  else if (w.isDanger) { cellBg = day === chickAge ? 'bg-red-400' : 'bg-red-200' }
-                                  else if (w.idealDay && day === w.idealDay) { cellBg = w.bgIdeal || w.bgActive }
-                                  else if (day === chickAge) { cellBg = w.bgActive }
-                                  else { cellBg = w.bg }
-                                  break
-                                }
-                              }
-                              return (
-                                <div key={day}
-                                  className={`w-[10px] h-[18px] rounded-sm ${cellBg} ${isToday ? 'ring-2 ring-gray-800 ring-offset-1' : ''} flex-shrink-0`}
-                                  title={`Day ${day} — ${fmtDate(hatchJD + day - 1)}`} />
-                              )
-                            })}
-                          </div>
-                          <div className="flex justify-between text-[9px] text-gray-400 px-0.5">
-                            <span>{fmtDate(hatchJD)}</span>
-                            <span>{fmtDate(hatchJD + Math.min(Math.max(28, (chickAge || 0) + 3), 30) - 1)}</span>
-                          </div>
+                      {/* Full lifecycle timeline with dates */}
+                      <div className="px-3 pt-3 pb-2">
+                        {/* Date milestones */}
+                        <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-[11px] text-gray-500 mb-1.5">
+                          {dfeJD && <span>DFE: {fmtDate(dfeJD)}{lifecycle.dfeSource !== 'observed' ? ' (est.)' : ''}</span>}
+                          {hatchJD && <span>Hatch: {fmtDate(hatchJD)}{hatchSource !== 'observed' ? ' (est.)' : ''}</span>}
+                          {chickAge != null && chickAge > 0 && <span>Day {chickAge}</span>}
+                          {currentStage && !isFailed && !isSuccess && <span className="font-medium text-gray-700">Stage: {currentStage}</span>}
                         </div>
-                      )}
 
-                      {/* Pipeline counts */}
+                        {/* Visual day strip — now includes pre-hatch if we have DFE */}
+                        {(hatchJD || dfeJD) && !isFailed && (() => {
+                          // Calculate strip range: from DFE (or hatch) to Day 28+
+                          const stripStartJD = dfeJD && dfeJD < (hatchJD || Infinity) ? dfeJD : hatchJD
+                          const stripEndJD = hatchJD
+                            ? hatchJD + Math.min(Math.max(28, (chickAge || 0) + 3), 30) - 1
+                            : stripStartJD + 30
+                          const stripLen = stripEndJD - stripStartJD + 1
+
+                          return (
+                            <>
+                              <div className="flex gap-px mb-1 overflow-x-auto">
+                                {Array.from({ length: stripLen }, (_, i) => {
+                                  const cellJD = stripStartJD + i
+                                  const isToday = cellJD === todayJD
+                                  const chickDay = hatchJD ? cellJD - hatchJD + 1 : null
+                                  let cellBg = 'bg-gray-50'
+
+                                  // Pre-hatch coloring
+                                  if (hatchJD && cellJD < hatchJD) {
+                                    if (layingEndJD && cellJD <= layingEndJD) {
+                                      cellBg = 'bg-orange-100' // Laying
+                                    } else {
+                                      cellBg = 'bg-yellow-100' // Incubating
+                                    }
+                                  }
+                                  // Post-hatch protocol windows
+                                  else if (chickDay && chickDay >= 1) {
+                                    for (const w of windows) {
+                                      if (chickDay >= w.startDay && chickDay <= w.endDay) {
+                                        if (w.completed) { cellBg = 'bg-gray-200' }
+                                        else if (w.isDanger) { cellBg = cellJD === todayJD ? 'bg-red-400' : 'bg-red-200' }
+                                        else if (w.idealDay && chickDay === w.idealDay) { cellBg = w.bgIdeal || w.bgActive }
+                                        else if (cellJD === todayJD) { cellBg = w.bgActive }
+                                        else { cellBg = w.bg }
+                                        break
+                                      }
+                                    }
+                                  }
+
+                                  const title = chickDay && chickDay >= 1
+                                    ? `Day ${chickDay} — ${fmtDate(cellJD)}`
+                                    : `${fmtDate(cellJD)}${layingEndJD && cellJD <= layingEndJD ? ' (laying)' : hatchJD && cellJD < hatchJD ? ' (incubating)' : ''}`
+
+                                  return (
+                                    <div key={i}
+                                      className={`w-[10px] h-[18px] rounded-sm ${cellBg} ${isToday ? 'ring-2 ring-gray-800 ring-offset-1' : ''} flex-shrink-0`}
+                                      title={title} />
+                                  )
+                                })}
+                              </div>
+                              <div className="flex justify-between text-[9px] text-gray-400 px-0.5">
+                                <span>{fmtDate(stripStartJD)}</span>
+                                <span>{fmtDate(stripEndJD)}</span>
+                              </div>
+                            </>
+                          )
+                        })()}
+                      </div>
+
+                      {/* Pipeline counts (expanded view — slightly larger) */}
                       <div className="px-3 py-2 flex items-center gap-1 text-center">
                         {[
                           { k: 'eggs', l: 'Eggs' }, { k: 'hatch', l: 'Hatch' },

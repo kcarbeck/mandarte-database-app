@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
-import { birdLabel, fromJulianDay } from '@/lib/helpers'
+import { birdLabel } from '@/lib/helpers'
+import { formatJD, nestStatusBadge } from '@/lib/protocol'
 
 export default function NestsPage() {
   const [nests, setNests] = useState([])
@@ -80,17 +81,6 @@ export default function NestsPage() {
     }
   }
 
-  function nestStatusBadge(nest) {
-    if (nest.fail_code === '24') return { label: 'Success', color: 'bg-green-100 text-green-700' }
-    if (nest.fail_code && nest.fail_code !== '24') return { label: 'Failed', color: 'bg-red-100 text-red-700' }
-    if (nest.indep != null) return { label: 'Independent', color: 'bg-green-100 text-green-700' }
-    if (nest.fledge != null) return { label: 'Fledged', color: 'bg-blue-100 text-blue-700' }
-    if (nest.band != null) return { label: 'Banded', color: 'bg-blue-100 text-blue-700' }
-    if (nest.hatch != null) return { label: 'Hatched', color: 'bg-yellow-100 text-yellow-700' }
-    if (nest.eggs != null) return { label: 'Eggs', color: 'bg-yellow-100 text-yellow-700' }
-    return { label: nest.stage_find || 'Active', color: 'bg-gray-100 text-gray-700' }
-  }
-
   if (loading) {
     return <div className="text-center py-8 text-gray-500">Loading nests...</div>
   }
@@ -146,19 +136,15 @@ export default function NestsPage() {
                 {/* Pipeline flow: Eggs → Hatch → Band → Fledge → Indep */}
                 <div className="mt-1.5 flex items-center gap-0.5">
                   {[
-                    { k: 'eggs', l: 'Eggs', d: nest.dfe },
-                    { k: 'hatch', l: 'Hatch', d: nest.date_hatch },
-                    { k: 'band', l: 'Band', d: null },
-                    { k: 'fledge', l: 'Fledge', d: null },
-                    { k: 'indep', l: 'Indep', d: null },
+                    { k: 'eggs', l: 'Eggs', jd: nest.dfe },
+                    { k: 'hatch', l: 'Hatch', jd: nest.date_hatch },
+                    { k: 'band', l: 'Band', jd: null },
+                    { k: 'fledge', l: 'Fledge', jd: null },
+                    { k: 'indep', l: 'Indep', jd: null },
                   ].map((s, i) => {
                     const val = nest[s.k]
                     const filled = val != null
-                    const jdLabel = s.d ? (() => {
-                      const { month, day } = fromJulianDay(nest.year || currentYear, parseInt(s.d))
-                      const m = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
-                      return `${m[month - 1]} ${day}`
-                    })() : null
+                    const dateLabel = s.jd ? formatJD(nest.year || currentYear, parseInt(s.jd)) : null
                     return (
                       <div key={s.k} className="flex items-center">
                         {i > 0 && <span className="text-gray-300 text-[10px] mx-0.5">→</span>}
@@ -167,7 +153,7 @@ export default function NestsPage() {
                         }`}>
                           <div className="text-[9px] leading-tight">{s.l}</div>
                           <div className="text-xs font-bold font-mono leading-tight">{filled ? val : '—'}</div>
-                          {jdLabel && <div className="text-[8px] leading-tight opacity-70">{jdLabel}</div>}
+                          {dateLabel && dateLabel !== '?' && <div className="text-[8px] leading-tight opacity-70">{dateLabel}</div>}
                         </div>
                       </div>
                     )
