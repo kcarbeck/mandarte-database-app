@@ -7,7 +7,7 @@ import { getTerritoryResidents, birdLabel } from '@/lib/helpers'
 
 export default function NewNestPage() {
   return (
-    <Suspense fallback={<div className="text-center py-8 text-gray-500">Loading...</div>}>
+    <Suspense fallback={<div className="text-center py-8 text-bark-400">Loading...</div>}>
       <NewNestForm />
     </Suspense>
   )
@@ -99,29 +99,31 @@ function NewNestForm() {
 
   return (
     <div className="space-y-4">
-      <h2 className="text-lg font-bold text-gray-900">New Nest Card</h2>
-      <p className="text-xs text-gray-400">Nest record # will be assigned during proofing</p>
+      <div>
+        <h2 className="section-title">New Nest Card</h2>
+        <p className="text-2xs text-bark-400">Nest record # will be assigned during proofing</p>
+      </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Territory */}
-        <div className="bg-white rounded-lg border p-4 space-y-3">
+        <div className="card p-4 space-y-3">
           <div>
-            <label className="block text-xs font-semibold text-gray-600 mb-1">Territory *</label>
+            <label className="label">Territory *</label>
             <input type="text" value={form.territory}
               onChange={e => updateForm('territory', e.target.value)}
-              placeholder="e.g., 14" className="w-full border rounded-lg px-3 py-2 text-sm" required />
+              placeholder="e.g., 14" className="input" required />
           </div>
 
           {/* Parents auto-filled from territory */}
           {form.territory && (
-            <div className="bg-gray-50 rounded-lg p-3 space-y-1">
-              <p className="text-xs font-semibold text-gray-600">Parents (from territory card)</p>
-              <div className="flex gap-4 text-sm">
+            <div className="bg-cream-100 rounded-card p-3 space-y-1">
+              <p className="text-2xs font-semibold text-forest-700">Parents (from territory card)</p>
+              <div className="flex gap-4 text-sm text-bark-600">
                 <span>♂ <span className="font-mono">{birdLabel(male)}</span></span>
                 <span>♀ <span className="font-mono">{birdLabel(female)}</span></span>
               </div>
               {(!male || !female) && (
-                <p className="text-xs text-orange-600 mt-1">
+                <p className="text-2xs text-rust-600 mt-1">
                   Missing parent? Assign birds in the Birds tab first.
                 </p>
               )}
@@ -130,28 +132,28 @@ function NewNestForm() {
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Male attempt #</label>
+              <label className="label">Male attempt #</label>
               <input type="text" value={form.male_attempt}
                 onChange={e => updateForm('male_attempt', e.target.value)}
-                placeholder="e.g., 1" className="w-full border rounded-lg px-3 py-2 text-sm" />
+                placeholder="e.g., 1" className="input" />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Female attempt #</label>
+              <label className="label">Female attempt #</label>
               <input type="text" value={form.female_attempt}
                 onChange={e => updateForm('female_attempt', e.target.value)}
-                placeholder="e.g., 1" className="w-full border rounded-lg px-3 py-2 text-sm" />
+                placeholder="e.g., 1" className="input" />
             </div>
           </div>
         </div>
 
         {/* Nest details */}
-        <div className="bg-white rounded-lg border p-4 space-y-3">
-          <h3 className="font-semibold text-sm text-gray-700">Nest Details</h3>
+        <div className="card p-4 space-y-3">
+          <h3 className="section-subtitle">Nest Details</h3>
           <div>
-            <label className="block text-xs font-semibold text-gray-600 mb-1">Stage of Find *</label>
+            <label className="label">Stage of Find *</label>
             <select value={form.stage_find}
               onChange={e => updateForm('stage_find', e.target.value)}
-              className="w-full border rounded-lg px-3 py-2 text-sm bg-white" required>
+              className="input" required>
               <option value="">Select stage...</option>
               <option value="NB">NB — Nest building</option>
               <option value="EL">EL — Egg laying</option>
@@ -164,39 +166,39 @@ function NewNestForm() {
               <option value="NFN">NFN — Never found nest (breeding confirmed by other evidence)</option>
               <option value="UK">UK — Unknown</option>
             </select>
-            <p className="text-[10px] text-gray-400 mt-1">Record egg/chick counts via nest observations on the territory page</p>
+            <p className="text-2xs text-bark-400 mt-1">Record egg/chick counts via nest observations on the territory page</p>
           </div>
           <div>
-            <label className="block text-xs font-semibold text-gray-600 mb-1">Nest height</label>
+            <label className="label">Nest height</label>
             <input type="text" value={form.nest_height}
               onChange={e => updateForm('nest_height', e.target.value)}
-              placeholder="e.g., 1.2m" className="w-full border rounded-lg px-3 py-2 text-sm" />
+              placeholder="e.g., 1.2m" className="input" />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-gray-600 mb-1">Vegetation</label>
+            <label className="label">Vegetation</label>
             <input type="text" value={form.vegetation}
               onChange={e => updateForm('vegetation', e.target.value)}
-              placeholder="Plant species or description" className="w-full border rounded-lg px-3 py-2 text-sm" />
+              placeholder="Plant species or description" className="input" />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-gray-600 mb-1">Nest description</label>
+            <label className="label">Nest description</label>
             <textarea value={form.nest_description}
               onChange={e => updateForm('nest_description', e.target.value)}
-              placeholder="Describe the nest" className="w-full border rounded-lg px-3 py-2 text-sm" rows={2} />
+              placeholder="Describe the nest" className="input" rows={2} />
           </div>
         </div>
 
         {/* Notes */}
-        <div className="bg-white rounded-lg border p-4">
-          <label className="block text-xs font-semibold text-gray-600 mb-1">Notes</label>
+        <div className="card p-4">
+          <label className="label">Notes</label>
           <textarea value={form.notes}
             onChange={e => updateForm('notes', e.target.value)}
-            placeholder="Any additional notes" className="w-full border rounded-lg px-3 py-2 text-sm" rows={2} />
+            placeholder="Any additional notes" className="input" rows={2} />
         </div>
 
         <button type="submit" disabled={submitting}
-          className="w-full bg-green-600 text-white rounded-lg py-3 font-semibold text-base disabled:opacity-50">
-          {submitting ? 'Creating...' : 'Create Nest Card'}
+          className="btn-accent btn-lg w-full disabled:opacity-50">
+          {submitting ? '⏳ Creating...' : 'Create Nest Card'}
         </button>
       </form>
     </div>

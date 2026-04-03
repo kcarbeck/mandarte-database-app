@@ -497,7 +497,11 @@ export default function TerritoryDetailPage({ params }) {
     }
   }
 
-  if (loading) return <div className="text-center py-8 text-gray-500">Loading...</div>
+  if (loading) return (
+    <div className="flex justify-center items-center py-12">
+      <div className="animate-spin rounded-full h-8 w-8 border-2 border-forest-300 border-t-forest-600"></div>
+    </div>
+  )
 
   const lastVisitDate = visits[0]?.visit_date
   const daysSince = lastVisitDate
@@ -530,18 +534,18 @@ export default function TerritoryDetailPage({ params }) {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2 mb-2">
-        <Link href="/territories" className="text-blue-600 text-sm">&larr; Territories</Link>
+        <Link href="/territories" className="text-forest-600 font-semibold hover:text-forest-700 text-sm">&larr; Territories</Link>
       </div>
 
       {/* Territory card header */}
-      <div className="bg-white rounded-lg border p-4">
+      <div className="card p-4">
         <div className="flex justify-between items-start">
-          <h2 className="text-xl font-bold">Territory {territoryCode}</h2>
+          <h2 className="text-xl font-bold text-forest-800">Territory {territoryCode}</h2>
           {daysSince !== null && (
-            <span className={`text-xs px-2 py-0.5 rounded-full ${
-              !isOverdue ? 'bg-green-100 text-green-700' :
-              daysSince <= visitInterval + 2 ? 'bg-yellow-100 text-yellow-700' :
-              'bg-red-100 text-red-700'
+            <span className={`text-2xs px-2 py-0.5 rounded-full font-medium ${
+              !isOverdue ? 'badge badge-success' :
+              daysSince <= visitInterval + 2 ? 'badge badge-warning' :
+              'badge badge-danger'
             }`}>
               {daysSince === 0 ? 'Visited today' : `${daysSince}d ago`}
             </span>
@@ -550,43 +554,43 @@ export default function TerritoryDetailPage({ params }) {
 
         {/* Territory status + visit schedule */}
         <div className="mt-2 flex items-center gap-2 flex-wrap">
-          <span className="text-xs text-gray-500">Visit every {visitInterval}d</span>
+          <span className="text-2xs text-bark-400">Visit every {visitInterval}d</span>
           {terrStatus.status === TERRITORY_STATUS.SINGLE_MALE && (
-            <span className="text-xs bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded">♂ only</span>
+            <span className="badge badge-info text-2xs">♂ Single male</span>
           )}
           {(terrStatus.status === TERRITORY_STATUS.RENEST_WATCH || terrStatus.status === TERRITORY_STATUS.RENEST_URGENT) && (
-            <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${
+            <span className={`${
               terrStatus.status === TERRITORY_STATUS.RENEST_URGENT
-                ? 'bg-red-100 text-red-700' : 'bg-orange-100 text-orange-700'
-            }`}>
+                ? 'badge badge-danger' : 'badge badge-warning'
+            } text-2xs`}>
               {terrStatus.label}
             </span>
           )}
         </div>
 
         {/* Resident birds */}
-        <div className="mt-3 space-y-3">
+        <div className="mt-4 space-y-3">
           <div>
-            <div className="text-xs font-semibold text-blue-600 mb-1">♂ Males</div>
+            <div className="text-2xs font-semibold text-blue-600 mb-2">♂ Males</div>
             {allAssignments.filter(a => a.sex === 2).length === 0 ? (
-              <div className="flex items-center gap-2 text-sm text-gray-400">
+              <div className="flex items-center gap-2 text-sm text-bark-400">
                 <span>— No male assigned</span>
-                <Link href="/birds" className="text-xs text-blue-600 underline">Assign</Link>
+                <Link href="/birds" className="text-2xs text-forest-600 font-semibold hover:underline">Assign</Link>
               </div>
             ) : (
               <div className="space-y-1">
                 {allAssignments.filter(a => a.sex === 2).map(a => (
                   <div key={a.assignment_id} className={`flex items-center justify-between text-sm rounded px-2 py-1 ${
-                    !a.end_date ? 'bg-blue-50 border border-blue-200' : 'bg-gray-50'
+                    !a.end_date ? 'bg-blue-50 border border-blue-200' : 'bg-cream-100 border border-cream-200'
                   }`}>
                     <div className="flex items-center gap-2">
-                      <span className={`font-mono font-semibold ${a.end_date ? 'text-gray-400' : ''}`}>
+                      <span className={`band-id ${a.end_date ? 'text-bark-400' : 'text-blue-600'}`}>
                         {birdLabel(a)}
                       </span>
-                      {a.confirmed && <span className="text-xs text-green-500">✓</span>}
-                      {!a.end_date && <span className="text-[10px] bg-blue-600 text-white px-1.5 py-0.5 rounded">current</span>}
+                      {a.confirmed && <span className="text-2xs text-sage-400">✓</span>}
+                      {!a.end_date && <span className="text-2xs bg-blue-600 text-white px-1.5 py-0.5 rounded">current</span>}
                     </div>
-                    <span className="text-[11px] text-gray-400">
+                    <span className="text-2xs text-bark-400">
                       {a.start_date}{a.end_date ? ` → ${a.end_date}` : ' → present'}
                     </span>
                   </div>
@@ -595,26 +599,26 @@ export default function TerritoryDetailPage({ params }) {
             )}
           </div>
           <div>
-            <div className="text-xs font-semibold text-pink-600 mb-1">♀ Females</div>
+            <div className="text-2xs font-semibold text-pink-600 mb-2">♀ Females</div>
             {allAssignments.filter(a => a.sex === 1).length === 0 ? (
-              <div className="flex items-center gap-2 text-sm text-gray-400">
+              <div className="flex items-center gap-2 text-sm text-bark-400">
                 <span>— No female assigned</span>
-                <Link href="/birds" className="text-xs text-blue-600 underline">Assign</Link>
+                <Link href="/birds" className="text-2xs text-forest-600 font-semibold hover:underline">Assign</Link>
               </div>
             ) : (
               <div className="space-y-1">
                 {allAssignments.filter(a => a.sex === 1).map(a => (
                   <div key={a.assignment_id} className={`flex items-center justify-between text-sm rounded px-2 py-1 ${
-                    !a.end_date ? 'bg-pink-50 border border-pink-200' : 'bg-gray-50'
+                    !a.end_date ? 'bg-pink-50 border border-pink-200' : 'bg-cream-100 border border-cream-200'
                   }`}>
                     <div className="flex items-center gap-2">
-                      <span className={`font-mono font-semibold ${a.end_date ? 'text-gray-400' : ''}`}>
+                      <span className={`band-id ${a.end_date ? 'text-bark-400' : 'text-pink-600'}`}>
                         {birdLabel(a)}
                       </span>
-                      {a.confirmed && <span className="text-xs text-green-500">✓</span>}
-                      {!a.end_date && <span className="text-[10px] bg-pink-600 text-white px-1.5 py-0.5 rounded">current</span>}
+                      {a.confirmed && <span className="text-2xs text-sage-400">✓</span>}
+                      {!a.end_date && <span className="text-2xs bg-pink-600 text-white px-1.5 py-0.5 rounded">current</span>}
                     </div>
-                    <span className="text-[11px] text-gray-400">
+                    <span className="text-2xs text-bark-400">
                       {a.start_date}{a.end_date ? ` → ${a.end_date}` : ' → present'}
                     </span>
                   </div>
@@ -624,7 +628,7 @@ export default function TerritoryDetailPage({ params }) {
           </div>
         </div>
 
-        <div className="text-xs text-gray-400 mt-2">
+        <div className="text-2xs text-bark-400 mt-3">
           {visits.length} visits · {nests.length} nest{nests.length !== 1 ? 's' : ''} this season
         </div>
       </div>
@@ -633,13 +637,13 @@ export default function TerritoryDetailPage({ params }) {
       <div className="flex gap-2">
         <button
           onClick={() => setShowVisitForm(!showVisitForm)}
-          className="flex-1 bg-blue-600 text-white rounded-lg py-2.5 text-center text-sm font-semibold"
+          className="flex-1 btn-primary btn-md"
         >
           Log Visit
         </button>
         <Link
           href={`/nests/new?territory=${encodeURIComponent(territoryCode)}`}
-          className="flex-1 bg-green-600 text-white rounded-lg py-2.5 text-center text-sm font-semibold"
+          className="flex-1 btn-accent btn-md text-center"
         >
           New Nest
         </Link>
@@ -649,29 +653,29 @@ export default function TerritoryDetailPage({ params }) {
           VISIT FORM
           ═══════════════════════════════════════════════════════════════ */}
       {showVisitForm && (
-        <form onSubmit={handleSubmitVisit} className="bg-white rounded-lg border p-4 space-y-3">
-          <h3 className="font-semibold text-sm text-gray-700">Log Territory Visit</h3>
+        <form onSubmit={handleSubmitVisit} className="card p-4 space-y-4">
+          <h3 className="section-title">Log Territory Visit</h3>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Date</label>
+              <label className="label">Date</label>
               <input type="date" value={visitForm.visit_date}
                 onChange={e => setVisitForm({ ...visitForm, visit_date: e.target.value })}
-                className="w-full border rounded-lg px-3 py-2 text-sm" />
+                className="input w-full" />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Time</label>
+              <label className="label">Time</label>
               <input type="time" value={visitForm.visit_time}
                 onChange={e => setVisitForm({ ...visitForm, visit_time: e.target.value })}
-                className="w-full border rounded-lg px-3 py-2 text-sm" />
+                className="input w-full" />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs text-gray-500 mb-1">Observer *</label>
+            <label className="label">Observer *</label>
             <select value={visitForm.observer}
               onChange={e => setVisitForm({ ...visitForm, observer: e.target.value })}
-              className="w-full border rounded-lg px-3 py-2 text-sm bg-white" required>
+              className="input w-full" required>
               <option value="">Select observer...</option>
               {OBSERVER_LIST.map(name => <option key={name} value={name}>{name}</option>)}
             </select>
@@ -684,40 +688,40 @@ export default function TerritoryDetailPage({ params }) {
                 onChange={e => setVisitForm({ ...visitForm, male_seen: e.target.checked })}
                 className="w-5 h-5 rounded" />
               <span>♂ Male seen</span>
-              {male?.color_combo && <span className="font-mono text-xs text-gray-400">{male.color_combo}</span>}
+              {male?.color_combo && <span className="band-id">{male.color_combo}</span>}
             </label>
             <label className="flex items-center gap-2 text-sm">
               <input type="checkbox" checked={visitForm.female_seen}
                 onChange={e => setVisitForm({ ...visitForm, female_seen: e.target.checked })}
                 className="w-5 h-5 rounded" />
               <span>♀ Female seen</span>
-              {female?.color_combo && <span className="font-mono text-xs text-gray-400">{female.color_combo}</span>}
+              {female?.color_combo && <span className="band-id">{female.color_combo}</span>}
             </label>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Minutes spent</label>
+              <label className="label">Minutes spent</label>
               <input type="number" min="0" value={visitForm.minutes_spent}
                 onChange={e => setVisitForm({ ...visitForm, minutes_spent: e.target.value })}
-                placeholder="e.g., 15" className="w-full border rounded-lg px-3 py-2 text-sm" />
+                placeholder="e.g., 15" className="input w-full" />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Nest activity</label>
+              <label className="label">Nest activity</label>
               {hasActiveNests ? (
                 <>
                   <select value={visitForm.nest_status_flag}
                     onChange={e => setVisitForm({ ...visitForm, nest_status_flag: e.target.value })}
-                    className="w-full border rounded-lg px-3 py-2 text-sm bg-white">
+                    className="input w-full">
                     <option value="no_change">Use nest cards below</option>
                     <option value="new_nest_found">New nest!</option>
                   </select>
-                  <p className="text-[10px] text-gray-400 mt-0.5">Record nest observations in the cards below</p>
+                  <p className="text-2xs text-bark-400 mt-0.5">Record nest observations in the cards below</p>
                 </>
               ) : (
                 <select value={visitForm.nest_status_flag}
                   onChange={e => setVisitForm({ ...visitForm, nest_status_flag: e.target.value })}
-                  className="w-full border rounded-lg px-3 py-2 text-sm bg-white">
+                  className="input w-full">
                   <option value="no_change">None</option>
                   <option value="existing_nest_checked">Checked nest</option>
                   <option value="new_nest_found">New nest!</option>
@@ -727,29 +731,29 @@ export default function TerritoryDetailPage({ params }) {
           </div>
 
           <div>
-            <label className="block text-xs text-gray-500 mb-1">Visit notes *</label>
+            <label className="label">Visit notes *</label>
             <textarea value={visitForm.notes}
               onChange={e => setVisitForm({ ...visitForm, notes: e.target.value })}
               placeholder="Territory + nest observations, behavior, song, location..."
-              className="w-full border rounded-lg px-3 py-2 text-sm" rows={3} required />
+              className="input w-full" rows={3} required />
             {visitForm.notes.trim().length > 0 && visitForm.notes.trim().length < 3 && (
-              <p className="text-xs text-red-500 mt-1">Please add at least a brief observation.</p>
+              <p className="text-2xs text-rust-600 mt-1">Please add at least a brief observation.</p>
             )}
           </div>
 
           <div>
-            <label className="block text-xs text-gray-500 mb-1">Other sparrows seen <span className="text-gray-400 font-normal">(optional — band combos of floaters, neighbours, etc.)</span></label>
+            <label className="label">Other sparrows seen <span className="text-bark-400 font-normal text-2xs">(optional — band combos of floaters, neighbours, etc.)</span></label>
             <input type="text" value={visitForm.other_birds_notes}
               onChange={e => setVisitForm({ ...visitForm, other_birds_notes: e.target.value })}
               placeholder="e.g. RW-SG on south edge"
-              className="w-full border rounded-lg px-3 py-2 text-sm" />
+              className="input w-full" />
           </div>
 
           {/* ── Nest observations within visit form ── */}
           {hasActiveNests && (
-            <div className="border-t pt-3">
-              <h4 className="text-xs font-semibold text-gray-700 mb-1">Nest Observations</h4>
-              <p className="text-[10px] text-gray-400 mb-2">Stage and counts saved to each nest&apos;s card.</p>
+            <div className="border-t border-cream-300 pt-4">
+              <h4 className="section-subtitle mb-1">Nest Observations</h4>
+              <p className="text-2xs text-bark-400 mb-3">Stage and counts saved to each nest's card.</p>
 
               {/* Nest selector — show buttons when multiple nests */}
               {activeNests.length > 1 && (
@@ -786,24 +790,24 @@ export default function TerritoryDetailPage({ params }) {
                   const suggested = getSuggestedStage(nest)
 
                   return (
-                    <div key={nest.breed_id} className="bg-gray-50 rounded-lg p-3 space-y-2">
+                    <div key={nest.breed_id} className="bg-cream-100 rounded-card p-3 space-y-3">
                       <div className="flex justify-between items-center">
-                        <span className="text-xs font-semibold text-gray-700">
+                        <span className="text-2xs font-semibold text-forest-700">
                           Nest #{nestSeq[nest.breed_id] || '?'}
                         </span>
-                        <span className={`text-[10px] px-1.5 py-0.5 rounded ${status.color}`}>{status.label}</span>
+                        <span className={`text-2xs px-1.5 py-0.5 rounded ${status.color}`}>{status.label}</span>
                       </div>
 
                       {/* Context-aware suggestion banner */}
                       {suggested && (
-                        <div className={`text-[11px] font-semibold px-2 py-1 rounded ${suggested.color}`}>
+                        <div className={`text-2xs font-semibold px-2 py-1 rounded ${suggested.color}`}>
                           {suggested.hint}
                         </div>
                       )}
 
                       {/* Stage selector */}
                       <div>
-                        <label className="block text-[10px] text-gray-500 mb-1">What did you observe?</label>
+                        <label className="label text-2xs">What did you observe?</label>
                         <div className="flex flex-wrap gap-1">
                           {[...NEST_STAGES, 'no_change'].map(stage => {
                             const isSuggested = suggested?.stage === stage
@@ -812,12 +816,12 @@ export default function TerritoryDetailPage({ params }) {
                                 key={stage}
                                 type="button"
                                 onClick={() => setNestObs({ ...nestObs, [nest.breed_id]: { ...obs, stage } })}
-                                className={`text-xs px-2 py-1 rounded ${
+                                className={`text-2xs px-2 py-1 rounded ${
                                   obs.stage === stage
-                                    ? 'bg-blue-600 text-white'
+                                    ? 'bg-forest-600 text-white'
                                     : isSuggested
-                                    ? 'bg-yellow-100 border-2 border-yellow-400 text-yellow-800 font-semibold'
-                                    : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
+                                    ? 'bg-rust-100 border-2 border-rust-400 text-rust-700 font-semibold'
+                                    : 'bg-white border border-cream-300 text-bark-700 hover:bg-cream-50'
                                 }`}
                               >
                                 {stage === 'no_change' ? 'No change' : stage.charAt(0).toUpperCase() + stage.slice(1)}
@@ -829,21 +833,21 @@ export default function TerritoryDetailPage({ params }) {
 
                       {/* Stage-specific fields */}
                       {obs.stage && obs.stage !== 'no_change' && (
-                        <div className="space-y-2">
+                        <div className="space-y-3">
                           {(obs.stage === 'laying' || obs.stage === 'incubating') && (
                             <>
                               <div className="grid grid-cols-2 gap-2">
                                 <div>
-                                  <label className="block text-xs text-gray-600 mb-1">Egg count</label>
+                                  <label className="label text-2xs">Egg count</label>
                                   <input type="number" min="0" value={obs.egg_count || ''}
                                     onChange={e => setNestObs({ ...nestObs, [nest.breed_id]: { ...obs, egg_count: e.target.value } })}
-                                    placeholder="0" className="w-full border rounded-lg px-3 py-2 text-sm" />
+                                    placeholder="0" className="input w-full" />
                                 </div>
                                 <div>
-                                  <label className="block text-xs text-gray-600 mb-1">Eggs quality</label>
+                                  <label className="label text-2xs">Eggs quality</label>
                                   <select value={obs.eggs_quality || ''}
                                     onChange={e => setNestObs({ ...nestObs, [nest.breed_id]: { ...obs, eggs_quality: e.target.value } })}
-                                    className="w-full border rounded-lg px-3 py-2 text-sm bg-white">
+                                    className="input w-full">
                                     <option value="">flag</option>
                                     <option value=".">. reliable</option>
                                     <option value="?">? uncertain</option>
@@ -854,16 +858,16 @@ export default function TerritoryDetailPage({ params }) {
                               </div>
                               <div className="grid grid-cols-2 gap-2">
                                 <div>
-                                  <label className="block text-xs text-gray-600 mb-1">Cowbird eggs</label>
+                                  <label className="label text-2xs">Cowbird eggs</label>
                                   <input type="number" min="0" value={obs.cowbird_eggs || ''}
                                     onChange={e => setNestObs({ ...nestObs, [nest.breed_id]: { ...obs, cowbird_eggs: e.target.value } })}
-                                    placeholder="0" className="w-full border rounded-lg px-3 py-2 text-sm" />
+                                    placeholder="0" className="input w-full" />
                                 </div>
                                 <div>
-                                  <label className="block text-xs text-gray-600 mb-1" title="Was the whole clutch observed? Y = bird seen incubating, clutch complete.">Whole clutch?</label>
+                                  <label className="label text-2xs" title="Was the whole clutch observed? Y = bird seen incubating, clutch complete.">Whole clutch?</label>
                                   <select value={obs.whole_clutch || ''}
                                     onChange={e => setNestObs({ ...nestObs, [nest.breed_id]: { ...obs, whole_clutch: e.target.value } })}
-                                    className="w-full border rounded-lg px-3 py-2 text-sm bg-white">
+                                    className="input w-full">
                                     <option value="">—</option>
                                     <option value="Y">Y — Complete clutch</option>
                                     <option value="N">N — Not sure</option>
@@ -872,10 +876,10 @@ export default function TerritoryDetailPage({ params }) {
                               </div>
                               {obs.stage === 'laying' && (
                                 <div>
-                                  <label className="block text-xs text-gray-600 mb-1" title="Were eggs laid? Y = at least one egg. N = nest abandoned before laying. U = unknown.">Eggs laid?</label>
+                                  <label className="label text-2xs" title="Were eggs laid? Y = at least one egg. N = nest abandoned before laying. U = unknown.">Eggs laid?</label>
                                   <select value={obs.eggs_laid || ''}
                                     onChange={e => setNestObs({ ...nestObs, [nest.breed_id]: { ...obs, eggs_laid: e.target.value } })}
-                                    className="w-full border rounded-lg px-3 py-2 text-sm bg-white">
+                                    className="input w-full">
                                     <option value="">—</option>
                                     <option value="Y">Y — Yes, eggs laid</option>
                                     <option value="N">N — No eggs</option>
@@ -890,16 +894,16 @@ export default function TerritoryDetailPage({ params }) {
                             <>
                               <div className="grid grid-cols-2 gap-2">
                                 <div>
-                                  <label className="block text-xs text-gray-600 mb-1">Chicks hatched</label>
+                                  <label className="label text-2xs">Chicks hatched</label>
                                   <input type="number" min="0" value={obs.chick_count || ''}
                                     onChange={e => setNestObs({ ...nestObs, [nest.breed_id]: { ...obs, chick_count: e.target.value } })}
-                                    placeholder="0" className="w-full border rounded-lg px-3 py-2 text-sm" />
+                                    placeholder="0" className="input w-full" />
                                 </div>
                                 <div>
-                                  <label className="block text-xs text-gray-600 mb-1">Hatch quality</label>
+                                  <label className="label text-2xs">Hatch quality</label>
                                   <select value={obs.hatch_quality || ''}
                                     onChange={e => setNestObs({ ...nestObs, [nest.breed_id]: { ...obs, hatch_quality: e.target.value } })}
-                                    className="w-full border rounded-lg px-3 py-2 text-sm bg-white">
+                                    className="input w-full">
                                     <option value="">flag</option>
                                     <option value=".">. reliable</option>
                                     <option value="?">? uncertain</option>
@@ -910,25 +914,25 @@ export default function TerritoryDetailPage({ params }) {
                               </div>
                               <div className="grid grid-cols-2 gap-2">
                                 <div>
-                                  <label className="block text-xs text-gray-600 mb-1">Unhatched eggs</label>
+                                  <label className="label text-2xs">Unhatched eggs</label>
                                   <input type="text" value={obs.unhatch || ''}
                                     onChange={e => setNestObs({ ...nestObs, [nest.breed_id]: { ...obs, unhatch: e.target.value } })}
                                     placeholder="e.g. 1 unfertilized"
-                                    className="w-full border rounded-lg px-3 py-2 text-sm" />
+                                    className="input w-full" />
                                 </div>
                                 <div>
-                                  <label className="block text-xs text-gray-600 mb-1">Broken eggs</label>
+                                  <label className="label text-2xs">Broken eggs</label>
                                   <input type="text" value={obs.broke_egg || ''}
                                     onChange={e => setNestObs({ ...nestObs, [nest.breed_id]: { ...obs, broke_egg: e.target.value } })}
                                     placeholder="0"
-                                    className="w-full border rounded-lg px-3 py-2 text-sm" />
+                                    className="input w-full" />
                                 </div>
                               </div>
                               <div>
-                                <label className="block text-xs text-gray-600 mb-1">Cowbird chicks hatched</label>
+                                <label className="label text-2xs">Cowbird chicks hatched</label>
                                 <input type="number" min="0" value={obs.cowbird_chicks || ''}
                                   onChange={e => setNestObs({ ...nestObs, [nest.breed_id]: { ...obs, cowbird_chicks: e.target.value } })}
-                                  placeholder="0" className="w-full border rounded-lg px-3 py-2 text-sm" />
+                                  placeholder="0" className="input w-full" />
                               </div>
                             </>
                           )}
@@ -937,24 +941,24 @@ export default function TerritoryDetailPage({ params }) {
                             <>
                               <div className="grid grid-cols-3 gap-2">
                                 <div>
-                                  <label className="block text-xs text-gray-600 mb-1">Chick count</label>
+                                  <label className="label text-2xs">Chick count</label>
                                   <input type="number" min="0" value={obs.chick_count || ''}
                                     onChange={e => setNestObs({ ...nestObs, [nest.breed_id]: { ...obs, chick_count: e.target.value } })}
-                                    placeholder="0" className="w-full border rounded-lg px-3 py-2 text-sm" />
+                                    placeholder="0" className="input w-full" />
                                 </div>
                                 <div>
-                                  <label className="block text-xs text-gray-600 mb-1" title="Day 1 = hatch day. Day 6 = pins breaking (banding age)">
+                                  <label className="label text-2xs" title="Day 1 = hatch day. Day 6 = pins breaking (banding age)">
                                     Chick age (days)
                                   </label>
                                   <input type="number" min="0" value={obs.chick_age_estimate || ''}
                                     onChange={e => setNestObs({ ...nestObs, [nest.breed_id]: { ...obs, chick_age_estimate: e.target.value } })}
-                                    placeholder="e.g. 6" className="w-full border rounded-lg px-3 py-2 text-sm" />
+                                    placeholder="e.g. 6" className="input w-full" />
                                 </div>
                                 <div>
-                                  <label className="block text-xs text-gray-600 mb-1">Band quality</label>
+                                  <label className="label text-2xs">Band quality</label>
                                   <select value={obs.band_quality || ''}
                                     onChange={e => setNestObs({ ...nestObs, [nest.breed_id]: { ...obs, band_quality: e.target.value } })}
-                                    className="w-full border rounded-lg px-3 py-2 text-sm bg-white">
+                                    className="input w-full">
                                     <option value="">flag</option>
                                     <option value=".">. reliable</option>
                                     <option value="?">? uncertain</option>
@@ -965,22 +969,22 @@ export default function TerritoryDetailPage({ params }) {
                               </div>
                               <div className="grid grid-cols-2 gap-2">
                                 <div>
-                                  <label className="block text-xs text-gray-600 mb-1">Cowbird chicks</label>
+                                  <label className="label text-2xs">Cowbird chicks</label>
                                   <input type="number" min="0" value={obs.cowbird_chicks || ''}
                                     onChange={e => setNestObs({ ...nestObs, [nest.breed_id]: { ...obs, cowbird_chicks: e.target.value } })}
-                                    placeholder="0" className="w-full border rounded-lg px-3 py-2 text-sm" />
+                                    placeholder="0" className="input w-full" />
                                 </div>
                                 <div>
-                                  <label className="block text-xs text-gray-600 mb-1" title="Number of cowbird chicks banded">Cowbird band</label>
+                                  <label className="label text-2xs" title="Number of cowbird chicks banded">Cowbird band</label>
                                   <input type="text" value={obs.cow_band || ''}
                                     onChange={e => setNestObs({ ...nestObs, [nest.breed_id]: { ...obs, cow_band: e.target.value } })}
-                                    placeholder="0" className="w-full border rounded-lg px-3 py-2 text-sm" />
+                                    placeholder="0" className="input w-full" />
                                 </div>
                               </div>
 
                               {/* Banding fields */}
-                              <div className="bg-emerald-50 rounded-lg p-3 border border-emerald-200">
-                                <p className="text-xs font-bold text-emerald-700 mb-1.5">Band Chicks</p>
+                              <div className="bg-sage-100 rounded-card p-3 border border-sage-200">
+                                <p className="text-2xs font-bold text-sage-700 mb-2">Band Chicks</p>
                                 {[1,2,3,4,5].map(i => {
                                   // Show all 5 slots so crew can band multiple chicks at once
                                   return (
@@ -992,15 +996,15 @@ export default function TerritoryDetailPage({ params }) {
                                         }}
                                         placeholder={`Chick ${i} band # (9 digits)`}
                                         inputMode="numeric" maxLength={9}
-                                        className="border rounded-lg px-3 py-2 text-xs font-mono bg-white" />
+                                        className="input w-full text-2xs font-mono" />
                                       <input type="text" value={obs[`kid${i}_combo`] || ''}
                                         onChange={e => setNestObs({ ...nestObs, [nest.breed_id]: { ...obs, [`kid${i}_combo`]: e.target.value } })}
                                         placeholder="color combo"
-                                        className="border rounded-lg px-3 py-2 text-xs font-mono bg-white" />
+                                        className="input w-full text-2xs font-mono" />
                                     </div>
                                   )
                                 })}
-                                <p className="text-[10px] text-emerald-600 mt-1">Band # = 9-digit metal band. Color combo = e.g. &quot;Y/G RW/M&quot;</p>
+                                <p className="text-2xs text-sage-700 mt-1">Band # = 9-digit metal band. Color combo = e.g. "Y/G RW/M"</p>
                               </div>
                             </>
                           )}
@@ -1009,18 +1013,18 @@ export default function TerritoryDetailPage({ params }) {
                             <>
                               <div className="grid grid-cols-2 gap-2">
                                 <div>
-                                  <label className="block text-xs text-gray-600 mb-1" title="Number of SOSP fledglings seen alive near nest area (day 12-14)">
+                                  <label className="label text-2xs" title="Number of SOSP fledglings seen alive near nest area (day 12-14)">
                                     Fledge count
                                   </label>
                                   <input type="number" min="0" value={obs.chick_count || ''}
                                     onChange={e => setNestObs({ ...nestObs, [nest.breed_id]: { ...obs, chick_count: e.target.value } })}
-                                    placeholder="0" className="w-full border rounded-lg px-3 py-2 text-sm" />
+                                    placeholder="0" className="input w-full" />
                                 </div>
                                 <div>
-                                  <label className="block text-xs text-gray-600 mb-1">Fledge quality</label>
+                                  <label className="label text-2xs">Fledge quality</label>
                                   <select value={obs.fledge_quality || ''}
                                     onChange={e => setNestObs({ ...nestObs, [nest.breed_id]: { ...obs, fledge_quality: e.target.value } })}
-                                    className="w-full border rounded-lg px-3 py-2 text-sm bg-white">
+                                    className="input w-full">
                                     <option value="">flag</option>
                                     <option value=".">. reliable</option>
                                     <option value="?">? uncertain</option>
@@ -1030,10 +1034,10 @@ export default function TerritoryDetailPage({ params }) {
                                 </div>
                               </div>
                               <div>
-                                <label className="block text-xs text-gray-600 mb-1">Cowbird fledge count</label>
+                                <label className="label text-2xs">Cowbird fledge count</label>
                                 <input type="number" min="0" value={obs.cow_fledge || ''}
                                   onChange={e => setNestObs({ ...nestObs, [nest.breed_id]: { ...obs, cow_fledge: e.target.value } })}
-                                  placeholder="0" className="w-full border rounded-lg px-3 py-2 text-sm" />
+                                  placeholder="0" className="input w-full" />
                               </div>
                             </>
                           )}
@@ -1042,18 +1046,18 @@ export default function TerritoryDetailPage({ params }) {
                             <>
                               <div className="grid grid-cols-2 gap-2">
                                 <div>
-                                  <label className="block text-xs text-gray-600 mb-1" title="Number of juveniles confirmed independent (day 22-24+)">
+                                  <label className="label text-2xs" title="Number of juveniles confirmed independent (day 22-24+)">
                                     Independent count
                                   </label>
                                   <input type="number" min="0" value={obs.chick_count || ''}
                                     onChange={e => setNestObs({ ...nestObs, [nest.breed_id]: { ...obs, chick_count: e.target.value } })}
-                                    placeholder="0" className="w-full border rounded-lg px-3 py-2 text-sm" />
+                                    placeholder="0" className="input w-full" />
                                 </div>
                                 <div>
-                                  <label className="block text-xs text-gray-600 mb-1">Indep quality</label>
+                                  <label className="label text-2xs">Indep quality</label>
                                   <select value={obs.indep_quality || ''}
                                     onChange={e => setNestObs({ ...nestObs, [nest.breed_id]: { ...obs, indep_quality: e.target.value } })}
-                                    className="w-full border rounded-lg px-3 py-2 text-sm bg-white">
+                                    className="input w-full">
                                     <option value="">flag</option>
                                     <option value=".">. reliable</option>
                                     <option value="?">? uncertain</option>
@@ -1064,8 +1068,8 @@ export default function TerritoryDetailPage({ params }) {
                               </div>
                               {/* Kid independence toggles — show banded chicks so crew can mark which ones seen */}
                               {(nest.kid1 || nest.kid2 || nest.kid3 || nest.kid4 || nest.kid5) && (
-                                <div className="bg-purple-50 rounded-lg p-3 border border-purple-200">
-                                  <p className="text-xs font-bold text-purple-700 mb-2">Which banded chicks confirmed independent?</p>
+                                <div className="bg-sage-100 rounded-card p-3 border border-sage-200">
+                                  <p className="text-2xs font-bold text-sage-700 mb-2">Which banded chicks confirmed independent?</p>
                                   <div className="space-y-1.5">
                                     {[1,2,3,4,5].map(i => {
                                       if (!nest[`kid${i}`]) return null
@@ -1073,16 +1077,16 @@ export default function TerritoryDetailPage({ params }) {
                                       const combo = kidBirds[nest[`kid${i}`]]?.color_combo
                                       const isIndep = obs[`kid${i}_indep`] || false
                                       return (
-                                        <label key={i} className={`flex items-center gap-2 rounded-lg px-2.5 py-2 cursor-pointer transition ${
-                                          isIndep ? 'bg-green-100 border border-green-300' : 'bg-white border border-gray-200'
+                                        <label key={i} className={`flex items-center gap-2 rounded-card px-2.5 py-2 cursor-pointer transition ${
+                                          isIndep ? 'bg-sage-200 border border-sage-400' : 'bg-cream-100 border border-cream-300'
                                         }`}>
                                           <input type="checkbox" checked={isIndep}
                                             onChange={e => setNestObs({ ...nestObs, [nest.breed_id]: { ...obs, [`kid${i}_indep`]: e.target.checked } })}
                                             className="w-4 h-4 rounded" />
-                                          <span className="text-xs text-gray-400 font-medium">#{i}</span>
-                                          <span className="text-sm font-mono font-semibold">{combo || '—'}</span>
-                                          <span className="text-xs text-gray-400">({kidBand})</span>
-                                          {isIndep && <span className="ml-auto text-green-600 text-xs font-bold">✓</span>}
+                                          <span className="text-2xs text-bark-400 font-medium">#{i}</span>
+                                          <span className="text-sm font-mono font-semibold text-bark-600">{combo || '—'}</span>
+                                          <span className="text-2xs text-bark-400">({kidBand})</span>
+                                          {isIndep && <span className="ml-auto text-sage-600 text-2xs font-bold">✓</span>}
                                         </label>
                                       )
                                     })}
@@ -1093,12 +1097,12 @@ export default function TerritoryDetailPage({ params }) {
                           )}
 
                           {obs.stage === 'failed' && (
-                            <div className="space-y-2">
+                            <div className="space-y-3">
                               <div>
-                                <label className="block text-xs text-gray-600 mb-1">Fail code</label>
+                                <label className="label text-2xs">Fail code</label>
                                 <select value={obs.fail_code || ''}
                                   onChange={e => setNestObs({ ...nestObs, [nest.breed_id]: { ...obs, fail_code: e.target.value } })}
-                                  className="w-full border rounded-lg px-3 py-2 text-sm bg-white">
+                                  className="input w-full">
                                   <option value="">Select...</option>
                                   {failcodes.filter(f => f.code !== '24').map(f => (
                                     <option key={f.code} value={f.code}>{f.code} — {f.description}</option>
@@ -1106,10 +1110,10 @@ export default function TerritoryDetailPage({ params }) {
                                 </select>
                               </div>
                               <div>
-                                <label className="block text-xs text-gray-600 mb-1">Failed at stage</label>
+                                <label className="label text-2xs">Failed at stage</label>
                                 <select value={obs.stage_fail || ''}
                                   onChange={e => setNestObs({ ...nestObs, [nest.breed_id]: { ...obs, stage_fail: e.target.value } })}
-                                  className="w-full border rounded-lg px-3 py-2 text-sm bg-white">
+                                  className="input w-full">
                                   <option value="">Select...</option>
                                   {['building', 'laying', 'incubating', 'hatching', 'nestling'].map(s => (
                                     <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
@@ -1117,11 +1121,11 @@ export default function TerritoryDetailPage({ params }) {
                                 </select>
                               </div>
                               <div>
-                                <label className="block text-xs text-gray-600 mb-1">What happened?</label>
+                                <label className="label text-2xs">What happened?</label>
                                 <input type="text" value={obs.nest_comment || ''}
                                   onChange={e => setNestObs({ ...nestObs, [nest.breed_id]: { ...obs, nest_comment: e.target.value } })}
                                   placeholder="Empty nest, broken eggs, predator signs..."
-                                  className="w-full border rounded-lg px-3 py-2 text-sm" />
+                                  className="input w-full" />
                               </div>
                             </div>
                           )}
@@ -1137,13 +1141,13 @@ export default function TerritoryDetailPage({ params }) {
           )}
 
           {visitForm.nest_status_flag === 'new_nest_found' && (
-            <p className="text-xs text-blue-600 font-medium">
-              After saving, you&apos;ll be taken to create a nest card.
+            <p className="text-2xs text-forest-600 font-semibold">
+              After saving, you'll be taken to create a nest card.
             </p>
           )}
 
           <button type="submit" disabled={submitting}
-            className="w-full bg-blue-600 text-white rounded-lg py-2.5 text-sm font-semibold disabled:opacity-50">
+            className="w-full btn-primary btn-md disabled:opacity-50">
             {submitting ? 'Saving...' : 'Save Visit'}
           </button>
         </form>
@@ -1154,7 +1158,7 @@ export default function TerritoryDetailPage({ params }) {
           ═══════════════════════════════════════════════════════════════ */}
       {nests.length > 0 && (
         <div>
-          <h3 className="text-sm font-semibold text-gray-700 mb-2">Nests</h3>
+          <h3 className="section-title mb-3">Nests</h3>
           <div className="space-y-3">
             {nests.map(nest => {
               const status = nestStatusBadge(nest)
@@ -1179,12 +1183,12 @@ export default function TerritoryDetailPage({ params }) {
               ]
 
               return (
-                <div key={nest.breed_id} className="bg-white rounded-lg border overflow-hidden">
+                <div key={nest.breed_id} className="card overflow-hidden">
                   {/* Nest summary row — always visible */}
                   <button
                     type="button"
                     onClick={() => setExpandedNest(isExpanded ? null : nest.breed_id)}
-                    className="w-full text-left p-3 active:bg-gray-50"
+                    className="w-full text-left p-3 hover:bg-cream-50 active:bg-cream-100 transition"
                   >
                     <div className="flex justify-between items-start">
                       <div className="flex items-center gap-1.5">
@@ -1429,52 +1433,52 @@ export default function TerritoryDetailPage({ params }) {
           VISIT LOG — one row per visit, nest observations folded in
           ═══════════════════════════════════════════════════════════════ */}
       <div>
-        <h3 className="text-sm font-semibold text-gray-700 mb-2">
+        <h3 className="section-title mb-3">
           Visit Log ({groupedVisits.length})
         </h3>
         {groupedVisits.length === 0 ? (
-          <p className="text-sm text-gray-400 bg-white rounded-lg border p-4">No visits logged yet.</p>
+          <p className="text-sm text-bark-400 card p-4">No visits logged yet.</p>
         ) : (
-          <div className="bg-white rounded-lg border overflow-hidden divide-y divide-gray-100">
+          <div className="card overflow-hidden divide-y divide-cream-200">
             {groupedVisits.map((v, idx) => {
               const isTerritory = v.type === 'territory'
               const isEditing = isTerritory && editingVisit === v.visit_id
 
               if (isEditing) {
                 return (
-                  <div key={`edit-${v.visit_id}`} className="p-2">
-                    <div className="bg-yellow-50 rounded-lg border-2 border-yellow-300 p-3 space-y-2">
+                  <div key={`edit-${v.visit_id}`} className="p-3">
+                    <div className="bg-rust-100 rounded-card border-2 border-rust-300 p-3 space-y-3">
                       <div className="grid grid-cols-2 gap-2">
                         <div>
-                          <label className="block text-[10px] text-gray-500 mb-0.5">Date</label>
+                          <label className="label text-2xs">Date</label>
                           <input type="date" value={editForm.visit_date || ''}
                             onChange={e => setEditForm({ ...editForm, visit_date: e.target.value })}
-                            className="w-full border rounded px-2 py-1.5 text-sm" />
+                            className="input w-full" />
                         </div>
                         <div>
-                          <label className="block text-[10px] text-gray-500 mb-0.5">Time</label>
+                          <label className="label text-2xs">Time</label>
                           <input type="time" value={editForm.visit_time || ''}
                             onChange={e => setEditForm({ ...editForm, visit_time: e.target.value })}
-                            className="w-full border rounded px-2 py-1.5 text-sm" />
+                            className="input w-full" />
                         </div>
                       </div>
                       <div>
-                        <label className="block text-[10px] text-gray-500 mb-0.5">Observer</label>
+                        <label className="label text-2xs">Observer</label>
                         <select value={editForm.observer || ''}
                           onChange={e => setEditForm({ ...editForm, observer: e.target.value })}
-                          className="w-full border rounded px-2 py-1.5 text-sm bg-white">
+                          className="input w-full">
                           <option value="">Select observer...</option>
                           {OBSERVER_LIST.map(name => <option key={name} value={name}>{name}</option>)}
                         </select>
                       </div>
                       <div className="flex gap-4 flex-wrap">
-                        <label className="flex items-center gap-1.5 text-xs">
+                        <label className="flex items-center gap-1.5 text-2xs">
                           <input type="checkbox" checked={editForm.male_seen || false}
                             onChange={e => setEditForm({ ...editForm, male_seen: e.target.checked })}
                             className="w-4 h-4 rounded" />
                           ♂ seen
                         </label>
-                        <label className="flex items-center gap-1.5 text-xs">
+                        <label className="flex items-center gap-1.5 text-2xs">
                           <input type="checkbox" checked={editForm.female_seen || false}
                             onChange={e => setEditForm({ ...editForm, female_seen: e.target.checked })}
                             className="w-4 h-4 rounded" />
@@ -1482,16 +1486,16 @@ export default function TerritoryDetailPage({ params }) {
                         </label>
                       </div>
                       <div>
-                        <label className="block text-[10px] text-gray-500 mb-0.5">Notes</label>
+                        <label className="label text-2xs">Notes</label>
                         <textarea value={editForm.notes || ''}
                           onChange={e => setEditForm({ ...editForm, notes: e.target.value })}
-                          className="w-full border rounded px-2 py-1.5 text-sm" rows={2} />
+                          className="input w-full" rows={2} />
                       </div>
                       <div className="flex gap-2">
                         <button type="button" onClick={() => handleSaveVisitEdit(v.visit_id)}
-                          className="flex-1 bg-blue-600 text-white rounded py-1.5 text-xs font-semibold">Save</button>
+                          className="flex-1 btn-primary btn-sm">Save</button>
                         <button type="button" onClick={() => { setEditingVisit(null); setEditForm({}) }}
-                          className="px-4 border rounded py-1.5 text-xs text-gray-600">Cancel</button>
+                          className="px-4 btn-secondary btn-sm">Cancel</button>
                       </div>
                     </div>
                   </div>
@@ -1505,14 +1509,14 @@ export default function TerritoryDetailPage({ params }) {
                   v.female_seen ? '♀ ✓' : null,
                 ].filter(Boolean).join(', ')
                 return (
-                  <div key={`t-${v.visit_id}`} className="px-3 py-2">
+                  <div key={`t-${v.visit_id}`} className="px-3 py-3">
                     {/* Header line: date, time, observer, seen, edit */}
                     <div className="flex items-baseline justify-between gap-2">
-                      <div className="flex items-baseline gap-2 text-[11px]">
-                        <span className="text-gray-700 font-semibold whitespace-nowrap">{fmtVisitDate(v.visit_date)}</span>
-                        <span className="text-gray-400 whitespace-nowrap">{fmtVisitTime(v.visit_time)}</span>
-                        {seenParts && <span className="text-gray-400">{seenParts}</span>}
-                        {v.minutes_spent != null && <span className="text-gray-400">{v.minutes_spent} min</span>}
+                      <div className="flex items-baseline gap-2 text-2xs">
+                        <span className="text-forest-700 font-semibold whitespace-nowrap">{fmtVisitDate(v.visit_date)}</span>
+                        <span className="text-bark-400 whitespace-nowrap">{fmtVisitTime(v.visit_time)}</span>
+                        {seenParts && <span className="text-bark-400">{seenParts}</span>}
+                        {v.minutes_spent != null && <span className="text-bark-400">{v.minutes_spent} min</span>}
                       </div>
                       <button type="button"
                         onClick={() => {
@@ -1524,14 +1528,14 @@ export default function TerritoryDetailPage({ params }) {
                             other_birds_notes: v.other_birds_notes || '', notes: v.notes || '',
                           })
                         }}
-                        className="text-[10px] text-blue-500 hover:text-blue-700 shrink-0">edit</button>
+                        className="text-2xs text-forest-600 hover:text-forest-700 font-semibold shrink-0">edit</button>
                     </div>
                     {/* Notes */}
-                    {v.notes && <p className="text-[11px] text-gray-600 mt-0.5 leading-snug">{v.notes}</p>}
-                    {v.other_birds_notes && <p className="text-[10px] text-gray-400 mt-0.5">Other birds: {v.other_birds_notes}</p>}
+                    {v.notes && <p className="text-2xs text-bark-600 mt-1 leading-snug">{v.notes}</p>}
+                    {v.other_birds_notes && <p className="text-2xs text-bark-400 mt-1">Other birds: {v.other_birds_notes}</p>}
                     {/* Nest observations from this visit */}
                     {v.nestObs.length > 0 && (
-                      <div className="mt-1.5 space-y-0.5">
+                      <div className="mt-2 space-y-1">
                         {v.nestObs.map(nv => {
                           const nestContent = [
                             nv.nest_stage ? nv.nest_stage.charAt(0).toUpperCase() + nv.nest_stage.slice(1) : null,
@@ -1542,10 +1546,10 @@ export default function TerritoryDetailPage({ params }) {
                             nv.cowbird_chicks > 0 ? `${nv.cowbird_chicks} CB chicks` : null,
                           ].filter(Boolean).join(', ')
                           return (
-                            <div key={nv.nest_visit_id} className="flex items-baseline gap-1.5 text-[10px]">
-                              <span className="bg-blue-100 text-blue-600 px-1 py-0.5 rounded text-[9px] font-medium shrink-0">{nv.nestLabel}</span>
-                              <span className="text-blue-700">{nestContent || '—'}</span>
-                              {nv.comments && <span className="text-gray-400">— {nv.comments}</span>}
+                            <div key={nv.nest_visit_id} className="flex items-baseline gap-1.5 text-2xs">
+                              <span className="badge badge-info text-2xs shrink-0">{nv.nestLabel}</span>
+                              <span className="text-forest-700">{nestContent || '—'}</span>
+                              {nv.comments && <span className="text-bark-400">— {nv.comments}</span>}
                             </div>
                           )
                         })}
@@ -1565,14 +1569,14 @@ export default function TerritoryDetailPage({ params }) {
                 v.cowbird_chicks > 0 ? `${v.cowbird_chicks} CB chicks` : null,
               ].filter(Boolean).join(', ')
               return (
-                <div key={`n-${v.nest_visit_id}`} className="px-3 py-2 bg-blue-50/30">
-                  <div className="flex items-baseline gap-2 text-[11px]">
-                    <span className="text-gray-700 font-semibold whitespace-nowrap">{fmtVisitDate(v.visit_date)}</span>
-                    <span className="text-gray-400 whitespace-nowrap">{fmtVisitTime(v.visit_time)}</span>
-                    <span className="bg-blue-100 text-blue-600 px-1 py-0.5 rounded text-[9px] font-medium">{v.nestLabel}</span>
+                <div key={`n-${v.nest_visit_id}`} className="px-3 py-3 bg-cream-50">
+                  <div className="flex items-baseline gap-2 text-2xs">
+                    <span className="text-forest-700 font-semibold whitespace-nowrap">{fmtVisitDate(v.visit_date)}</span>
+                    <span className="text-bark-400 whitespace-nowrap">{fmtVisitTime(v.visit_time)}</span>
+                    <span className="badge badge-info text-2xs">{v.nestLabel}</span>
                   </div>
-                  <p className="text-[11px] text-blue-700 mt-0.5">{nestContent || '—'}</p>
-                  {v.comments && <p className="text-[10px] text-gray-500 mt-0.5">{v.comments}</p>}
+                  <p className="text-2xs text-forest-700 mt-1">{nestContent || '—'}</p>
+                  {v.comments && <p className="text-2xs text-bark-400 mt-1">{v.comments}</p>}
                 </div>
               )
             })}

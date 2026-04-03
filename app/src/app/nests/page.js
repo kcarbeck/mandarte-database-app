@@ -82,23 +82,28 @@ export default function NestsPage() {
   }
 
   if (loading) {
-    return <div className="text-center py-8 text-gray-500">Loading nests...</div>
+    return (
+      <div className="text-center py-8 text-bark-400">
+        <div className="inline-block w-8 h-8 border-4 border-forest-300 border-t-forest-600 rounded-full animate-spin"></div>
+        <p className="mt-2">Loading nests...</p>
+      </div>
+    )
   }
 
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h2 className="text-lg font-bold text-gray-900">Nests ({currentYear})</h2>
+        <h2 className="text-lg font-bold text-bark-900">Nests ({currentYear})</h2>
         <Link
           href="/nests/new"
-          className="bg-green-600 text-white rounded-lg px-3 py-2 text-sm font-semibold"
+          className="btn-accent btn-md"
         >
           + New Nest
         </Link>
       </div>
 
       {nests.length === 0 ? (
-        <div className="bg-white rounded-lg border p-6 text-center text-gray-400 text-sm">
+        <div className="card bg-cream-100 border-cream-300 text-center text-bark-400 text-sm">
           No nests recorded yet this season.
         </div>
       ) : (
@@ -106,32 +111,44 @@ export default function NestsPage() {
           {nests.map(nest => {
             const status = nestStatusBadge(nest)
             const parents = parentMap[nest.territory] || {}
+
+            // Map status to badge colors
+            const statusBadgeClass = {
+              'Success': 'badge-success',
+              'Failed': 'badge-danger',
+              'Independent': 'badge-success',
+              'Fledged': 'badge-info',
+              'Banded': 'badge-info',
+              'Hatched': 'badge-warning',
+              'Eggs': 'badge-warning',
+            }[status.label] || 'badge-neutral'
+
             return (
               <Link
                 key={nest.breed_id}
                 href={`/nests/${nest.breed_id}`}
-                className={`block rounded-lg border p-3 active:bg-gray-50 ${
+                className={`card-interactive ${
                   nest.field_complete
-                    ? 'bg-green-50 border-green-300'
-                    : 'bg-white'
+                    ? 'bg-sage-50 border-sage-200'
+                    : 'bg-cream-50 border-cream-200'
                 }`}
               >
                 <div className="flex justify-between items-start">
                   <div className="flex items-center gap-2">
-                    <span className="font-bold text-sm">Terr {nest.territory || '?'}, Nest #{nestSeqMap[nest.breed_id] || '?'}</span>
+                    <span className="font-bold text-sm text-bark-900">Terr {nest.territory || '?'}, Nest #{nestSeqMap[nest.breed_id] || '?'}</span>
                   </div>
                   <div className="flex items-center gap-1.5">
                     {nest.field_complete && (
-                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-200 text-green-800 font-bold">Done</span>
+                      <span className="badge badge-success text-2xs">Done</span>
                     )}
-                    <span className={`text-xs px-2 py-0.5 rounded ${status.color}`}>
+                    <span className={`badge ${statusBadgeClass} text-2xs`}>
                       {status.label}
                     </span>
                   </div>
                 </div>
-                <div className="flex gap-3 mt-1 text-xs text-gray-600">
-                  <span>♂ <span className="font-mono">{nest.male_id ? birdLabel(birdMap[nest.male_id] || { band_id: nest.male_id, is_unbanded: nest.male_id < 0 }) : birdLabel(parents.male)}</span></span>
-                  <span>♀ <span className="font-mono">{nest.female_id ? birdLabel(birdMap[nest.female_id] || { band_id: nest.female_id, is_unbanded: nest.female_id < 0 }) : birdLabel(parents.female)}</span></span>
+                <div className="flex gap-3 mt-1 text-xs text-bark-600">
+                  <span>♂ <span className="band-id">{nest.male_id ? birdLabel(birdMap[nest.male_id] || { band_id: nest.male_id, is_unbanded: nest.male_id < 0 }) : birdLabel(parents.male)}</span></span>
+                  <span>♀ <span className="band-id">{nest.female_id ? birdLabel(birdMap[nest.female_id] || { band_id: nest.female_id, is_unbanded: nest.female_id < 0 }) : birdLabel(parents.female)}</span></span>
                 </div>
                 {/* Pipeline flow: Eggs → Hatch → Band → Fledge → Indep */}
                 <div className="mt-1.5 flex items-center gap-0.5">
@@ -147,9 +164,9 @@ export default function NestsPage() {
                     const dateLabel = s.jd ? formatJD(nest.year || currentYear, parseInt(s.jd)) : null
                     return (
                       <div key={s.k} className="flex items-center">
-                        {i > 0 && <span className="text-gray-300 text-[10px] mx-0.5">→</span>}
+                        {i > 0 && <span className="text-bark-300 text-[10px] mx-0.5">→</span>}
                         <div className={`rounded px-1.5 py-0.5 text-center ${
-                          filled ? 'bg-blue-100 text-blue-800' : 'bg-gray-50 text-gray-400 border border-gray-200'
+                          filled ? 'bg-forest-100 text-forest-800' : 'bg-cream-200 text-bark-400 border border-cream-300'
                         }`}>
                           <div className="text-[9px] leading-tight">{s.l}</div>
                           <div className="text-xs font-bold font-mono leading-tight">{filled ? val : '—'}</div>

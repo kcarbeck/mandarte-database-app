@@ -105,25 +105,29 @@ export default function TerritoriesPage() {
     return Math.floor((todayMs - dateMs) / (1000 * 60 * 60 * 24))
   }
 
-  if (loading) return <div className="text-center py-8 text-gray-500">Loading territories...</div>
+  if (loading) return (
+    <div className="flex justify-center items-center py-12">
+      <div className="animate-spin rounded-full h-8 w-8 border-2 border-forest-300 border-t-forest-600"></div>
+    </div>
+  )
 
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h2 className="text-lg font-bold text-gray-900">Territories — {currentYear}</h2>
-        <Link href="/birds" className="bg-blue-600 text-white rounded-lg px-3 py-2 text-sm font-semibold">
+        <h2 className="section-title">Territories — {currentYear}</h2>
+        <Link href="/birds" className="btn-primary btn-md">
           + Setup Birds
         </Link>
       </div>
 
-      <p className="text-xs text-gray-400">
+      <p className="text-2xs text-bark-400">
         Add birds and assign them to territories from the Birds tab. Territories appear here once they have assigned birds or visits.
       </p>
 
       {territories.length === 0 ? (
-        <div className="bg-white rounded-lg border p-6 text-center text-gray-400 text-sm">
-          <p>No territories yet.</p>
-          <p className="mt-1">Go to the <Link href="/birds" className="text-blue-600 underline">Birds tab</Link> to add birds and assign them to territories.</p>
+        <div className="card p-6 text-center">
+          <p className="text-sm text-bark-400">No territories yet.</p>
+          <p className="mt-2 text-sm text-bark-400">Go to the <Link href="/birds" className="text-forest-600 font-semibold hover:underline">Birds tab</Link> to add birds and assign them to territories.</p>
         </div>
       ) : (
         <div className="space-y-2">
@@ -138,38 +142,38 @@ export default function TerritoriesPage() {
             return (
               <Link key={terr.code}
                 href={`/territories/${encodeURIComponent(terr.code)}`}
-                className="block bg-white rounded-lg border p-3 active:bg-gray-50">
+                className="card-interactive p-3">
                 <div className="flex justify-between items-start">
                   <div>
-                    <span className="font-bold text-base">Terr {terr.code}</span>
+                    <span className="font-bold text-base text-forest-800">Terr {terr.code}</span>
                     {terr.nests.length > 0 && (
-                      <span className="ml-2 text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded">
+                      <span className="ml-2 badge badge-success text-2xs">
                         {terr.nests.length} nest{terr.nests.length > 1 ? 's' : ''}
                       </span>
                     )}
                     {isSingleMale && (
-                      <span className="ml-1 text-xs bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded">♂ only</span>
+                      <span className="ml-1 badge badge-info text-2xs">♂ Single male</span>
                     )}
                     {isRenestWatch && (
-                      <span className={`ml-1 text-xs px-1.5 py-0.5 rounded ${
-                        isUrgent ? 'bg-red-100 text-red-700 font-semibold' : 'bg-orange-100 text-orange-700'
-                      }`}>{isUrgent ? 'Renest URGENT' : 'Renest watch'}</span>
+                      <span className={`ml-1 ${
+                        isUrgent ? 'badge badge-danger' : 'badge badge-warning'
+                      } text-2xs`}>{isUrgent ? 'Renest URGENT' : 'Renest watch'}</span>
                     )}
                   </div>
-                  <span className={`text-xs px-2 py-0.5 rounded-full ${
-                    days === null ? 'bg-gray-100 text-gray-400' :
-                    !isOverdue ? 'bg-green-100 text-green-700' :
-                    days <= interval + 2 ? 'bg-yellow-100 text-yellow-700' :
-                    'bg-red-100 text-red-700'
+                  <span className={`text-2xs px-2 py-0.5 rounded-full font-medium ${
+                    days === null ? 'badge badge-neutral' :
+                    !isOverdue ? 'badge badge-success' :
+                    days <= interval + 2 ? 'badge badge-warning' :
+                    'badge badge-danger'
                   }`}>
                     {days === null ? 'No visits' : days === 0 ? 'Today' : `${days}d ago`}
                   </span>
                 </div>
-                <div className="flex gap-3 mt-1 text-xs text-gray-600">
-                  <span>♂ <span className="font-mono">{birdLabel(terr.male)}</span></span>
-                  <span>♀ <span className="font-mono">{birdLabel(terr.female)}</span></span>
+                <div className="flex gap-3 mt-2 text-2xs text-bark-400">
+                  <span>♂ <span className="band-id">{birdLabel(terr.male)}</span></span>
+                  <span>♀ <span className="band-id">{birdLabel(terr.female)}</span></span>
                 </div>
-                <div className="text-xs text-gray-400 mt-0.5">
+                <div className="text-2xs text-bark-400 mt-1">
                   {terr.visitCount} visit{terr.visitCount !== 1 ? 's' : ''}
                   <span className="ml-2">· every {interval}d</span>
                 </div>

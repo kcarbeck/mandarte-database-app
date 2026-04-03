@@ -504,101 +504,107 @@ export default function Home() {
     return groups
   }, [dateColumns])
 
-  if (loading) return <div className="text-center py-8 text-gray-500">Loading...</div>
+  if (loading) return (
+    <div className="flex items-center justify-center py-16">
+      <div className="w-6 h-6 border-2 border-forest-300 border-t-forest-600 rounded-full animate-spin" />
+    </div>
+  )
 
   const incompleteTasks = manualTasks.filter(t => !t.completed)
   const completedTasks = manualTasks.filter(t => t.completed)
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {/* ── Quick stats ───────────────────────────────────── */}
       <div className="grid grid-cols-4 gap-2">
         {[
-          { n: stats.territories, label: 'Territories', color: 'text-blue-600' },
-          { n: stats.birds, label: 'Birds', color: 'text-purple-600' },
-          { n: stats.nests, label: 'Nests', color: 'text-green-600' },
-          { n: stats.visitsToday, label: 'Today', color: 'text-orange-600' },
+          { n: stats.territories, label: 'Territories', accent: 'text-forest-600', bg: 'bg-forest-50' },
+          { n: stats.birds, label: 'Birds', accent: 'text-sage-600', bg: 'bg-sage-50' },
+          { n: stats.nests, label: 'Nests', accent: 'text-rust-500', bg: 'bg-rust-50' },
+          { n: stats.visitsToday, label: 'Today', accent: 'text-bark-600', bg: 'bg-bark-50' },
         ].map(s => (
-          <div key={s.label} className="bg-white rounded-lg border p-2 text-center">
-            <div className={`text-lg font-bold ${s.color}`}>{s.n}</div>
-            <div className="text-[10px] text-gray-500 leading-tight">{s.label}</div>
+          <div key={s.label} className={`card p-2.5 text-center`}>
+            <div className={`text-xl font-bold font-display ${s.accent}`}>{s.n}</div>
+            <div className="text-2xs text-bark-500 uppercase tracking-wider font-medium">{s.label}</div>
           </div>
         ))}
       </div>
 
       {/* ── Quick actions ─────────────────────────────────── */}
       <div className="grid grid-cols-2 gap-2">
-        <Link href="/territories" className="block bg-blue-600 text-white rounded-lg py-2.5 text-center font-semibold text-sm">Territories</Link>
-        <Link href="/nests/new" className="block bg-green-600 text-white rounded-lg py-2.5 text-center font-semibold text-sm">New Nest</Link>
+        <Link href="/territories" className="btn-secondary btn-md text-center">View Territories</Link>
+        <Link href="/nests/new" className="btn-accent btn-md text-center">+ New Nest</Link>
       </div>
 
       {/* ═══════════════════════════════════════════════════ */}
       {/* SCHEDULE LEDGER                                    */}
       {/* ═══════════════════════════════════════════════════ */}
       <div>
-        <div className="flex items-center justify-between mb-1.5">
-          <h2 className="text-sm font-semibold text-gray-700">Schedule</h2>
-          <div className="flex flex-wrap gap-1.5 text-[10px] text-gray-500">
-            <span className="flex items-center gap-0.5"><span className="inline-block w-2 h-2 rounded" style={{ background: '#ffedd5' }} />Laying</span>
-            <span className="flex items-center gap-0.5"><span className="inline-block w-2 h-2 rounded" style={{ background: '#fef9c3' }} />Incubating</span>
-            {PROTOCOL_WINDOWS.map(w => (
-              <span key={w.key} className="flex items-center gap-0.5">
-                <span className="inline-block w-2 h-2 rounded" style={{ background: w.colorHex }} />
-                {w.label}
-              </span>
-            ))}
-            <span className="flex items-center gap-0.5">
-              <span className="inline-block w-2 h-2 rounded" style={{ background: RENEST_WINDOW.colorHex }} />
-              Renest
-            </span>
-          </div>
+        <div className="flex items-center justify-between mb-2">
+          <h2 className="section-title">Schedule</h2>
         </div>
 
-        <div className="bg-white rounded-lg border overflow-hidden">
-          <div className="overflow-x-auto">
+        {/* Legend bar */}
+        <div className="flex flex-wrap gap-x-3 gap-y-1 mb-2 text-2xs text-bark-500">
+          <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm" style={{ background: '#e8d5b8' }} />Laying</span>
+          <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm" style={{ background: '#d4c9a0' }} />Incubating</span>
+          {PROTOCOL_WINDOWS.map(w => (
+            <span key={w.key} className="flex items-center gap-1">
+              <span className="w-2.5 h-2.5 rounded-sm" style={{ background: w.colorHex }} />
+              {w.label}
+            </span>
+          ))}
+          <span className="flex items-center gap-1">
+            <span className="w-2.5 h-2.5 rounded-sm" style={{ background: RENEST_WINDOW.colorHex }} />
+            Renest
+          </span>
+        </div>
+
+        <div className="card overflow-hidden">
+          <div className="overflow-x-auto scrollbar-hide">
             <div style={{ minWidth: LABEL_W + dateColumns.length * COL_W }}>
 
               {/* Month header */}
-              <div className="flex border-b" style={{ background: '#f9fafb' }}>
-                <div className="flex-shrink-0 border-r" style={{ width: LABEL_W, position: 'sticky', left: 0, zIndex: 3, background: '#f9fafb' }} />
+              <div className="flex border-b border-cream-300" style={{ background: '#f5efe5' }}>
+                <div className="flex-shrink-0 border-r border-cream-300" style={{ width: LABEL_W, position: 'sticky', left: 0, zIndex: 3, background: '#f5efe5' }} />
                 {monthGroups.map((mg, i) => (
-                  <div key={i} className="text-center text-[9px] font-bold text-gray-400 border-r border-gray-100 py-0.5" style={{ width: mg.count * COL_W }}>{mg.label}</div>
+                  <div key={i} className="text-center text-2xs font-bold text-bark-400 border-r border-cream-200 py-1" style={{ width: mg.count * COL_W }}>{mg.label}</div>
                 ))}
               </div>
 
               {/* Date header */}
-              <div className="flex border-b" style={{ background: '#f9fafb' }}>
-                <div className="flex-shrink-0 border-r" style={{ width: LABEL_W, position: 'sticky', left: 0, zIndex: 3, background: '#f9fafb' }}>
-                  <div className="text-[8px] text-gray-400 px-1 py-0.5 text-right leading-tight">Terr</div>
+              <div className="flex border-b border-cream-300" style={{ background: '#f5efe5' }}>
+                <div className="flex-shrink-0 border-r border-cream-300" style={{ width: LABEL_W, position: 'sticky', left: 0, zIndex: 3, background: '#f5efe5' }}>
+                  <div className="text-2xs text-bark-400 px-1.5 py-1 text-right">Terr</div>
                 </div>
                 {dateColumns.map((dc, i) => (
-                  <div key={i} className={`flex-shrink-0 text-center border-r border-gray-100 py-0.5 ${dc.isToday ? 'bg-yellow-100' : dc.dayOfWeek === 0 || dc.dayOfWeek === 6 ? 'bg-gray-50' : ''}`} style={{ width: COL_W }}>
-                    <div className={`text-[10px] leading-tight ${dc.isToday ? 'font-bold text-yellow-800' : 'text-gray-600'}`}>{dc.day}</div>
-                    <div className={`text-[8px] leading-tight ${dc.isToday ? 'text-yellow-700' : 'text-gray-400'}`}>{DAY_LETTERS[dc.dayOfWeek]}</div>
+                  <div key={i} className={`flex-shrink-0 text-center border-r border-cream-200 py-0.5 ${dc.isToday ? 'bg-rust-100' : dc.dayOfWeek === 0 || dc.dayOfWeek === 6 ? 'bg-cream-200/50' : ''}`} style={{ width: COL_W }}>
+                    <div className={`text-[11px] leading-tight ${dc.isToday ? 'font-bold text-rust-700' : 'text-forest-700'}`}>{dc.day}</div>
+                    <div className={`text-2xs leading-tight ${dc.isToday ? 'text-rust-500' : 'text-bark-400'}`}>{DAY_LETTERS[dc.dayOfWeek]}</div>
                   </div>
                 ))}
               </div>
 
               {/* Territory rows */}
               {territories.map((territory, rowIdx) => (
-                <div key={territory} className={`flex ${rowIdx < territories.length - 1 ? 'border-b border-gray-100' : ''}`}>
-                  {/* Sticky territory label with birds + nest indicator */}
+                <div key={territory} className={`flex ${rowIdx < territories.length - 1 ? 'border-b border-cream-200' : ''}`}>
+                  {/* Sticky territory label */}
                   <Link href={`/territories/${encodeURIComponent(territory)}`}
-                    className="flex-shrink-0 border-r flex items-center active:bg-gray-100"
+                    className="flex-shrink-0 border-r border-cream-300 flex items-center active:bg-forest-50 transition-colors"
                     style={{ width: LABEL_W, height: CELL_H, position: 'sticky', left: 0, zIndex: 1, background: '#fff' }}>
-                    <div className="px-1 w-full overflow-hidden">
-                      <div className="flex items-center gap-0.5">
-                        <span className="text-[11px] font-bold text-gray-700">T{territory}</span>
+                    <div className="px-1.5 w-full overflow-hidden">
+                      <div className="flex items-center gap-1">
+                        <span className="text-xs font-bold text-forest-800">T{territory}</span>
                         {(nestsByTerritory[territory] || []).filter(n => !n.fail_code || n.fail_code === '24').length > 0 && (
-                          <span className="text-[9px]" title={`${(nestsByTerritory[territory] || []).filter(n => !n.fail_code || n.fail_code === '24').length} active nest(s)`}>🪺</span>
+                          <span className="w-1.5 h-1.5 rounded-full bg-sage-400 flex-shrink-0" title={`${(nestsByTerritory[territory] || []).filter(n => !n.fail_code || n.fail_code === '24').length} nest(s)`} />
                         )}
                       </div>
                       {(birdsByTerritory[territory] || []).length > 0 && (
-                        <div className="text-[7px] text-gray-400 leading-tight truncate">
+                        <div className="text-2xs text-bark-400 leading-tight truncate font-mono">
                           {(birdsByTerritory[territory] || []).map((b, bi) => {
                             const sexIcon = b.sex === 2 ? '♂' : b.sex === 1 ? '♀' : ''
                             const combo = b.color_combo || (b.is_unbanded ? 'UB' : '?')
-                            return <span key={bi}>{bi > 0 ? ' ' : ''}<span className={b.sex === 2 ? 'text-blue-500' : b.sex === 1 ? 'text-pink-500' : ''}>{sexIcon}</span>{combo}</span>
+                            return <span key={bi}>{bi > 0 ? ' ' : ''}<span className={b.sex === 2 ? 'text-blue-600' : b.sex === 1 ? 'text-pink-600' : ''}>{sexIcon}</span>{combo}</span>
                           })}
                         </div>
                       )}
@@ -623,27 +629,26 @@ export default function Home() {
                         textColor = '#fff'
                       }
                     } else if (topEvent && topEvent.completed) {
-                      bg = '#e5e7eb'
+                      bg = '#dce8de'
                       textContent = '✓'
-                      textColor = '#6b7280'
+                      textColor = '#2d5e36'
                     } else if (cell.preHatchStage && !topEvent) {
-                      // Pre-hatch coloring: laying = light orange, incubating = light yellow
-                      bg = cell.preHatchStage === 'laying' ? '#ffedd5' : '#fef9c3'
+                      bg = cell.preHatchStage === 'laying' ? '#e8d5b8' : '#d4c9a0'
                     } else if (cell.needsVisit) {
-                      bg = '#fefce8'
+                      bg = '#fbe4da'
                     }
 
-                    if ((dc.dayOfWeek === 0 || dc.dayOfWeek === 6) && bg === 'transparent') bg = '#fafafa'
+                    if ((dc.dayOfWeek === 0 || dc.dayOfWeek === 6) && bg === 'transparent') bg = '#faf7f2'
 
                     return (
                       <div key={ci}
-                        className={`flex-shrink-0 flex items-center justify-center relative cursor-pointer border-r border-gray-50 ${dc.isToday ? 'border-l-2 border-r-2 border-yellow-400' : ''}`}
+                        className={`flex-shrink-0 flex items-center justify-center relative cursor-pointer border-r border-cream-100 ${dc.isToday ? 'ring-1 ring-inset ring-rust-400' : ''}`}
                         style={{ width: COL_W, height: CELL_H, background: bg }}
                         title={topEvent ? `T${territory}: ${topEvent.label}${topEvent.chickDay ? ` (Day ${topEvent.chickDay})` : ''}` : `T${territory}: ${dc.dateStr}`}
                         onClick={() => { if (dc.jd >= todayJD) togglePlanned(territory, dc.dateStr) }}>
-                        {textContent && <span className="text-[9px] font-bold" style={{ color: textColor }}>{textContent}</span>}
-                        {cell.visited && <div className="absolute bottom-0.5 left-0.5 w-1.5 h-1.5 rounded-full bg-gray-700" />}
-                        {cell.isPlanned && <div className="absolute top-0 right-0 w-0 h-0" style={{ borderLeft: '5px solid transparent', borderTop: '5px solid #2563eb' }} />}
+                        {textContent && <span className="text-[10px] font-bold" style={{ color: textColor }}>{textContent}</span>}
+                        {cell.visited && <div className="absolute bottom-0.5 left-0.5 w-1.5 h-1.5 rounded-full bg-forest-700" />}
+                        {cell.isPlanned && <div className="absolute top-0 right-0 w-0 h-0" style={{ borderLeft: '5px solid transparent', borderTop: '5px solid #c45d3e' }} />}
                       </div>
                     )
                   })}
@@ -653,10 +658,10 @@ export default function Home() {
           </div>
 
           {/* Legend footer */}
-          <div className="flex items-center gap-3 px-2 py-1 border-t bg-gray-50 text-[8px] text-gray-500">
-            <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-gray-700 inline-block" />visited</span>
-            <span className="flex items-center gap-1"><span className="inline-block w-0 h-0" style={{ borderLeft: '4px solid transparent', borderTop: '4px solid #2563eb' }} />planned</span>
-            <span>Tap future cell to plan/unplan</span>
+          <div className="flex items-center gap-3 px-2.5 py-1.5 border-t border-cream-300 bg-cream-100 text-2xs text-bark-500">
+            <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-forest-700 inline-block" />visited</span>
+            <span className="flex items-center gap-1"><span className="inline-block w-0 h-0" style={{ borderLeft: '4px solid transparent', borderTop: '4px solid #c45d3e' }} />planned</span>
+            <span className="text-bark-400">Tap future cell to plan</span>
           </div>
         </div>
       </div>
@@ -665,24 +670,32 @@ export default function Home() {
       {/* TO DO TODAY                                        */}
       {/* ═══════════════════════════════════════════════════ */}
       <div>
-        <h2 className="text-sm font-semibold text-gray-700 mb-1.5">
-          Today {todayTasks.length > 0 && <span className="text-xs font-normal text-gray-400">({todayTasks.length})</span>}
-        </h2>
+        <div className="flex items-center gap-2 mb-2">
+          <h2 className="section-title">Today</h2>
+          {todayTasks.length > 0 && (
+            <span className="badge-rust text-2xs">{todayTasks.length}</span>
+          )}
+        </div>
         {todayTasks.length === 0 ? (
-          <p className="text-xs text-gray-400 bg-white rounded-lg border p-3">Nothing scheduled for today.</p>
+          <div className="card p-4 text-center">
+            <p className="text-sm text-bark-400">Nothing scheduled for today</p>
+          </div>
         ) : (
           <div className="space-y-1.5">
             {todayTasks.map(task => (
               <Link key={task.id} href={task.nestLink}
-                className="flex items-center gap-2.5 bg-white rounded-lg border p-2.5 active:bg-gray-50">
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 text-[10px] font-bold"
+                className="card-interactive flex items-center gap-3 p-3">
+                <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 text-xs font-bold font-mono"
                   style={{ background: task.color, color: task.idealColor }}>T{task.territory}</div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium text-gray-800">{task.label}</div>
-                  <div className="text-[11px] text-gray-400">
+                  <div className="text-sm font-medium text-forest-800">{task.label}</div>
+                  <div className="text-xs text-bark-400">
                     Terr {task.territory}{task.nestLabel && ` · ${task.nestLabel}`}{task.chickDay && ` · Day ${task.chickDay}`}
                   </div>
                 </div>
+                <svg className="w-4 h-4 text-bark-300 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                </svg>
               </Link>
             ))}
           </div>
@@ -694,16 +707,19 @@ export default function Home() {
       {/* ═══════════════════════════════════════════════════ */}
       {upcomingTasks.length > 0 && (
         <div>
-          <h2 className="text-sm font-semibold text-gray-700 mb-1.5">Upcoming <span className="text-xs font-normal text-gray-400">next 5 days</span></h2>
+          <div className="flex items-center gap-2 mb-2">
+            <h2 className="section-title">Upcoming</h2>
+            <span className="section-subtitle">next 5 days</span>
+          </div>
           <div className="space-y-1">
             {upcomingTasks.map(task => (
               <Link key={task.id} href={task.nestLink}
-                className="flex items-center gap-2 bg-white rounded-lg border p-2 active:bg-gray-50">
-                <div className="w-7 h-7 rounded flex items-center justify-center flex-shrink-0 text-[9px] font-bold"
+                className="card-interactive flex items-center gap-2.5 p-2.5">
+                <div className="w-7 h-7 rounded-md flex items-center justify-center flex-shrink-0 text-2xs font-bold font-mono"
                   style={{ background: task.color, color: task.idealColor }}>T{task.territory}</div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-xs font-medium text-gray-700">{task.label}</div>
-                  <div className="text-[10px] text-gray-400">
+                  <div className="text-xs font-medium text-forest-700">{task.label}</div>
+                  <div className="text-2xs text-bark-400">
                     {task.dateLabel} · Terr {task.territory}{task.nestLabel && ` · ${task.nestLabel}`}{task.chickDay && ` · Day ${task.chickDay}`}
                   </div>
                 </div>
@@ -717,25 +733,28 @@ export default function Home() {
       {/* INBOX                                              */}
       {/* ═══════════════════════════════════════════════════ */}
       <div>
-        <div className="flex justify-between items-center mb-1.5">
-          <h2 className="text-sm font-semibold text-gray-700">
-            Inbox {incompleteTasks.length > 0 && <span className="text-xs font-normal text-gray-400">({incompleteTasks.length})</span>}
-          </h2>
+        <div className="flex justify-between items-center mb-2">
+          <div className="flex items-center gap-2">
+            <h2 className="section-title">Inbox</h2>
+            {incompleteTasks.length > 0 && (
+              <span className="badge-neutral text-2xs">{incompleteTasks.length}</span>
+            )}
+          </div>
           <button onClick={() => setShowAddTask(!showAddTask)}
-            className="text-xs bg-blue-600 text-white px-3 py-1.5 rounded-lg font-semibold">+ Add</button>
+            className="btn-primary btn-sm">+ Add</button>
         </div>
 
         {showAddTask && (
-          <form onSubmit={handleAddTask} className="bg-white rounded-lg border p-3 space-y-2 mb-2">
+          <form onSubmit={handleAddTask} className="card p-3 space-y-2 mb-2">
             <input type="text" value={newTask.title}
               onChange={e => setNewTask({ ...newTask, title: e.target.value })}
               placeholder="What needs to be done?"
-              className="w-full border rounded-lg px-3 py-2 text-sm" autoFocus />
+              className="input" autoFocus />
             <div className="flex flex-col sm:flex-row gap-2">
               <div className="flex gap-2">
                 <select value={newTask.priority}
                   onChange={e => setNewTask({ ...newTask, priority: e.target.value })}
-                  className="border rounded-lg px-2 py-2 text-xs bg-white">
+                  className="input text-xs !py-1.5">
                   <option value="urgent">Urgent</option>
                   <option value="normal">Normal</option>
                   <option value="low">Low</option>
@@ -743,45 +762,47 @@ export default function Home() {
                 <input type="text" value={newTask.territory}
                   onChange={e => setNewTask({ ...newTask, territory: e.target.value })}
                   placeholder="Territory"
-                  className="border rounded-lg px-2 py-2 text-xs w-24" />
+                  className="input text-xs !py-1.5 w-24" />
               </div>
               <input type="text" value={newTask.notes || ''}
                 onChange={e => setNewTask({ ...newTask, notes: e.target.value })}
                 placeholder="Notes"
-                className="flex-1 border rounded-lg px-2 py-2 text-xs" />
+                className="input text-xs !py-1.5 flex-1" />
             </div>
             <div className="flex gap-2">
-              <button type="submit" className="bg-blue-600 text-white rounded-lg px-3 py-1.5 text-xs font-semibold">Save</button>
-              <button type="button" onClick={() => setShowAddTask(false)} className="text-gray-500 text-xs">Cancel</button>
+              <button type="submit" className="btn-primary btn-sm">Save</button>
+              <button type="button" onClick={() => setShowAddTask(false)} className="btn-ghost btn-sm">Cancel</button>
             </div>
           </form>
         )}
 
         {incompleteTasks.length === 0 && !showAddTask && (
-          <p className="text-xs text-gray-400 bg-white rounded-lg border p-3">No tasks in inbox.</p>
+          <div className="card p-4 text-center">
+            <p className="text-sm text-bark-400">No tasks in inbox</p>
+          </div>
         )}
 
         {incompleteTasks.length > 0 && (
           <div className="space-y-1">
             {incompleteTasks.map(task => (
-              <div key={task.task_id} className="flex items-start gap-2 bg-white rounded-lg border p-2.5">
+              <div key={task.task_id} className="card flex items-start gap-2.5 p-3">
                 <button onClick={() => toggleTask(task.task_id, task.completed)}
-                  className="mt-0.5 w-5 h-5 rounded border-2 border-gray-300 flex-shrink-0" />
+                  className="mt-0.5 w-5 h-5 rounded-md border-2 border-bark-300 flex-shrink-0 transition-colors active:bg-forest-100 active:border-forest-400" />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5">
                     {task.priority === 'urgent' && <span className="w-2 h-2 rounded-full bg-red-500 flex-shrink-0" />}
-                    {task.priority === 'low' && <span className="w-2 h-2 rounded-full bg-gray-300 flex-shrink-0" />}
-                    <span className="text-sm">{task.title}</span>
+                    {task.priority === 'low' && <span className="w-2 h-2 rounded-full bg-bark-300 flex-shrink-0" />}
+                    <span className="text-sm text-forest-800">{task.title}</span>
                   </div>
                   {(task.territory || task.notes) && (
-                    <div className="text-xs text-gray-400 mt-0.5">
+                    <div className="text-xs text-bark-400 mt-0.5">
                       {task.territory && <span>Terr {task.territory}</span>}
                       {task.territory && task.notes && ' · '}
                       {task.notes}
                     </div>
                   )}
                 </div>
-                <button onClick={() => deleteTask(task.task_id)} className="text-gray-300 hover:text-red-500 text-xs px-1">✕</button>
+                <button onClick={() => deleteTask(task.task_id)} className="text-bark-300 active:text-red-500 text-xs px-1 transition-colors">✕</button>
               </div>
             ))}
           </div>
@@ -789,14 +810,14 @@ export default function Home() {
 
         {completedTasks.length > 0 && (
           <details className="mt-2">
-            <summary className="text-xs text-gray-400 cursor-pointer">{completedTasks.length} completed</summary>
-            <div className="space-y-1 mt-1">
+            <summary className="text-xs text-bark-400 cursor-pointer font-medium">{completedTasks.length} completed</summary>
+            <div className="space-y-1 mt-1.5">
               {completedTasks.map(task => (
-                <div key={task.task_id} className="flex items-center gap-2 bg-gray-50 rounded-lg p-2.5">
+                <div key={task.task_id} className="flex items-center gap-2.5 bg-cream-100 rounded-card p-3">
                   <button onClick={() => toggleTask(task.task_id, task.completed)}
-                    className="w-5 h-5 rounded border-2 border-green-400 bg-green-100 flex-shrink-0 flex items-center justify-center text-green-600 text-xs font-bold">✓</button>
-                  <span className="text-sm text-gray-400 line-through flex-1">{task.title}</span>
-                  <button onClick={() => deleteTask(task.task_id)} className="text-gray-300 hover:text-red-500 text-xs px-1">✕</button>
+                    className="w-5 h-5 rounded-md border-2 border-forest-300 bg-forest-100 flex-shrink-0 flex items-center justify-center text-forest-600 text-xs font-bold">✓</button>
+                  <span className="text-sm text-bark-400 line-through flex-1">{task.title}</span>
+                  <button onClick={() => deleteTask(task.task_id)} className="text-bark-300 active:text-red-500 text-xs px-1 transition-colors">✕</button>
                 </div>
               ))}
             </div>

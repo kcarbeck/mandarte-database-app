@@ -33,26 +33,32 @@ export default function AuthGate({ children }) {
 
   if (!authed) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-xl shadow-lg px-4 py-6 sm:px-6 w-full max-w-sm">
-          <h1 className="text-xl font-bold text-gray-900 mb-1">Mandarte Field App</h1>
-          <p className="text-sm text-gray-500 mb-6">Enter the field crew password to continue.</p>
+      <div className="min-h-screen bg-cream-100 flex items-center justify-center p-4">
+        <div className="card shadow-lg p-6 sm:p-8 w-full max-w-sm">
+          <div className="mb-6 text-center">
+            <div className="text-3xl mb-2">🦅</div>
+            <h1 className="font-display text-2xl text-forest-800 mb-1">Mandarte Field App</h1>
+            <p className="text-bark-500">W̱SÁNEĆ Territory Research</p>
+          </div>
+
+          <p className="text-sm text-bark-500 mb-6 text-center">Enter the field crew password to continue.</p>
+
           <form onSubmit={handleSubmit}>
             <input
               type="password"
               value={password}
               onChange={e => { setPassword(e.target.value); setError('') }}
               placeholder="Password"
-              className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="input w-full mb-3"
               autoFocus
             />
-            {error && <p className="text-red-500 text-xs mb-3">{error}</p>}
+            {error && <p className="text-red-600 text-xs mb-3">{error}</p>}
             <button type="submit"
-              className="w-full bg-blue-600 text-white rounded-lg py-3 text-sm font-medium hover:bg-blue-700">
+              className="btn-primary btn-lg w-full">
               Enter
             </button>
           </form>
-          <p className="text-xs text-gray-400 mt-4 text-center">
+          <p className="text-2xs text-bark-400 mt-6 text-center">
             Contact Katherine if you need the password.
           </p>
         </div>
