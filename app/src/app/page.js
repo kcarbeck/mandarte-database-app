@@ -568,19 +568,19 @@ export default function Home() {
               <div className="flex border-b border-cream-300" style={{ background: '#f5efe5' }}>
                 <div className="flex-shrink-0 border-r border-cream-300" style={{ width: LABEL_W, position: 'sticky', left: 0, zIndex: 3, background: '#f5efe5' }} />
                 {monthGroups.map((mg, i) => (
-                  <div key={i} className="text-center text-2xs font-bold text-bark-400 border-r border-cream-200 py-1" style={{ width: mg.count * COL_W }}>{mg.label}</div>
+                  <div key={i} className="text-center text-2xs font-bold text-bark-600 border-r border-cream-200 py-1" style={{ width: mg.count * COL_W }}>{mg.label}</div>
                 ))}
               </div>
 
               {/* Date header */}
               <div className="flex border-b border-cream-300" style={{ background: '#f5efe5' }}>
                 <div className="flex-shrink-0 border-r border-cream-300" style={{ width: LABEL_W, position: 'sticky', left: 0, zIndex: 3, background: '#f5efe5' }}>
-                  <div className="text-2xs text-bark-400 px-1.5 py-1 text-right">Terr</div>
+                  <div className="text-2xs text-bark-600 px-1.5 py-1 text-right">Terr</div>
                 </div>
                 {dateColumns.map((dc, i) => (
                   <div key={i} className={`flex-shrink-0 text-center border-r border-cream-200 py-0.5 ${dc.isToday ? 'bg-rust-100' : dc.dayOfWeek === 0 || dc.dayOfWeek === 6 ? 'bg-cream-200/50' : ''}`} style={{ width: COL_W }}>
                     <div className={`text-[11px] leading-tight ${dc.isToday ? 'font-bold text-rust-700' : 'text-forest-700'}`}>{dc.day}</div>
-                    <div className={`text-2xs leading-tight ${dc.isToday ? 'text-rust-500' : 'text-bark-400'}`}>{DAY_LETTERS[dc.dayOfWeek]}</div>
+                    <div className={`text-2xs leading-tight ${dc.isToday ? 'text-rust-500' : 'text-bark-600'}`}>{DAY_LETTERS[dc.dayOfWeek]}</div>
                   </div>
                 ))}
               </div>
@@ -600,7 +600,7 @@ export default function Home() {
                         )}
                       </div>
                       {(birdsByTerritory[territory] || []).length > 0 && (
-                        <div className="text-2xs text-bark-400 leading-tight truncate font-mono">
+                        <div className="text-2xs text-bark-600 leading-tight truncate font-mono">
                           {(birdsByTerritory[territory] || []).map((b, bi) => {
                             const sexIcon = b.sex === 2 ? '♂' : b.sex === 1 ? '♀' : ''
                             const combo = b.color_combo || (b.is_unbanded ? 'UB' : '?')
@@ -678,7 +678,7 @@ export default function Home() {
         </div>
         {todayTasks.length === 0 ? (
           <div className="card p-4 text-center">
-            <p className="text-sm text-bark-400">Nothing scheduled for today</p>
+            <p className="text-sm text-bark-600">Nothing scheduled for today</p>
           </div>
         ) : (
           <div className="space-y-1.5">
@@ -689,11 +689,11 @@ export default function Home() {
                   style={{ background: task.color, color: task.idealColor }}>T{task.territory}</div>
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-medium text-forest-800">{task.label}</div>
-                  <div className="text-xs text-bark-400">
+                  <div className="text-xs text-bark-600">
                     Terr {task.territory}{task.nestLabel && ` · ${task.nestLabel}`}{task.chickDay && ` · Day ${task.chickDay}`}
                   </div>
                 </div>
-                <svg className="w-4 h-4 text-bark-300 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <svg className="w-4 h-4 text-bark-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                 </svg>
               </Link>
@@ -719,7 +719,7 @@ export default function Home() {
                   style={{ background: task.color, color: task.idealColor }}>T{task.territory}</div>
                 <div className="flex-1 min-w-0">
                   <div className="text-xs font-medium text-forest-700">{task.label}</div>
-                  <div className="text-2xs text-bark-400">
+                  <div className="text-2xs text-bark-600">
                     {task.dateLabel} · Terr {task.territory}{task.nestLabel && ` · ${task.nestLabel}`}{task.chickDay && ` · Day ${task.chickDay}`}
                   </div>
                 </div>
@@ -778,7 +778,7 @@ export default function Home() {
 
         {incompleteTasks.length === 0 && !showAddTask && (
           <div className="card p-4 text-center">
-            <p className="text-sm text-bark-400">No tasks in inbox</p>
+            <p className="text-sm text-bark-600">No tasks in inbox</p>
           </div>
         )}
 
@@ -795,14 +795,14 @@ export default function Home() {
                     <span className="text-sm text-forest-800">{task.title}</span>
                   </div>
                   {(task.territory || task.notes) && (
-                    <div className="text-xs text-bark-400 mt-0.5">
+                    <div className="text-xs text-bark-600 mt-0.5">
                       {task.territory && <span>Terr {task.territory}</span>}
                       {task.territory && task.notes && ' · '}
                       {task.notes}
                     </div>
                   )}
                 </div>
-                <button onClick={() => deleteTask(task.task_id)} className="text-bark-300 active:text-red-500 text-xs px-1 transition-colors">✕</button>
+                <button onClick={() => deleteTask(task.task_id)} className="text-bark-500 active:text-red-500 text-xs px-1 transition-colors">✕</button>
               </div>
             ))}
           </div>
@@ -810,14 +810,14 @@ export default function Home() {
 
         {completedTasks.length > 0 && (
           <details className="mt-2">
-            <summary className="text-xs text-bark-400 cursor-pointer font-medium">{completedTasks.length} completed</summary>
+            <summary className="text-xs text-bark-600 cursor-pointer font-medium">{completedTasks.length} completed</summary>
             <div className="space-y-1 mt-1.5">
               {completedTasks.map(task => (
                 <div key={task.task_id} className="flex items-center gap-2.5 bg-cream-100 rounded-card p-3">
                   <button onClick={() => toggleTask(task.task_id, task.completed)}
                     className="w-5 h-5 rounded-md border-2 border-forest-300 bg-forest-100 flex-shrink-0 flex items-center justify-center text-forest-600 text-xs font-bold">✓</button>
-                  <span className="text-sm text-bark-400 line-through flex-1">{task.title}</span>
-                  <button onClick={() => deleteTask(task.task_id)} className="text-bark-300 active:text-red-500 text-xs px-1 transition-colors">✕</button>
+                  <span className="text-sm text-bark-500 line-through flex-1">{task.title}</span>
+                  <button onClick={() => deleteTask(task.task_id)} className="text-bark-500 active:text-red-500 text-xs px-1 transition-colors">✕</button>
                 </div>
               ))}
             </div>

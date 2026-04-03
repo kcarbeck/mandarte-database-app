@@ -767,10 +767,10 @@ export default function TerritoryDetailPage({ params }) {
                         onClick={() => setSelectedNestForObs(isSelected ? null : nest.breed_id)}
                         className={`text-xs px-3 py-1.5 rounded-lg border-2 font-semibold transition ${
                           isSelected
-                            ? 'bg-blue-600 text-white border-blue-600'
+                            ? 'bg-forest-600 text-white border-forest-600'
                             : hasObs
-                            ? 'bg-blue-50 text-blue-700 border-blue-300'
-                            : 'bg-white text-gray-700 border-gray-300 hover:border-blue-400'
+                            ? 'bg-forest-50 text-forest-700 border-forest-300'
+                            : 'bg-white text-bark-700 border-bark-300 hover:border-forest-400'
                         }`}>
                         Nest #{nestSeq[nest.breed_id] || '?'}
                         {hasObs && !isSelected && ' ✓'}
@@ -1175,11 +1175,11 @@ export default function TerritoryDetailPage({ params }) {
               // Pre-hatch stage for display: which stage is active right now?
               const preHatchStages = [
                 { key: 'building', label: 'Building', active: currentStage === 'building',
-                  date: null, color: 'bg-amber-100 text-amber-700' },
+                  date: null, color: 'bg-bark-100 text-bark-700' },
                 { key: 'laying', label: 'Laying', active: currentStage === 'laying',
-                  date: dfeJD ? fmtDate(dfeJD) : null, color: 'bg-orange-100 text-orange-700' },
+                  date: dfeJD ? fmtDate(dfeJD) : null, color: 'bg-rust-100 text-rust-700' },
                 { key: 'incubating', label: 'Incubating', active: currentStage === 'incubating',
-                  date: hatchJD ? `est. hatch ${fmtDate(hatchJD)}` : null, color: 'bg-yellow-100 text-yellow-700' },
+                  date: hatchJD ? `est. hatch ${fmtDate(hatchJD)}` : null, color: 'bg-cream-300 text-bark-700' },
               ]
 
               return (
@@ -1196,16 +1196,16 @@ export default function TerritoryDetailPage({ params }) {
                         {chickAge != null && chickAge > 0 && !isFailed && (
                           <span className={`text-xs font-bold px-1.5 py-0.5 rounded ${
                             chickAge >= 9 && chickAge <= 11 ? 'bg-red-100 text-red-700' :
-                            chickAge >= 4 && chickAge <= 7 ? 'bg-emerald-100 text-emerald-700' :
-                            chickAge >= 12 && chickAge <= 14 ? 'bg-blue-100 text-blue-700' :
-                            chickAge >= 22 && chickAge <= 26 ? 'bg-purple-100 text-purple-700' :
-                            'bg-gray-100 text-gray-600'
+                            chickAge >= 4 && chickAge <= 7 ? 'bg-sage-100 text-sage-700' :
+                            chickAge >= 12 && chickAge <= 14 ? 'bg-forest-100 text-forest-700' :
+                            chickAge >= 22 && chickAge <= 26 ? 'bg-bark-200 text-bark-700' :
+                            'bg-cream-200 text-bark-600'
                           }`}>Day {chickAge}</span>
                         )}
                         {/* Pre-hatch stage badge (when no chick age yet) */}
                         {(chickAge == null || chickAge < 1) && !isFailed && !isSuccess && (
                           <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${
-                            preHatchStages.find(s => s.active)?.color || 'bg-gray-100 text-gray-500'
+                            preHatchStages.find(s => s.active)?.color || 'bg-cream-200 text-bark-500'
                           }`}>
                             {preHatchStages.find(s => s.active)?.label || currentStage}
                           </span>
@@ -1213,10 +1213,10 @@ export default function TerritoryDetailPage({ params }) {
                       </div>
                       <div className="flex items-center gap-1.5">
                         {nest.field_complete && (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-200 text-green-800 font-bold">Done</span>
+                          <span className="text-[10px] px-1.5 py-0.5 rounded badge-success font-bold">Done</span>
                         )}
                         <span className={`text-xs px-2 py-0.5 rounded ${status.color}`}>{status.label}</span>
-                        <span className="text-gray-400 text-sm">{isExpanded ? '▾' : '▸'}</span>
+                        <span className="text-bark-500 text-sm">{isExpanded ? '▾' : '▸'}</span>
                       </div>
                     </div>
 
@@ -1231,11 +1231,11 @@ export default function TerritoryDetailPage({ params }) {
                         const isCurrent = s.active
                         return (
                           <div key={s.key} className="flex items-center">
-                            {i > 0 && <span className="text-gray-300 mx-0.5">&rarr;</span>}
+                            {i > 0 && <span className="text-bark-300 mx-0.5">&rarr;</span>}
                             <div className={`rounded-lg px-1.5 py-0.5 text-[9px] ${
                               isCurrent ? s.color + ' font-bold' :
-                              isPast ? 'bg-gray-200 text-gray-500' :
-                              'bg-gray-100 text-gray-400'
+                              isPast ? 'bg-bark-200 text-bark-600' :
+                              'bg-cream-200 text-bark-500'
                             }`}>
                               {s.label}
                               {isCurrent && s.date && <div className="text-[8px] font-normal opacity-70">{s.date}</div>}
@@ -1245,7 +1245,7 @@ export default function TerritoryDetailPage({ params }) {
                       })}
                       {/* Arrow between pre-hatch and post-hatch sections */}
                       {(chickAge == null || chickAge < 1) && !isFailed && !isSuccess && (
-                        <span className="text-gray-300 mx-0.5">&rarr;</span>
+                        <span className="text-bark-300 mx-0.5">&rarr;</span>
                       )}
                       {/* Post-hatch count stages */}
                       {[
@@ -1256,9 +1256,9 @@ export default function TerritoryDetailPage({ params }) {
                         const val = nest[s.k]
                         return (
                           <div key={s.k} className="flex items-center">
-                            {i > 0 && <span className="text-gray-300 mx-0.5">&rarr;</span>}
+                            {i > 0 && <span className="text-bark-300 mx-0.5">&rarr;</span>}
                             <div className={`rounded-lg px-2 py-0.5 text-xs ${
-                              val != null && val !== '' ? 'bg-blue-100 text-blue-800 font-bold' : 'bg-gray-100 text-gray-400'
+                              val != null && val !== '' ? 'bg-forest-100 text-forest-800 font-bold' : 'bg-cream-200 text-bark-500'
                             }`}>
                               <div className="text-[9px] leading-tight">{s.l}</div>
                               <div className="text-sm leading-tight">{val != null && val !== '' ? val : '—'}</div>
@@ -1278,11 +1278,11 @@ export default function TerritoryDetailPage({ params }) {
                           const dateRange = formatWindowDates(w, hatchJD, currentYear)
                           return (
                             <span key={w.key} className={`text-[10px] px-1.5 py-0.5 rounded ${
-                              w.completed ? 'bg-gray-200 text-gray-500 line-through' :
+                              w.completed ? 'bg-bark-200 text-bark-600 line-through' :
                               w.isDanger && isActive ? 'bg-red-200 text-red-800 font-bold' :
-                              isActive ? 'bg-yellow-100 text-yellow-800 font-semibold' :
-                              isOverdue ? 'bg-orange-100 text-orange-700 font-semibold' :
-                              'bg-gray-100 text-gray-400'
+                              isActive ? 'bg-amber-100 text-amber-800 font-semibold' :
+                              isOverdue ? 'bg-rust-100 text-rust-700 font-semibold' :
+                              'bg-cream-200 text-bark-500'
                             }`}>
                               {w.isDanger ? `⚠️ ${dateRange}` : `${w.label} ${dateRange}`}
                               {w.completed && w.field && nest[w.field] != null ? ` ✓${nest[w.field]}` : ''}
@@ -1295,12 +1295,12 @@ export default function TerritoryDetailPage({ params }) {
 
                     {/* Pre-hatch: show estimated hatch date if available */}
                     {!hatchJD && !isFailed && !isSuccess && nest.eggs != null && (
-                      <p className="text-[10px] text-gray-400 mt-1">
+                      <p className="text-[10px] text-bark-500 mt-1">
                         Need hatch date for protocol schedule
                       </p>
                     )}
                     {hatchJD && !isFailed && (chickAge == null || chickAge < 1) && (
-                      <p className="text-[10px] text-yellow-600 mt-1 font-medium">
+                      <p className="text-[10px] text-amber-700 mt-1 font-medium">
                         Est. hatch {fmtDate(hatchJD)}{hatchSource && hatchSource !== 'observed' ? ` (${hatchSource})` : ''}
                       </p>
                     )}
@@ -1312,11 +1312,11 @@ export default function TerritoryDetailPage({ params }) {
                       {/* Full lifecycle timeline with dates */}
                       <div className="px-3 pt-3 pb-2">
                         {/* Date milestones */}
-                        <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-[11px] text-gray-500 mb-1.5">
+                        <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-[11px] text-bark-600 mb-1.5">
                           {dfeJD && <span>DFE: {fmtDate(dfeJD)}{lifecycle.dfeSource !== 'observed' ? ' (est.)' : ''}</span>}
                           {hatchJD && <span>Hatch: {fmtDate(hatchJD)}{hatchSource !== 'observed' ? ' (est.)' : ''}</span>}
                           {chickAge != null && chickAge > 0 && <span>Day {chickAge}</span>}
-                          {currentStage && !isFailed && !isSuccess && <span className="font-medium text-gray-700">Stage: {currentStage}</span>}
+                          {currentStage && !isFailed && !isSuccess && <span className="font-medium text-forest-800">Stage: {currentStage}</span>}
                         </div>
 
                         {/* Visual day strip — now includes pre-hatch if we have DFE */}
@@ -1335,21 +1335,21 @@ export default function TerritoryDetailPage({ params }) {
                                   const cellJD = stripStartJD + i
                                   const isToday = cellJD === todayJD
                                   const chickDay = hatchJD ? cellJD - hatchJD + 1 : null
-                                  let cellBg = 'bg-gray-50'
+                                  let cellBg = 'bg-cream-100'
 
                                   // Pre-hatch coloring
                                   if (hatchJD && cellJD < hatchJD) {
                                     if (layingEndJD && cellJD <= layingEndJD) {
-                                      cellBg = 'bg-orange-100' // Laying
+                                      cellBg = 'bg-rust-100' // Laying
                                     } else {
-                                      cellBg = 'bg-yellow-100' // Incubating
+                                      cellBg = 'bg-cream-300' // Incubating
                                     }
                                   }
                                   // Post-hatch protocol windows
                                   else if (chickDay && chickDay >= 1) {
                                     for (const w of windows) {
                                       if (chickDay >= w.startDay && chickDay <= w.endDay) {
-                                        if (w.completed) { cellBg = 'bg-gray-200' }
+                                        if (w.completed) { cellBg = 'bg-bark-200' }
                                         else if (w.isDanger) { cellBg = cellJD === todayJD ? 'bg-red-400' : 'bg-red-200' }
                                         else if (w.idealDay && chickDay === w.idealDay) { cellBg = w.bgIdeal || w.bgActive }
                                         else if (cellJD === todayJD) { cellBg = w.bgActive }
@@ -1370,7 +1370,7 @@ export default function TerritoryDetailPage({ params }) {
                                   )
                                 })}
                               </div>
-                              <div className="flex justify-between text-[9px] text-gray-400 px-0.5">
+                              <div className="flex justify-between text-[9px] text-bark-500 px-0.5">
                                 <span>{fmtDate(stripStartJD)}</span>
                                 <span>{fmtDate(stripEndJD)}</span>
                               </div>
@@ -1389,9 +1389,9 @@ export default function TerritoryDetailPage({ params }) {
                           const val = nest[s.k]
                           return (
                             <div key={s.k} className="flex items-center">
-                              {i > 0 && <span className="text-gray-300 mx-0.5">&rarr;</span>}
+                              {i > 0 && <span className="text-bark-300 mx-0.5">&rarr;</span>}
                               <div className={`rounded-lg px-2 py-1 text-xs ${
-                                val != null && val !== '' ? 'bg-blue-100 text-blue-800 font-bold' : 'bg-gray-100 text-gray-400'
+                                val != null && val !== '' ? 'bg-forest-100 text-forest-800 font-bold' : 'bg-cream-200 text-bark-500'
                               }`}>
                                 <div className="text-[10px]">{s.l}</div>
                                 <div className="text-sm">{val != null && val !== '' ? val : '—'}</div>
@@ -1413,7 +1413,7 @@ export default function TerritoryDetailPage({ params }) {
                       {/* Actions */}
                       <div className="px-3 py-2 border-t flex justify-between items-center">
                         {!isFailed && !isSuccess && (
-                          <p className="text-[10px] text-gray-400">Log observations via territory visit form above</p>
+                          <p className="text-[10px] text-bark-500">Log observations via territory visit form above</p>
                         )}
                         <Link href={`/nests/${nest.nestrec || nest.breed_id}`}
                           className="text-[11px] text-blue-600 font-medium">

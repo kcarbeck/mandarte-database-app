@@ -16,12 +16,12 @@ export default function RootLayout({ children }) {
         <AuthGate>
           <header className="bg-forest-800 sticky top-0 z-50">
             <div className="max-w-lg mx-auto px-4 py-3 flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-forest-600 flex items-center justify-center text-sm">
+              <div className="w-9 h-9 rounded-full bg-rust-500 flex items-center justify-center text-lg shadow-sm">
                 🐦
               </div>
               <div>
                 <h1 className="text-base font-bold text-cream-50 tracking-tight font-display">Mandarte</h1>
-                <p className="text-2xs text-forest-300 -mt-0.5">Song Sparrow Field Study</p>
+                <p className="text-2xs text-forest-300 font-medium">Song Sparrow Field Study</p>
               </div>
             </div>
           </header>

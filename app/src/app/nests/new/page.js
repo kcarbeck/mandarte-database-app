@@ -7,7 +7,7 @@ import { getTerritoryResidents, birdLabel } from '@/lib/helpers'
 
 export default function NewNestPage() {
   return (
-    <Suspense fallback={<div className="text-center py-8 text-bark-400">Loading...</div>}>
+    <Suspense fallback={<div className="text-center py-8 text-bark-600">Loading...</div>}>
       <NewNestForm />
     </Suspense>
   )
@@ -101,7 +101,7 @@ function NewNestForm() {
     <div className="space-y-4">
       <div>
         <h2 className="section-title">New Nest Card</h2>
-        <p className="text-2xs text-bark-400">Nest record # will be assigned during proofing</p>
+        <p className="text-2xs text-bark-600">Nest record # will be assigned during proofing</p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -166,7 +166,7 @@ function NewNestForm() {
               <option value="NFN">NFN — Never found nest (breeding confirmed by other evidence)</option>
               <option value="UK">UK — Unknown</option>
             </select>
-            <p className="text-2xs text-bark-400 mt-1">Record egg/chick counts via nest observations on the territory page</p>
+            <p className="text-2xs text-bark-600 mt-1">Record egg/chick counts via nest observations on the territory page</p>
           </div>
           <div>
             <label className="label">Nest height</label>

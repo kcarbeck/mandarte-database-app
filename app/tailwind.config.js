@@ -6,66 +6,65 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // ─── Core palette: "Field Station Modern" ───
+        // ─── Core palette: bold naturalist ───────────────
         forest: {
-          50:  '#f0f5f1',
-          100: '#dce8de',
-          200: '#b8d1bc',
-          300: '#8ab592',
-          400: '#5e9968',
-          500: '#3d7a48',
-          600: '#2d5e36',
-          700: '#1f4427',
-          800: '#163320',
-          900: '#0e2216',
+          50:  '#ecf5ee',
+          100: '#d1e7d5',
+          200: '#a3cfab',
+          300: '#6db57a',
+          400: '#3d9a50',
+          500: '#1e7a34',   // bold, saturated green
+          600: '#186429',
+          700: '#134e20',
+          800: '#0f3d1a',
+          900: '#0a2b12',
         },
         cream: {
-          50:  '#fdfcfa',
-          100: '#faf7f2',
-          200: '#f5efe5',
-          300: '#ede4d4',
-          400: '#ddd0b8',
+          50:  '#fefcf8',
+          100: '#faf5ec',
+          200: '#f2e8d5',
+          300: '#e6d5b8',
+          400: '#d4bc94',
         },
         rust: {
-          50:  '#fdf3ef',
-          100: '#fbe4da',
-          200: '#f5c4af',
-          300: '#ed9d7d',
-          400: '#e27650',
-          500: '#c45d3e',
-          600: '#a44830',
-          700: '#833928',
-          800: '#6b3025',
+          50:  '#fef0ea',
+          100: '#fddcce',
+          200: '#fab49c',
+          300: '#f48862',
+          400: '#eb5e30',   // punchy orange-red
+          500: '#d14b1f',
+          600: '#af3c18',
+          700: '#8c3015',
+          800: '#6e2712',
         },
         sage: {
-          50:  '#f4f7f4',
-          100: '#e5ede6',
-          200: '#ccdcce',
-          300: '#a6c3a9',
-          400: '#7ba67f',
-          500: '#5a8a5f',
-          600: '#466e4b',
-          700: '#38583d',
-          800: '#2f4733',
+          50:  '#f0f6f0',
+          100: '#dceadc',
+          200: '#b8d5b8',
+          300: '#8abb8b',
+          400: '#5fa162',
+          500: '#41843f',
+          600: '#336a33',
+          700: '#285428',
+          800: '#204420',
         },
         bark: {
-          50:  '#f8f6f3',
-          100: '#ede8e1',
-          200: '#ddd5c8',
-          300: '#c7b9a5',
-          400: '#b19d82',
-          500: '#9a8368',
-          600: '#7d6a54',
-          700: '#655545',
-          800: '#544839',
+          50:  '#f7f4f0',
+          100: '#eae4db',
+          200: '#d5cab9',
+          300: '#b8a68d',
+          400: '#9a8468',
+          500: '#7d6a51',   // warm brown — readable
+          600: '#655543',
+          700: '#514437',
+          800: '#40372d',
         },
-        // ─── Status colors (high contrast for sunlight) ───
-        status: {
-          active:  '#2d874a',
-          warning: '#d97706',
-          danger:  '#dc2626',
-          info:    '#2563eb',
-          muted:   '#6b7280',
+        // ─── Bold accent pops (inspired by inspo) ───────
+        pop: {
+          coral:  '#e85d75',  // playful pink-coral
+          teal:   '#1a9e8f',  // rich teal
+          gold:   '#e8a820',  // warm gold
+          sky:    '#3b82f6',  // bright blue
         },
       },
       fontFamily: {
@@ -74,15 +73,16 @@ module.exports = {
         mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
       },
       fontSize: {
-        '2xs': ['0.65rem', { lineHeight: '0.9rem' }],
+        '2xs': ['0.7rem', { lineHeight: '1rem' }],
       },
       borderRadius: {
         'card': '0.75rem',
       },
       boxShadow: {
-        'card': '0 1px 3px rgba(14, 34, 22, 0.06), 0 1px 2px rgba(14, 34, 22, 0.04)',
-        'card-hover': '0 4px 12px rgba(14, 34, 22, 0.08), 0 2px 4px rgba(14, 34, 22, 0.04)',
-        'nav': '0 -2px 10px rgba(14, 34, 22, 0.05)',
+        'card': '0 1px 3px rgba(14, 34, 22, 0.08), 0 1px 2px rgba(14, 34, 22, 0.05)',
+        'card-hover': '0 4px 12px rgba(14, 34, 22, 0.1), 0 2px 4px rgba(14, 34, 22, 0.06)',
+        'nav': '0 -2px 10px rgba(14, 34, 22, 0.06)',
+        'bold': '0 4px 0 rgba(14, 34, 22, 0.15)',
       },
     },
   },

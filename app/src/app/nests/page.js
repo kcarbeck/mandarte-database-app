@@ -83,7 +83,7 @@ export default function NestsPage() {
 
   if (loading) {
     return (
-      <div className="text-center py-8 text-bark-400">
+      <div className="text-center py-8 text-bark-600">
         <div className="inline-block w-8 h-8 border-4 border-forest-300 border-t-forest-600 rounded-full animate-spin"></div>
         <p className="mt-2">Loading nests...</p>
       </div>
@@ -103,7 +103,7 @@ export default function NestsPage() {
       </div>
 
       {nests.length === 0 ? (
-        <div className="card bg-cream-100 border-cream-300 text-center text-bark-400 text-sm">
+        <div className="card bg-cream-100 border-cream-300 text-center text-bark-600 text-sm">
           No nests recorded yet this season.
         </div>
       ) : (
@@ -164,9 +164,9 @@ export default function NestsPage() {
                     const dateLabel = s.jd ? formatJD(nest.year || currentYear, parseInt(s.jd)) : null
                     return (
                       <div key={s.k} className="flex items-center">
-                        {i > 0 && <span className="text-bark-300 text-[10px] mx-0.5">→</span>}
+                        {i > 0 && <span className="text-bark-500 text-[10px] mx-0.5">→</span>}
                         <div className={`rounded px-1.5 py-0.5 text-center ${
-                          filled ? 'bg-forest-100 text-forest-800' : 'bg-cream-200 text-bark-400 border border-cream-300'
+                          filled ? 'bg-forest-100 text-forest-800' : 'bg-cream-200 text-bark-500 border border-cream-300'
                         }`}>
                           <div className="text-[9px] leading-tight">{s.l}</div>
                           <div className="text-xs font-bold font-mono leading-tight">{filled ? val : '—'}</div>

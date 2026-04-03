@@ -33,7 +33,7 @@ input, select, textarea, button {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(14, 34, 22, 0.15);
+  background: rgba(14, 34, 22, 0.2);
   border-radius: 4px;
 }
 
@@ -41,27 +41,27 @@ input, select, textarea, button {
 @layer components {
   /* Card base */
   .card {
-    @apply bg-white rounded-card shadow-card border border-cream-300/60;
+    @apply bg-white rounded-card shadow-card border border-cream-300;
   }
   .card-interactive {
     @apply card transition-all duration-150 active:shadow-card-hover active:scale-[0.995];
   }
 
-  /* Badges */
+  /* Badges — bold, readable, punchy */
   .badge {
-    @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium tracking-tight;
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold tracking-tight;
   }
   .badge-success { @apply badge bg-forest-100 text-forest-700; }
   .badge-warning { @apply badge bg-amber-100 text-amber-800; }
   .badge-danger  { @apply badge bg-red-100 text-red-800; }
   .badge-info    { @apply badge bg-blue-100 text-blue-800; }
-  .badge-neutral { @apply badge bg-bark-100 text-bark-700; }
+  .badge-neutral { @apply badge bg-bark-200 text-bark-700; }
   .badge-rust    { @apply badge bg-rust-100 text-rust-700; }
 
-  /* Buttons */
+  /* Buttons — bold and satisfying */
   .btn {
-    @apply inline-flex items-center justify-center font-medium rounded-lg
-           transition-all duration-150 active:scale-[0.97]
+    @apply inline-flex items-center justify-center font-bold rounded-lg
+           transition-all duration-150 active:scale-[0.96]
            focus:outline-none focus:ring-2 focus:ring-offset-1;
   }
   .btn-primary {
@@ -69,7 +69,7 @@ input, select, textarea, button {
            focus:ring-forest-400 shadow-sm;
   }
   .btn-secondary {
-    @apply btn bg-white text-forest-700 border border-forest-200
+    @apply btn bg-white text-forest-800 border-2 border-forest-200
            hover:bg-forest-50 focus:ring-forest-300;
   }
   .btn-accent {
@@ -92,21 +92,21 @@ input, select, textarea, button {
 
   /* Form inputs */
   .input {
-    @apply w-full rounded-lg border border-bark-200 bg-white px-3 py-2.5
+    @apply w-full rounded-lg border-2 border-bark-200 bg-white px-3 py-2.5
            text-sm text-forest-900 placeholder:text-bark-400
-           focus:border-forest-400 focus:ring-2 focus:ring-forest-100 focus:outline-none
+           focus:border-forest-500 focus:ring-2 focus:ring-forest-100 focus:outline-none
            transition-colors duration-150;
   }
   .label {
-    @apply block text-xs font-semibold text-bark-600 uppercase tracking-wider mb-1;
+    @apply block text-xs font-bold text-bark-600 uppercase tracking-wider mb-1;
   }
 
   /* Section headers */
   .section-title {
-    @apply text-sm font-semibold text-forest-800 tracking-tight;
+    @apply text-sm font-bold text-forest-800 tracking-tight;
   }
   .section-subtitle {
-    @apply text-xs text-bark-500;
+    @apply text-xs text-bark-500 font-medium;
   }
 
   /* Status priority classes (for task cards) */
@@ -117,7 +117,7 @@ input, select, textarea, button {
 
   /* Band ID styling */
   .band-id {
-    @apply font-mono text-xs tracking-tight text-forest-700;
+    @apply font-mono text-xs tracking-tight text-forest-800 font-medium;
   }
 }
 

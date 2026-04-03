@@ -41,7 +41,7 @@ export default function AuthGate({ children }) {
             <p className="text-bark-500">W̱SÁNEĆ Territory Research</p>
           </div>
 
-          <p className="text-sm text-bark-500 mb-6 text-center">Enter the field crew password to continue.</p>
+          <p className="text-sm text-bark-600 mb-6 text-center">Enter the field crew password to continue.</p>
 
           <form onSubmit={handleSubmit}>
             <input
@@ -58,7 +58,7 @@ export default function AuthGate({ children }) {
               Enter
             </button>
           </form>
-          <p className="text-2xs text-bark-400 mt-6 text-center">
+          <p className="text-2xs text-bark-600 mt-6 text-center">
             Contact Katherine if you need the password.
           </p>
         </div>
