@@ -20,7 +20,7 @@ export default function RootLayout({ children }) {
                 🐦
               </div>
               <div>
-                <h1 className="text-base font-bold text-cream-50 tracking-tight font-display">Mandarte</h1>
+                <h1 className="text-base font-bold text-cream-50 tracking-tight">Mandarte</h1>
                 <p className="text-2xs text-forest-300 font-medium">Song Sparrow Field Study</p>
               </div>
             </div>

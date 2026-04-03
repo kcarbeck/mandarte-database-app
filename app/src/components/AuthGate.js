@@ -37,7 +37,7 @@ export default function AuthGate({ children }) {
         <div className="card shadow-lg p-6 sm:p-8 w-full max-w-sm">
           <div className="mb-6 text-center">
             <div className="text-3xl mb-2">🦅</div>
-            <h1 className="font-display text-2xl text-forest-800 mb-1">Mandarte Field App</h1>
+            <h1 className="text-2xl font-bold text-forest-800 mb-1">Mandarte Field App</h1>
             <p className="text-bark-500">W̱SÁNEĆ Territory Research</p>
           </div>
 
