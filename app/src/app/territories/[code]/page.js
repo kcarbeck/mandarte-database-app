@@ -1379,28 +1379,6 @@ export default function TerritoryDetailPage({ params }) {
                         })()}
                       </div>
 
-                      {/* Pipeline counts (expanded view — slightly larger) */}
-                      <div className="px-3 py-2 flex items-center gap-1 text-center">
-                        {[
-                          { k: 'eggs', l: 'Eggs' }, { k: 'hatch', l: 'Hatch' },
-                          { k: 'band', l: 'Band' }, { k: 'fledge', l: 'Fledge' },
-                          { k: 'indep', l: 'Indep' },
-                        ].map((s, i) => {
-                          const val = nest[s.k]
-                          return (
-                            <div key={s.k} className="flex items-center">
-                              {i > 0 && <span className="text-bark-300 mx-0.5">&rarr;</span>}
-                              <div className={`${
-                                val != null && val !== '' ? 'stage-box-filled' : 'stage-box-empty'
-                              }`}>
-                                <div className="text-[10px]">{s.l}</div>
-                                <div className="text-sm">{val != null && val !== '' ? val : '—'}</div>
-                              </div>
-                            </div>
-                          )
-                        })}
-                      </div>
-
                       {/* Fail/success display */}
                       {nest.fail_code && (
                         <div className={`mx-3 mb-2 text-xs px-2 py-1 rounded ${
