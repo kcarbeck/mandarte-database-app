@@ -570,7 +570,7 @@ export default function NestDetailPage({ params }) {
            ╚═══════════════════════════════════════════════════════════════╝ */}
         <div className="card rounded-t-lg border-b-0">
           <div className="flex justify-between items-start mb-2">
-            <h2 className="text-lg font-bold">
+            <h2 className="text-lg font-bold text-forest-800">
               {nest.territory && nestSequence
                 ? `Terr ${nest.territory}, Nest #${nestSequence}`
                 : nest.nestrec ? `Nest #${nest.nestrec}` : 'Nest (new)'}
@@ -606,7 +606,7 @@ export default function NestDetailPage({ params }) {
               return (
                 <div key={s.k} className="flex items-center">
                   {i > 0 && <span className="text-bark-300 mx-0.5">&rarr;</span>}
-                  <div className={`stage-box py-1 ${
+                  <div className={`${
                     val !== '' && val != null ? 'stage-box-filled' : 'stage-box-empty'
                   }`}>
                     <div className="text-[10px]">{s.l}</div>

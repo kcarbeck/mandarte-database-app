@@ -752,7 +752,7 @@ export default function BirdsPage() {
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h2 className="section-title">Birds — {currentYear}</h2>
+        <h2 className="text-lg font-bold text-forest-800">Birds — {currentYear}</h2>
         <button onClick={() => setShowAddForm(!showAddForm)}
           className="btn-primary btn-md">
           + Add Bird
@@ -857,7 +857,7 @@ export default function BirdsPage() {
                           {b.is_immigrant ? ' — immigrant' : ''}
                         </div>
                         {b.confirmedDead && (
-                          <div className="text-xs text-red-600 font-medium mt-0.5">
+                          <div className="text-xs text-rust-600 font-medium mt-0.5">
                             Confirmed dead — combo may have been reused. Verify carefully!
                           </div>
                         )}
@@ -1087,7 +1087,7 @@ export default function BirdsPage() {
                   <button onClick={() => {
                     setModal({ type: 'end', data: r })
                     setModalForm({ reason: '', notes: '', endDate: localDateString(), moveToNew: false, newTerritory: '' })
-                  }} className="text-red-600 hover:underline">End / Move</button>
+                  }} className="text-rust-600 hover:underline">End / Move</button>
                 </div>
               )}
 
@@ -1210,7 +1210,7 @@ export default function BirdsPage() {
             <div className="flex gap-2">
               <button onClick={handleEndAssignment}
                 className={`flex-1 btn btn-md text-white ${
-                  modalForm.moveToNew ? 'bg-forest-600 hover:bg-forest-700 focus:ring-forest-400' : 'bg-red-600 hover:bg-red-700 focus:ring-red-400'
+                  modalForm.moveToNew ? 'bg-forest-600 hover:bg-forest-700 focus:ring-forest-400' : 'bg-rust-600 hover:bg-rust-700 focus:ring-rust-400'
                 }`}>
                 {modalForm.moveToNew ? 'Move Bird' : 'End Assignment'}
               </button>

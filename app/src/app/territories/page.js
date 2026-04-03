@@ -114,7 +114,7 @@ export default function TerritoriesPage() {
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h2 className="section-title">Territories — {currentYear}</h2>
+        <h2 className="text-lg font-bold text-forest-800">Territories — {currentYear}</h2>
         <Link href="/birds" className="btn-primary btn-md">
           + Setup Birds
         </Link>

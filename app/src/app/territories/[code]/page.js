@@ -540,7 +540,7 @@ export default function TerritoryDetailPage({ params }) {
       {/* Territory card header */}
       <div className="card p-4">
         <div className="flex justify-between items-start">
-          <h2 className="text-xl font-bold text-forest-800">Territory {territoryCode}</h2>
+          <h2 className="text-lg font-bold text-forest-800">Territory {territoryCode}</h2>
           {daysSince !== null && (
             <span className={`text-2xs px-2 py-0.5 rounded-full font-medium ${
               !isOverdue ? 'badge badge-success' :
@@ -1213,7 +1213,7 @@ export default function TerritoryDetailPage({ params }) {
                       </div>
                       <div className="flex items-center gap-1.5">
                         {nest.field_complete && (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded badge-success font-bold">Done</span>
+                          <span className="badge badge-success text-2xs">Done</span>
                         )}
                         <span className={`text-xs px-2 py-0.5 rounded ${status.color}`}>{status.label}</span>
                         <span className="text-bark-500 text-sm">{isExpanded ? '▾' : '▸'}</span>
@@ -1390,7 +1390,7 @@ export default function TerritoryDetailPage({ params }) {
                           return (
                             <div key={s.k} className="flex items-center">
                               {i > 0 && <span className="text-bark-300 mx-0.5">&rarr;</span>}
-                              <div className={`stage-box py-1 ${
+                              <div className={`${
                                 val != null && val !== '' ? 'stage-box-filled' : 'stage-box-empty'
                               }`}>
                                 <div className="text-[10px]">{s.l}</div>

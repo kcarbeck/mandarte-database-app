@@ -666,7 +666,7 @@ export default function Home() {
         <div className="flex items-center gap-2 mb-2">
           <h2 className="section-title">Today</h2>
           {todayTasks.length > 0 && (
-            <span className="badge-rust text-2xs">{todayTasks.length}</span>
+            <span className="badge badge-rust text-2xs">{todayTasks.length}</span>
           )}
         </div>
         {todayTasks.length === 0 ? (
@@ -730,7 +730,7 @@ export default function Home() {
           <div className="flex items-center gap-2">
             <h2 className="section-title">Inbox</h2>
             {incompleteTasks.length > 0 && (
-              <span className="badge-neutral text-2xs">{incompleteTasks.length}</span>
+              <span className="badge badge-neutral text-2xs">{incompleteTasks.length}</span>
             )}
           </div>
           <button onClick={() => setShowAddTask(!showAddTask)}
@@ -780,10 +780,10 @@ export default function Home() {
             {incompleteTasks.map(task => (
               <div key={task.task_id} className="card flex items-start gap-2.5 p-3">
                 <button onClick={() => toggleTask(task.task_id, task.completed)}
-                  className="mt-0.5 w-5 h-5 rounded-md border-2 border-bark-300 flex-shrink-0 transition-colors active:bg-forest-100 active:border-forest-400" />
+                  className="mt-0.5 w-5 h-5 rounded border-2 border-bark-300 flex-shrink-0 transition-colors active:bg-forest-100 active:border-forest-400" />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5">
-                    {task.priority === 'urgent' && <span className="w-2 h-2 rounded-full bg-red-500 flex-shrink-0" />}
+                    {task.priority === 'urgent' && <span className="w-2 h-2 rounded-full bg-rust-500 flex-shrink-0" />}
                     {task.priority === 'low' && <span className="w-2 h-2 rounded-full bg-bark-300 flex-shrink-0" />}
                     <span className="text-sm text-forest-800">{task.title}</span>
                   </div>
@@ -808,7 +808,7 @@ export default function Home() {
               {completedTasks.map(task => (
                 <div key={task.task_id} className="flex items-center gap-2.5 bg-cream-100 rounded-card p-3">
                   <button onClick={() => toggleTask(task.task_id, task.completed)}
-                    className="w-5 h-5 rounded-md border-2 border-forest-300 bg-forest-100 flex-shrink-0 flex items-center justify-center text-forest-600 text-xs font-bold">✓</button>
+                    className="w-5 h-5 rounded border-2 border-forest-300 bg-forest-100 flex-shrink-0 flex items-center justify-center text-forest-600 text-xs font-bold">✓</button>
                   <span className="text-sm text-bark-500 line-through flex-1">{task.title}</span>
                   <button onClick={() => deleteTask(task.task_id)} className="text-bark-500 active:text-red-500 text-xs px-1 transition-colors">✕</button>
                 </div>

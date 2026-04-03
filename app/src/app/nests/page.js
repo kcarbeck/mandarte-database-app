@@ -93,7 +93,7 @@ export default function NestsPage() {
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h2 className="text-lg font-bold text-bark-900">Nests ({currentYear})</h2>
+        <h2 className="text-lg font-bold text-forest-800">Nests — {currentYear}</h2>
         <Link
           href="/nests/new"
           className="btn-accent btn-md"

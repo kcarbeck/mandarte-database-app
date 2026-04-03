@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 /* ─── Fonts ──────────────────────────────────────────── */
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300..700;1,9..40,300..700&family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300..700;1,9..40,300..700&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 /* ─── Base resets for field use ──────────────────────── */
 html {
@@ -54,32 +54,26 @@ input, select, textarea, button {
   transform: scale(0.995);
 }
 
-/* Stage pipeline — fixed width, uniform sizing */
-.stage-box {
-  border-radius: 0.5rem;
-  min-width: 3rem;
-  width: 3.5rem;
-  padding: 2px 0;
-  text-align: center;
+/* Stage pipeline — fixed width, uniform sizing. !important needed to
+   override any Tailwind utility classes applied alongside these. */
+.stage-box,
+.stage-box-filled,
+.stage-box-empty {
+  border-radius: 0.5rem !important;
+  min-width: 3.5rem !important;
+  width: 3.5rem !important;
+  padding: 2px 4px !important;
+  text-align: center !important;
+  box-sizing: border-box !important;
 }
 .stage-box-filled {
-  border-radius: 0.5rem;
-  min-width: 3rem;
-  width: 3.5rem;
-  padding: 2px 0;
-  text-align: center;
-  background-color: #d1e7d5;
-  color: #0f3d1a;
-  font-weight: 700;
+  background-color: #d1e7d5 !important;
+  color: #0f3d1a !important;
+  font-weight: 700 !important;
 }
 .stage-box-empty {
-  border-radius: 0.5rem;
-  min-width: 3rem;
-  width: 3.5rem;
-  padding: 2px 0;
-  text-align: center;
-  background-color: #faf5ec;
-  color: #9a8468;
+  background-color: #f2e8d5 !important;
+  color: #9a8468 !important;
 }
 
 /* ─── Component layers ──────────────────────────────── */
@@ -90,9 +84,9 @@ input, select, textarea, button {
     @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold tracking-tight;
   }
   .badge-success { @apply badge bg-forest-100 text-forest-700; }
-  .badge-warning { @apply badge bg-amber-100 text-amber-800; }
-  .badge-danger  { @apply badge bg-red-100 text-red-800; }
-  .badge-info    { @apply badge bg-blue-100 text-blue-800; }
+  .badge-warning { @apply badge bg-amber-100 text-amber-700; }
+  .badge-danger  { @apply badge bg-rust-100 text-rust-700; }
+  .badge-info    { @apply badge bg-sage-100 text-sage-700; }
   .badge-neutral { @apply badge bg-bark-200 text-bark-700; }
   .badge-rust    { @apply badge bg-rust-100 text-rust-700; }
 
@@ -148,10 +142,10 @@ input, select, textarea, button {
   }
 
   /* Status priority classes (for task cards) */
-  .priority-critical { @apply bg-red-50 border-red-300 text-red-800; }
+  .priority-critical { @apply bg-rust-50 border-rust-300 text-rust-800; }
   .priority-due      { @apply bg-amber-50 border-amber-300 text-amber-800; }
   .priority-routine   { @apply bg-forest-50 border-forest-300 text-forest-800; }
-  .priority-supervisor { @apply bg-blue-50 border-blue-300 text-blue-800; }
+  .priority-supervisor { @apply bg-sage-50 border-sage-300 text-sage-800; }
 
   /* Band ID styling */
   .band-id {

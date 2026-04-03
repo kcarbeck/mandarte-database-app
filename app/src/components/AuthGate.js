@@ -52,7 +52,7 @@ export default function AuthGate({ children }) {
               className="input w-full mb-3"
               autoFocus
             />
-            {error && <p className="text-red-600 text-xs mb-3">{error}</p>}
+            {error && <p className="text-rust-600 text-xs mb-3">{error}</p>}
             <button type="submit"
               className="btn-primary btn-lg w-full">
               Enter
