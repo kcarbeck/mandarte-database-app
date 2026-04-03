@@ -776,17 +776,20 @@ export default function BirdsPage() {
       )}
 
       {/* Filter tabs */}
-      <div className="flex gap-1 text-xs flex-wrap">
-        {[
-          { key: 'all', label: `All (${getRoster().length})` },
-          { key: 'males', label: '♂' },
-          { key: 'females', label: '♀' },
-          { key: 'unbanded', label: 'Unbanded' },
-          { key: 'floaters', label: 'Floaters' },
-          { key: 'juveniles', label: `Juv${fledglings.length > 0 ? ` (${fledglings.length})` : ''}` },
-        ].map(f => (
+      <div className="flex gap-1 text-2xs flex-wrap">
+        {(() => {
+          const r = getRoster()
+          return [
+            { key: 'all', label: `All (${r.length})` },
+            { key: 'males', label: `Males (${r.filter(x => x.sex === 2).length})` },
+            { key: 'females', label: `Females (${r.filter(x => x.sex === 1).length})` },
+            { key: 'unbanded', label: `Unbanded (${r.filter(x => x.bird?.is_unbanded || x.band_id < 0).length})` },
+            { key: 'floaters', label: `Floaters (${r.filter(x => x.role === 'floater').length})` },
+            { key: 'juveniles', label: `Juv (${fledglings.length})` },
+          ]
+        })().map(f => (
           <button key={f.key} onClick={() => setFilter(f.key)}
-            className={`btn-icon px-3 py-1.5 rounded-full font-bold ${
+            className={`btn-icon px-2.5 py-1 rounded-full font-bold ${
               filter === f.key ? 'bg-forest-600 text-white' : 'bg-bark-100 text-bark-600'
             }`}>
             {f.label}
@@ -1036,18 +1039,19 @@ export default function BirdsPage() {
         </div>
       ) : (
         <div className="space-y-2">
-          {roster.map((r, i) => (
+          {roster.map((r, i) => {
+            const combo = r.color_combo || r.bird?.color_combo
+            const isUnbanded = r.bird?.is_unbanded || r.band_id < 0
+            return (
             <div key={r.assignment_id || i} className="card p-3">
-              <div className="flex justify-between items-start">
-                <div>
-                  <span className="band-id text-sm">
-                    {r.color_combo || (r.bird?.color_combo) || (r.bird?.is_unbanded || r.band_id < 0 ? 'Unbanded' : '—')}
-                  </span>
-                  {r.band_id > 0 && (
-                    <span className="text-xs text-bark-500 ml-2">{r.band_id}</span>
-                  )}
-                  <span className={`ml-2 text-xs font-bold ${r.sex === 2 ? 'text-forest-600' : r.sex === 1 ? 'text-rust-500' : 'text-bark-400'}`}>
+              {/* Row 1: combo + sex | territory badge */}
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-2">
+                  <span className={`text-sm font-bold ${r.sex === 2 ? 'text-forest-600' : r.sex === 1 ? 'text-rust-500' : 'text-bark-400'}`}>
                     {r.sex === 2 ? '♂' : r.sex === 1 ? '♀' : '?'}
+                  </span>
+                  <span className="band-id text-base font-bold">
+                    {combo || (isUnbanded ? 'Unbanded' : '—')}
                   </span>
                 </div>
                 <div className="flex items-center gap-1">
@@ -1063,18 +1067,23 @@ export default function BirdsPage() {
                 </div>
               </div>
 
-              {r.notes && <p className="text-xs text-bark-500 mt-1">{r.notes}</p>}
+              {/* Row 2: band number */}
+              {r.band_id > 0 && (
+                <div className="text-xs text-bark-500 mt-0.5 ml-7">{r.band_id}</div>
+              )}
 
-              {/* Actions for currently assigned birds */}
+              {r.notes && <p className="text-xs text-bark-500 mt-1 ml-7">{r.notes}</p>}
+
+              {/* Actions */}
               {!r.end_date && (
-                <div className="flex gap-3 mt-2 text-xs font-medium">
-                  {(r.bird?.is_unbanded || r.band_id < 0) && (
+                <div className="flex gap-3 mt-2 ml-7 text-2xs font-medium">
+                  {isUnbanded && (
                     <button onClick={() => {
                       setModal({ type: 'band', data: r })
                       setModalForm({ newBandId: '', colorCombo: '' })
                     }} className="text-rust-600 hover:underline">Band this bird</button>
                   )}
-                  {r.band_id > 0 && !r.bird?.is_unbanded && (
+                  {r.band_id > 0 && !isUnbanded && (
                     <button onClick={() => {
                       setModal({ type: 'correct', data: r })
                       setModalForm({
@@ -1092,7 +1101,8 @@ export default function BirdsPage() {
               )}
 
             </div>
-          ))}
+            )
+          })}
         </div>
       ))}
 
