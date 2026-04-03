@@ -776,17 +776,17 @@ export default function BirdsPage() {
       )}
 
       {/* Filter tabs */}
-      <div className="flex gap-1 text-xs overflow-x-auto scrollbar-hide">
+      <div className="flex gap-1 text-xs flex-wrap">
         {[
           { key: 'all', label: `All (${getRoster().length})` },
-          { key: 'males', label: 'Males' },
-          { key: 'females', label: 'Females' },
+          { key: 'males', label: '♂' },
+          { key: 'females', label: '♀' },
           { key: 'unbanded', label: 'Unbanded' },
           { key: 'floaters', label: 'Floaters' },
-          { key: 'juveniles', label: `Juveniles${fledglings.length > 0 ? ` (${fledglings.length})` : ''}` },
+          { key: 'juveniles', label: `Juv${fledglings.length > 0 ? ` (${fledglings.length})` : ''}` },
         ].map(f => (
           <button key={f.key} onClick={() => setFilter(f.key)}
-            className={`px-3 py-1.5 rounded-full whitespace-nowrap font-bold ${
+            className={`btn-icon px-3 py-1.5 rounded-full font-bold ${
               filter === f.key ? 'bg-forest-600 text-white' : 'bg-bark-100 text-bark-600'
             }`}>
             {f.label}
