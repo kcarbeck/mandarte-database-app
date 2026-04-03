@@ -120,14 +120,14 @@ export default function TerritoriesPage() {
         </Link>
       </div>
 
-      <p className="text-2xs text-bark-400">
+      <p className="text-2xs text-bark-600">
         Add birds and assign them to territories from the Birds tab. Territories appear here once they have assigned birds or visits.
       </p>
 
       {territories.length === 0 ? (
         <div className="card p-6 text-center">
-          <p className="text-sm text-bark-400">No territories yet.</p>
-          <p className="mt-2 text-sm text-bark-400">Go to the <Link href="/birds" className="text-forest-600 font-semibold hover:underline">Birds tab</Link> to add birds and assign them to territories.</p>
+          <p className="text-sm text-bark-600">No territories yet.</p>
+          <p className="mt-2 text-sm text-bark-600">Go to the <Link href="/birds" className="text-forest-600 font-semibold hover:underline">Birds tab</Link> to add birds and assign them to territories.</p>
         </div>
       ) : (
         <div className="space-y-2">
@@ -169,11 +169,11 @@ export default function TerritoriesPage() {
                     {days === null ? 'No visits' : days === 0 ? 'Today' : `${days}d ago`}
                   </span>
                 </div>
-                <div className="flex gap-3 mt-2 text-2xs text-bark-400">
+                <div className="flex gap-3 mt-2 text-2xs text-bark-600">
                   <span>♂ <span className="band-id">{birdLabel(terr.male)}</span></span>
                   <span>♀ <span className="band-id">{birdLabel(terr.female)}</span></span>
                 </div>
-                <div className="text-2xs text-bark-400 mt-1">
+                <div className="text-2xs text-bark-600 mt-1">
                   {terr.visitCount} visit{terr.visitCount !== 1 ? 's' : ''}
                   <span className="ml-2">· every {interval}d</span>
                 </div>

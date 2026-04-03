@@ -554,7 +554,7 @@ export default function TerritoryDetailPage({ params }) {
 
         {/* Territory status + visit schedule */}
         <div className="mt-2 flex items-center gap-2 flex-wrap">
-          <span className="text-2xs text-bark-400">Visit every {visitInterval}d</span>
+          <span className="text-2xs text-bark-600">Visit every {visitInterval}d</span>
           {terrStatus.status === TERRITORY_STATUS.SINGLE_MALE && (
             <span className="badge badge-info text-2xs">♂ Single male</span>
           )}
@@ -573,7 +573,7 @@ export default function TerritoryDetailPage({ params }) {
           <div>
             <div className="text-2xs font-semibold text-blue-600 mb-2">♂ Males</div>
             {allAssignments.filter(a => a.sex === 2).length === 0 ? (
-              <div className="flex items-center gap-2 text-sm text-bark-400">
+              <div className="flex items-center gap-2 text-sm text-bark-600">
                 <span>— No male assigned</span>
                 <Link href="/birds" className="text-2xs text-forest-600 font-semibold hover:underline">Assign</Link>
               </div>
@@ -584,13 +584,13 @@ export default function TerritoryDetailPage({ params }) {
                     !a.end_date ? 'bg-blue-50 border border-blue-200' : 'bg-cream-100 border border-cream-200'
                   }`}>
                     <div className="flex items-center gap-2">
-                      <span className={`band-id ${a.end_date ? 'text-bark-400' : 'text-blue-600'}`}>
+                      <span className={`band-id ${a.end_date ? 'text-bark-500' : 'text-blue-600'}`}>
                         {birdLabel(a)}
                       </span>
                       {a.confirmed && <span className="text-2xs text-sage-400">✓</span>}
                       {!a.end_date && <span className="text-2xs bg-blue-600 text-white px-1.5 py-0.5 rounded">current</span>}
                     </div>
-                    <span className="text-2xs text-bark-400">
+                    <span className="text-2xs text-bark-600">
                       {a.start_date}{a.end_date ? ` → ${a.end_date}` : ' → present'}
                     </span>
                   </div>
@@ -601,7 +601,7 @@ export default function TerritoryDetailPage({ params }) {
           <div>
             <div className="text-2xs font-semibold text-pink-600 mb-2">♀ Females</div>
             {allAssignments.filter(a => a.sex === 1).length === 0 ? (
-              <div className="flex items-center gap-2 text-sm text-bark-400">
+              <div className="flex items-center gap-2 text-sm text-bark-600">
                 <span>— No female assigned</span>
                 <Link href="/birds" className="text-2xs text-forest-600 font-semibold hover:underline">Assign</Link>
               </div>
@@ -612,13 +612,13 @@ export default function TerritoryDetailPage({ params }) {
                     !a.end_date ? 'bg-pink-50 border border-pink-200' : 'bg-cream-100 border border-cream-200'
                   }`}>
                     <div className="flex items-center gap-2">
-                      <span className={`band-id ${a.end_date ? 'text-bark-400' : 'text-pink-600'}`}>
+                      <span className={`band-id ${a.end_date ? 'text-bark-500' : 'text-pink-600'}`}>
                         {birdLabel(a)}
                       </span>
                       {a.confirmed && <span className="text-2xs text-sage-400">✓</span>}
                       {!a.end_date && <span className="text-2xs bg-pink-600 text-white px-1.5 py-0.5 rounded">current</span>}
                     </div>
-                    <span className="text-2xs text-bark-400">
+                    <span className="text-2xs text-bark-600">
                       {a.start_date}{a.end_date ? ` → ${a.end_date}` : ' → present'}
                     </span>
                   </div>
@@ -628,7 +628,7 @@ export default function TerritoryDetailPage({ params }) {
           </div>
         </div>
 
-        <div className="text-2xs text-bark-400 mt-3">
+        <div className="text-2xs text-bark-600 mt-3">
           {visits.length} visits · {nests.length} nest{nests.length !== 1 ? 's' : ''} this season
         </div>
       </div>
@@ -716,7 +716,7 @@ export default function TerritoryDetailPage({ params }) {
                     <option value="no_change">Use nest cards below</option>
                     <option value="new_nest_found">New nest!</option>
                   </select>
-                  <p className="text-2xs text-bark-400 mt-0.5">Record nest observations in the cards below</p>
+                  <p className="text-2xs text-bark-600 mt-0.5">Record nest observations in the cards below</p>
                 </>
               ) : (
                 <select value={visitForm.nest_status_flag}
@@ -742,7 +742,7 @@ export default function TerritoryDetailPage({ params }) {
           </div>
 
           <div>
-            <label className="label">Other sparrows seen <span className="text-bark-400 font-normal text-2xs">(optional — band combos of floaters, neighbours, etc.)</span></label>
+            <label className="label">Other sparrows seen <span className="text-bark-600 font-normal text-2xs">(optional — band combos of floaters, neighbours, etc.)</span></label>
             <input type="text" value={visitForm.other_birds_notes}
               onChange={e => setVisitForm({ ...visitForm, other_birds_notes: e.target.value })}
               placeholder="e.g. RW-SG on south edge"
@@ -753,7 +753,7 @@ export default function TerritoryDetailPage({ params }) {
           {hasActiveNests && (
             <div className="border-t border-cream-300 pt-4">
               <h4 className="section-subtitle mb-1">Nest Observations</h4>
-              <p className="text-2xs text-bark-400 mb-3">Stage and counts saved to each nest's card.</p>
+              <p className="text-2xs text-bark-600 mb-3">Stage and counts saved to each nest's card.</p>
 
               {/* Nest selector — show buttons when multiple nests */}
               {activeNests.length > 1 && (
@@ -1083,9 +1083,9 @@ export default function TerritoryDetailPage({ params }) {
                                           <input type="checkbox" checked={isIndep}
                                             onChange={e => setNestObs({ ...nestObs, [nest.breed_id]: { ...obs, [`kid${i}_indep`]: e.target.checked } })}
                                             className="w-4 h-4 rounded" />
-                                          <span className="text-2xs text-bark-400 font-medium">#{i}</span>
+                                          <span className="text-2xs text-bark-600 font-medium">#{i}</span>
                                           <span className="text-sm font-mono font-semibold text-bark-600">{combo || '—'}</span>
-                                          <span className="text-2xs text-bark-400">({kidBand})</span>
+                                          <span className="text-2xs text-bark-600">({kidBand})</span>
                                           {isIndep && <span className="ml-auto text-sage-600 text-2xs font-bold">✓</span>}
                                         </label>
                                       )
@@ -1437,7 +1437,7 @@ export default function TerritoryDetailPage({ params }) {
           Visit Log ({groupedVisits.length})
         </h3>
         {groupedVisits.length === 0 ? (
-          <p className="text-sm text-bark-400 card p-4">No visits logged yet.</p>
+          <p className="text-sm text-bark-600 card p-4">No visits logged yet.</p>
         ) : (
           <div className="card overflow-hidden divide-y divide-cream-200">
             {groupedVisits.map((v, idx) => {
@@ -1514,9 +1514,9 @@ export default function TerritoryDetailPage({ params }) {
                     <div className="flex items-baseline justify-between gap-2">
                       <div className="flex items-baseline gap-2 text-2xs">
                         <span className="text-forest-700 font-semibold whitespace-nowrap">{fmtVisitDate(v.visit_date)}</span>
-                        <span className="text-bark-400 whitespace-nowrap">{fmtVisitTime(v.visit_time)}</span>
-                        {seenParts && <span className="text-bark-400">{seenParts}</span>}
-                        {v.minutes_spent != null && <span className="text-bark-400">{v.minutes_spent} min</span>}
+                        <span className="text-bark-600 whitespace-nowrap">{fmtVisitTime(v.visit_time)}</span>
+                        {seenParts && <span className="text-bark-600">{seenParts}</span>}
+                        {v.minutes_spent != null && <span className="text-bark-600">{v.minutes_spent} min</span>}
                       </div>
                       <button type="button"
                         onClick={() => {
@@ -1532,7 +1532,7 @@ export default function TerritoryDetailPage({ params }) {
                     </div>
                     {/* Notes */}
                     {v.notes && <p className="text-2xs text-bark-600 mt-1 leading-snug">{v.notes}</p>}
-                    {v.other_birds_notes && <p className="text-2xs text-bark-400 mt-1">Other birds: {v.other_birds_notes}</p>}
+                    {v.other_birds_notes && <p className="text-2xs text-bark-600 mt-1">Other birds: {v.other_birds_notes}</p>}
                     {/* Nest observations from this visit */}
                     {v.nestObs.length > 0 && (
                       <div className="mt-2 space-y-1">
@@ -1549,7 +1549,7 @@ export default function TerritoryDetailPage({ params }) {
                             <div key={nv.nest_visit_id} className="flex items-baseline gap-1.5 text-2xs">
                               <span className="badge badge-info text-2xs shrink-0">{nv.nestLabel}</span>
                               <span className="text-forest-700">{nestContent || '—'}</span>
-                              {nv.comments && <span className="text-bark-400">— {nv.comments}</span>}
+                              {nv.comments && <span className="text-bark-600">— {nv.comments}</span>}
                             </div>
                           )
                         })}
@@ -1572,11 +1572,11 @@ export default function TerritoryDetailPage({ params }) {
                 <div key={`n-${v.nest_visit_id}`} className="px-3 py-3 bg-cream-50">
                   <div className="flex items-baseline gap-2 text-2xs">
                     <span className="text-forest-700 font-semibold whitespace-nowrap">{fmtVisitDate(v.visit_date)}</span>
-                    <span className="text-bark-400 whitespace-nowrap">{fmtVisitTime(v.visit_time)}</span>
+                    <span className="text-bark-600 whitespace-nowrap">{fmtVisitTime(v.visit_time)}</span>
                     <span className="badge badge-info text-2xs">{v.nestLabel}</span>
                   </div>
                   <p className="text-2xs text-forest-700 mt-1">{nestContent || '—'}</p>
-                  {v.comments && <p className="text-2xs text-bark-400 mt-1">{v.comments}</p>}
+                  {v.comments && <p className="text-2xs text-bark-600 mt-1">{v.comments}</p>}
                 </div>
               )
             })}
